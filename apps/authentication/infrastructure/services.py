@@ -107,7 +107,7 @@ class KnoxAuthenticationServiceAdapter(AuthenticationServiceInterface):
                 "Auth token generation failed. Try again later."
             ) from e
 
-        return {"token": token}
+        return {"auth": token}
 
     def verify_auth_token(self, auth_token: str) -> bool:
         digest = crypto.hash_token(auth_token)

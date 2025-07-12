@@ -39,7 +39,9 @@ All API endpoints are prefixed with `/api/v1/`.
             "id": "string",
             "email": "string",
             "username": "string",
-            "is_verified": false
+            "is_email_verified": false,
+            "created_at": "datetime",
+            "updated_at": "datetime"
         },
         "status_code": 201
     }
@@ -56,7 +58,40 @@ All API endpoints are prefixed with `/api/v1/`.
     }
     ```
 
-### 1.2. ✅ Verify Email
+### 1.2. 🔄 Request Email Verification
+
+-   **🔗 Endpoint:** `/api/v1/authentication/verify-email/request/`
+-   **📡 HTTP Method:** `POST`
+-   **📝 Description:** Requests an email verification OTP code for an unverified user.
+-   **🔐 Authentication:** None (Public)
+-   **📤 Request Body:**
+    ```json
+    {
+        "email": "string" (required)
+    }
+    ```
+-   **✅ Success Response (Status: 200 OK):**
+    ```json
+    {
+        "success": true,
+        "message": "Email verification OTP code sent successfully.",
+        "data": {},
+        "status_code": 200
+    }
+    ```
+-   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
+    ```json
+    {
+        "success": false,
+        "message": "Error description",
+        "errors": {
+            "field_name": ["Error message"]
+        },
+        "status_code": 400
+    }
+    ```
+
+### 1.3. ✅ Verify Email
 
 -   **🔗 Endpoint:** `/api/v1/authentication/verify-email/`
 -   **📡 HTTP Method:** `POST`
@@ -90,7 +125,7 @@ All API endpoints are prefixed with `/api/v1/`.
     }
     ```
 
-### 1.3. 🔑 Login User
+### 1.4. 🔑 Login User
 
 -   **🔗 Endpoint:** `/api/v1/authentication/login/`
 -   **📡 HTTP Method:** `POST`
@@ -109,10 +144,12 @@ All API endpoints are prefixed with `/api/v1/`.
         "success": true,
         "message": "Login successful.",
         "data": {
-            "user_id": "string",
+            "id": "string",
             "email": "string",
             "username": "string",
-            "auth_token": "string"
+            "tokens": {
+                "auth": "string"
+            }
         },
         "status_code": 200
     }
@@ -129,7 +166,7 @@ All API endpoints are prefixed with `/api/v1/`.
     }
     ```
 
-### 1.4. 🚪 Logout User
+### 1.5. 🚪 Logout User
 
 -   **🔗 Endpoint:** `/api/v1/authentication/logout/`
 -   **📡 HTTP Method:** `POST`
@@ -162,9 +199,9 @@ All API endpoints are prefixed with `/api/v1/`.
     }
     ```
 
-### 1.5. 🔄 Request Password Reset
+### 1.6. 🔄 Request Password Reset
 
--   **🔗 Endpoint:** `/api/v1/authentication/password-reset/`
+-   **🔗 Endpoint:** `/api/v1/authentication/password-reset/request/`
 -   **📡 HTTP Method:** `POST`
 -   **📝 Description:** Requests a password reset for a verified user, sending an OTP to their email.
 -   **🔐 Authentication:** None (Public)
@@ -195,9 +232,9 @@ All API endpoints are prefixed with `/api/v1/`.
     }
     ```
 
-### 1.6. 🔐 Confirm Password Reset
+### 1.7. 🔐 Confirm Password Reset
 
--   **🔗 Endpoint:** `/api/v1/authentication/password-reset/confirm/`
+-   **🔗 Endpoint:** `/api/v1/authentication/password-reset/`
 -   **📡 HTTP Method:** `POST`
 -   **📝 Description:** Confirms the password reset using the OTP code and sets a new password.
 -   **🔐 Authentication:** None (Public)
@@ -253,9 +290,7 @@ All API endpoints are prefixed with `/api/v1/`.
         "message": "User fetched successfully.",
         "data": {
             "id": "string",
-            "username": "string",
-            "email": "string",
-            "is_verified": true
+            "username": "string"
         },
         "status_code": 200
     }
@@ -271,8 +306,6 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 400
     }
     ```
-
-### 2.2. ✏️ Update User
 
 ### 2.2. ✏️ Update User
 
@@ -293,9 +326,7 @@ All API endpoints are prefixed with `/api/v1/`.
         "message": "User update successful.",
         "data": {
             "id": "string",
-            "username": "string",
-            "email": "string",
-            "is_verified": true
+            "username": "string"
         },
         "status_code": 200
     }
@@ -349,7 +380,12 @@ All API endpoints are prefixed with `/api/v1/`.
             "occupation": "string",
             "profile_picture": "url_to_image",
             "height": "decimal",
-            "weight": "decimal"
+            "weight": "decimal",
+            "id": "string",
+            "following_ids": [],
+            "follower_ids": [],
+            "created_at": "datetime",
+            "updated_at": "datetime"
         },
         "status_code": 201
     }
@@ -391,7 +427,12 @@ All API endpoints are prefixed with `/api/v1/`.
             "occupation": "string",
             "profile_picture": "url_to_image",
             "height": "decimal",
-            "weight": "decimal"
+            "weight": "decimal",
+            "id": "string",
+            "following_ids": [],
+            "follower_ids": [],
+            "created_at": "datetime",
+            "updated_at": "datetime"
         },
         "status_code": 200
     }
@@ -424,7 +465,7 @@ All API endpoints are prefixed with `/api/v1/`.
         "success": true,
         "message": "User profiles fetched successfully.",
         "data": {
-            "profiles": [
+            "result": [
                 {
                     "user_id": "string",
                     "birth_date": "YYYY-MM-DD",
@@ -436,13 +477,16 @@ All API endpoints are prefixed with `/api/v1/`.
                     "occupation": "string",
                     "profile_picture": "url_to_image",
                     "height": "decimal",
-                    "weight": "decimal"
+                    "weight": "decimal",
+                    "id": "string",
+                    "following_ids": [],
+                    "follower_ids": [],
+                    "created_at": "datetime",
+                    "updated_at": "datetime"
                 }
             ],
-            "total_pages": "integer",
-            "current_page": "integer",
-            "page_size": "integer",
-            "total_count": "integer"
+            "previous_profiles_data": "string",
+            "next_profiles_data": "string"
         },
         "status_code": 200
     }
@@ -474,8 +518,10 @@ All API endpoints are prefixed with `/api/v1/`.
         "success": true,
         "message": "User followed successfully.",
         "data": {
+            "id": "string",
             "follower_id": "string",
-            "following_id": "string"
+            "following_id": "string",
+            "created_at": "datetime"
         },
         "status_code": 200
     }
@@ -553,7 +599,7 @@ All API endpoints are prefixed with `/api/v1/`.
         "success": true,
         "message": "Posts fetched successfully.",
         "data": {
-            "posts": [
+            "result": [
                 {
                     "id": "string",
                     "sender": "string",
@@ -563,10 +609,8 @@ All API endpoints are prefixed with `/api/v1/`.
                     "updated_at": "datetime"
                 }
             ],
-            "total_pages": "integer",
-            "current_page": "integer",
-            "page_size": "integer",
-            "total_count": "integer"
+            "previous_posts_data": "string",
+            "next_posts_data": "string"
         },
         "status_code": 200
     }
@@ -582,3 +626,69 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 400
     }
     ```
+
+---
+
+## 📚 4. API Documentation
+
+### 4.1. 📖 Swagger UI Documentation
+
+-   **🔗 URL:** `/api/docs/swagger-ui/`
+-   **📝 Description:** Interactive API documentation with Swagger UI interface.
+
+### 4.2. 📖 ReDoc Documentation
+
+-   **🔗 URL:** `/api/docs/redoc/`
+-   **📝 Description:** Alternative API documentation with ReDoc interface.
+
+### 4.3. 📖 OpenAPI Schema
+
+-   **🔗 URL:** `/api/schema/`
+-   **📝 Description:** Raw OpenAPI schema in JSON format.
+
+---
+
+## 🔧 5. Authentication
+
+### 5.1. 🔑 Bearer Token Authentication
+
+For protected endpoints, include the authentication token in the request header:
+
+```
+Authorization: Bearer <your_auth_token>
+```
+
+### 5.2. 📝 Rate Limiting
+
+-   **Anonymous Users:** Limited requests per minute for public endpoints
+-   **Authenticated Users:** Higher rate limits for protected endpoints
+
+---
+
+## 📋 6. Common Response Format
+
+All API responses follow a consistent format:
+
+### ✅ Success Response
+```json
+{
+    "success": true,
+    "message": "Operation successful message",
+    "data": {
+        // Response data
+    },
+    "status_code": 200
+}
+```
+
+### ❌ Error Response
+```json
+{
+    "success": false,
+    "message": "Error description",
+    "errors": {
+        "field_name": ["Error message"]
+    },
+    "status_code": 400
+}
+```
