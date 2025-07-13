@@ -11,10 +11,13 @@ ALLOWED_HOSTS = env.str("DJANGO_ALLOWED_HOSTS").split(",")  # noqa
 DATABASES = {
     "default": dj_database_url.config(
         default=env.str("DATABASE_URL"),  # noqa
+        engine="django.contrib.gis.db.backends.postgis",
         conn_max_age=600,
         conn_health_checks=True,
     )
 }
+
+INSTALLED_APPS += ["django.contrib.gis"]  # noqa
 
 CORS_ALLOWED_ORIGINS = env.str("CORS_ALLOWED_ORIGINS").split(",")  # noqa
 

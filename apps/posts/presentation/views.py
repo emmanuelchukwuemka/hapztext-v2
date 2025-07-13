@@ -19,9 +19,10 @@ from core.presentation.serializers import (
 )
 
 from ..application.dtos import PostDetailDTO, PostListDTO
-from ..application.rules import CreatePostRule, PostListRule
-from ..infrastructure.repositories import DjangoPostRepository
+
 from .serializers import PostCreateSerializer, PostListSerializer
+
+from ..infrastructure.factory import create_post_rule, posts_list_rule
 
 
 @extend_schema(
@@ -39,15 +40,13 @@ from .serializers import PostCreateSerializer, PostListSerializer
 @throttle_classes([UserRateThrottle])
 @parser_classes([MultiPartParser, JSONParser])
 def create_post(request: Request) -> StandardResponse:
-    post_repository = DjangoPostRepository()
-    create_post_rule = CreatePostRule(post_repository=post_repository)
-
     serializer = PostCreateSerializer(
         data=request.data, context={"sender_id": request.user.id}
     )
     serializer.is_valid(raise_exception=True)
 
-    post = create_post_rule.execute(PostDetailDTO(**serializer.validated_data))
+    post_creation_rule = create_post_rule()
+    post = post_creation_rule.execute(PostDetailDTO(**serializer.validated_data))
 
     return StandardResponse.created(
         data=asdict(post), message="Post created successfully."
@@ -68,13 +67,11 @@ def create_post(request: Request) -> StandardResponse:
 @permission_classes([IsAuthenticated])
 @throttle_classes([UserRateThrottle])
 def fetch_posts_list(request: Request, page: int, page_size: int) -> StandardResponse:
-    post_repository = DjangoPostRepository()
-    fetch_posts_rule = PostListRule(post_repository=post_repository)
-
     serializer = PostListSerializer(data={"page": page, "page_size": page_size})
     serializer.is_valid(raise_exception=True)
 
-    posts_data = fetch_posts_rule.execute(PostListDTO(**serializer.validated_data))
+    posts_list_retrieval_rule = posts_list_rule()
+    posts_data = posts_list_retrieval_rule.execute(PostListDTO(**serializer.validated_data))
 
     return StandardResponse.success(
         data=asdict(posts_data), message="Posts fetched successfully."
