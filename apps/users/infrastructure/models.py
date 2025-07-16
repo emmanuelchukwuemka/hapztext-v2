@@ -7,8 +7,6 @@ from nanoid import generate
 from ..domain.enums import Ethnicity, RelationshipStatus
 from .managers import UserManager
 
-from django.contrib.gis.db import models as gis_models
-
 
 class User(AbstractUser):
     id = models.CharField(
@@ -58,7 +56,8 @@ class UserProfile(models.Model):
     ethnicity = models.CharField(
         max_length=16, choices=Ethnicity.choices, default=Ethnicity.OTHER
     )
-    location = gis_models.PointField(geography=True, spatial_index=True, blank=True, null=True)
+    location = models.CharField(
+        max_length=255, blank=True, null=True, help_text="User's location, e.g., 'MorningGrove, Lagos, Nigeria'")
     relationship_status = models.CharField(
         max_length=15,
         choices=RelationshipStatus.choices,

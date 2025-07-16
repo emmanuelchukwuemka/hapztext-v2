@@ -26,6 +26,10 @@ class UserProfileDetailSerializer(serializers.Serializer):
     bio = serializers.CharField(required=False)
     occupation = serializers.CharField(required=False)
     profile_picture = serializers.ImageField(required=False)
+    location = serializers.CharField(
+        required=False,
+        help_text="User's location, e.g., 'MorningGrove, Lagos, Nigeria'"
+    )
     height = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
     weight = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
 
