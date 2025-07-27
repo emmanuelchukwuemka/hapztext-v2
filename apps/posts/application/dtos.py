@@ -13,6 +13,7 @@ class PostDetailDTO:
     video_content: str | None = None
     is_reply: bool = False
     previous_post_id: str | None = None
+    sender_username: str | None = None
 
 
 @dataclass

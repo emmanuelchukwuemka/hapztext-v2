@@ -51,7 +51,7 @@ class DjangoPostRepository(PostRepositoryInterface):
 
     def _to_domain_post_data(self, django_post: Post) -> DomainPost:
         return DomainPost(
-            sender_id=django_post.sender_id,
+            sender_id=django_post.sender.id,
             post_format=django_post.post_format,
             text_content=django_post.text_content,
             image_content=django_post.image_content.name
@@ -65,6 +65,7 @@ class DjangoPostRepository(PostRepositoryInterface):
             else None,
             is_reply=django_post.is_reply,
             previous_post_id=django_post.previous_post_id,
+            sender_username=django_post.sender.username,
             id=django_post.id,
             created_at=django_post.created_at,
             updated_at=django_post.updated_at,

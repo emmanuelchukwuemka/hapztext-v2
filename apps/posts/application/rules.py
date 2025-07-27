@@ -43,7 +43,17 @@ class CreatePostRule:
         self.post_repository = post_repository
 
     def execute(self, dto: PostDetailDTO) -> PostResponseDTO:
-        post = Post(**asdict(dto))
+        post = Post(
+            sender_id=dto.sender_id,
+            post_format=dto.post_format,
+            text_content=dto.text_content,
+            image_content=dto.image_content,
+            audio_content=dto.audio_content,
+            video_content=dto.video_content,
+            is_reply=dto.is_reply,
+            previous_post_id=dto.previous_post_id,
+            sender_username=dto.sender_username,
+        )
 
         created_post = self.post_repository.create(post)
 
