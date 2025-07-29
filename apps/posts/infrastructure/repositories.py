@@ -76,7 +76,7 @@ class DjangoPostRepository(PostRepositoryInterface):
         if self._is_absolute_url(file_url):
             return file_url
 
-        return f"{settings.BACKEND_DOMAIN}/{file_url}"
+        return f"{settings.BACKEND_DOMAIN}{file_url}"
 
     def _is_absolute_url(self, url) -> bool:
         return bool(urlparse(url).scheme)
