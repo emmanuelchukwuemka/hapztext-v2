@@ -36,10 +36,11 @@ class PostCreateSerializer(serializers.Serializer):
             )
 
         for format, content in content_fields.items():
-            if format != post_format and content is not None and content != "":
+            if format != post_format and content not in [None, "", text_content]:
                 raise serializers.ValidationError(
                     f"Only content for '{post_format}' should be provided. Found content for '{format}'."
                 )
+                
 
         if post_format == PostFormat.AUDIO and audio_content:
             allowed_audio_types = [

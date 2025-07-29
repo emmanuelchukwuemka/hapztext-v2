@@ -17,7 +17,8 @@ run:
 .PHONY: clean
 clean:
 	find . -name "*.pyc" -delete
-	find . -name "__pycache__" -delete
+	find . -name "__pycache__" -exec rm -rf {} +
+	find . -name ".ruff_cache" -exec rm -rf {} +
 	find . -name ".pytest_cache" -delete
 	find . -name ".coverage" -delete
 	find . -name "htmlcov" -delete
