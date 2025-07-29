@@ -19,10 +19,8 @@ from core.presentation.serializers import (
 )
 
 from ..application.dtos import PostDetailDTO, PostListDTO
-
-from .serializers import PostCreateSerializer, PostListSerializer
-
 from ..infrastructure.factory import create_post_rule, posts_list_rule
+from .serializers import PostCreateSerializer, PostListSerializer
 
 
 @extend_schema(
@@ -71,7 +69,9 @@ def fetch_posts_list(request: Request, page: int, page_size: int) -> StandardRes
     serializer.is_valid(raise_exception=True)
 
     posts_list_retrieval_rule = posts_list_rule()
-    posts_data = posts_list_retrieval_rule.execute(PostListDTO(**serializer.validated_data))
+    posts_data = posts_list_retrieval_rule.execute(
+        PostListDTO(**serializer.validated_data)
+    )
 
     return StandardResponse.success(
         data=asdict(posts_data), message="Posts fetched successfully."

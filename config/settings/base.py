@@ -139,3 +139,5 @@ LOGS_DIR.mkdir(exist_ok=True)
 LOG_FILE = LOGS_DIR / "hapztext.log"
 LOG_FILE.touch(exist_ok=True)
 LOGGING_LEVEL = env.str("DJANGO_LOGGING_LEVEL", default="INFO")
+
+BACKEND_DOMAIN = env.str("BACKEND_DOMAIN", default="http://127.0.0.1:8000")

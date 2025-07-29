@@ -57,7 +57,11 @@ class UserProfile(models.Model):
         max_length=16, choices=Ethnicity.choices, default=Ethnicity.OTHER
     )
     location = models.CharField(
-        max_length=255, blank=True, null=True, help_text="User's location, e.g., 'MorningGrove, Lagos, Nigeria'")
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="User's location, e.g., 'MorningGrove, Lagos, Nigeria'",
+    )
     relationship_status = models.CharField(
         max_length=15,
         choices=RelationshipStatus.choices,

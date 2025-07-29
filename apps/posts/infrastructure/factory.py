@@ -1,5 +1,5 @@
-from ..infrastructure.repositories import DjangoPostRepository
 from ..application.rules import CreatePostRule, PostListRule
+from ..infrastructure.repositories import DjangoPostRepository
 
 
 def get_post_repository() -> DjangoPostRepository:

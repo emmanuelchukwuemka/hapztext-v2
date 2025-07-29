@@ -13,10 +13,12 @@ class OTPCode(models.Model):
     @staticmethod
     def generate_otp_code():
         return pyotp.TOTP(pyotp.random_base32(), digits=6).now()
-    
+
     @staticmethod
     def get_otp_expiry():
-        return datetime.now(tz=UTC) + timedelta(minutes=getattr(settings, "OTP_EXPIRY_MINUTES", 10))
+        return datetime.now(tz=UTC) + timedelta(
+            minutes=getattr(settings, "OTP_EXPIRY_MINUTES", 10)
+        )
 
     id = models.CharField(
         max_length=21,
@@ -48,7 +50,7 @@ class OTPCode(models.Model):
     def save(self, *args, **kwargs):
         if not self.code:
             self.code = OTPCode.generate_otp_code()
-        
+
         if self._state.adding:
             self.expires_at = OTPCode.get_otp_expiry()
 

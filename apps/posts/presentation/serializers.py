@@ -40,7 +40,6 @@ class PostCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     f"Only content for '{post_format}' should be provided. Found content for '{format}'."
                 )
-                
 
         if post_format == PostFormat.AUDIO and audio_content:
             allowed_audio_types = [
@@ -63,6 +62,7 @@ class PostCreateSerializer(serializers.Serializer):
             ]
             if video_content.content_type not in allowed_video_types:
                 from loguru import logger
+
                 logger.critical(
                     f"Unsupported video file type: {video_content.content_type}, Allowed types are: {allowed_video_types}"
                 )

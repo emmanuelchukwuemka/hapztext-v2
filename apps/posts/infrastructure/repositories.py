@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Tuple
+from urllib.parse import urlparse
 
+from django.conf import settings
 from django.urls import reverse
 
 from ..application.ports import PostRepositoryInterface
@@ -54,15 +56,9 @@ class DjangoPostRepository(PostRepositoryInterface):
             sender_id=django_post.sender.id,
             post_format=django_post.post_format,
             text_content=django_post.text_content,
-            image_content=django_post.image_content.name
-            if django_post.image_content
-            else None,
-            audio_content=django_post.audio_content.name
-            if django_post.audio_content
-            else None,
-            video_content=django_post.video_content.name
-            if django_post.video_content
-            else None,
+            image_content=self._build_absolute_url(django_post.image_content),
+            audio_content=self._build_absolute_url(django_post.audio_content),
+            video_content=self._build_absolute_url(django_post.video_content),
             is_reply=django_post.is_reply,
             previous_post_id=django_post.previous_post_id,
             sender_username=django_post.sender.username,
@@ -70,3 +66,17 @@ class DjangoPostRepository(PostRepositoryInterface):
             created_at=django_post.created_at,
             updated_at=django_post.updated_at,
         )
+
+    def _build_absolute_url(self, file_field):
+        if not file_field:
+            return None
+
+        file_url = file_field.url
+
+        if self._is_absolute_url(file_url):
+            return file_url
+
+        return f"{settings.BACKEND_DOMAIN}/{file_url}"
+
+    def _is_absolute_url(self, url) -> bool:
+        return bool(urlparse(url).scheme)

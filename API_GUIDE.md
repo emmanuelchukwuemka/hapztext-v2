@@ -613,8 +613,14 @@ All API endpoints are prefixed with `/api/v1/`.
                 {
                     "id": "string",
                     "sender": "string",
-                    "caption": "string",
-                    "media": "url_to_media",
+                    "post_format": "",
+                    "text_content": "string",
+                    "image_content": null,
+                    "audio_content": null,
+                    "video_content": null,
+                    "is_reply": false,
+                    "previous_post_id": null,
+                    "sender_username": "string",
                     "created_at": "datetime",
                     "updated_at": "datetime"
                 }
