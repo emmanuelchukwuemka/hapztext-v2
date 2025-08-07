@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from nanoid import generate
 
-from ..domain.enums import Ethnicity, RelationshipStatus
+from ..domain.enums import Ethnicity, FollowRequestStatus, RelationshipStatus
 from .managers import UserManager
 
 
@@ -105,7 +105,13 @@ class UserFollowing(models.Model):
     following = models.ForeignKey(
         "UserProfile", on_delete=models.CASCADE, related_name="follower_set"
     )
+    status = models.CharField(
+        max_length=10,
+        choices=FollowRequestStatus.choices(),
+        default=FollowRequestStatus.PENDING,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "user_following"
@@ -113,3 +119,6 @@ class UserFollowing(models.Model):
         verbose_name_plural = "user_followings"
         ordering = ["-created_at"]
         unique_together = ["follower", "following"]
+
+    def __str__(self) -> str:
+        return f"{self.follower} -> {self.following} ({self.status})"

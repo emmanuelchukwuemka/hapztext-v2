@@ -46,17 +46,6 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 201
     }
     ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name(or 'detail')": ["Error message"]
-        },
-        "status_code": 400
-    }
-    ```
 
 ### 1.2. 🔄 Request Email Verification
 
@@ -77,17 +66,6 @@ All API endpoints are prefixed with `/api/v1/`.
         "message": "Email verification OTP code sent successfully.",
         "data": {},
         "status_code": 200
-    }
-    ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
     }
     ```
 
@@ -111,17 +89,6 @@ All API endpoints are prefixed with `/api/v1/`.
         "message": "Email verification successful.",
         "data": {},
         "status_code": 200
-    }
-    ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
     }
     ```
 
@@ -154,17 +121,6 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 200
     }
     ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
-    }
-    ```
 
 ### 1.5. 🚪 Logout User
 
@@ -187,17 +143,6 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 204
     }
     ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
-    }
-    ```
 
 ### 1.6. 🔄 Request Password Reset
 
@@ -218,17 +163,6 @@ All API endpoints are prefixed with `/api/v1/`.
         "message": "Password reset OTP code sent successfully.",
         "data": {},
         "status_code": 200
-    }
-    ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
     }
     ```
 
@@ -260,17 +194,6 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 200
     }
     ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
-    }
-    ```
 
 ---
 
@@ -293,17 +216,6 @@ All API endpoints are prefixed with `/api/v1/`.
             "username": "string"
         },
         "status_code": 200
-    }
-    ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
     }
     ```
 
@@ -329,17 +241,6 @@ All API endpoints are prefixed with `/api/v1/`.
             "username": "string"
         },
         "status_code": 200
-    }
-    ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
     }
     ```
 
@@ -390,17 +291,6 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 201
     }
     ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
-    }
-    ```
 
 ### 2.4. 👀 Fetch User Profile
 
@@ -435,17 +325,6 @@ All API endpoints are prefixed with `/api/v1/`.
             "updated_at": "datetime"
         },
         "status_code": 200
-    }
-    ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
     }
     ```
 
@@ -491,50 +370,146 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 200
     }
     ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
+
+### 2.6. 📤 Send Follow Request
+
+-   **🔗 Endpoint:** `/api/v1/users/follow-request/<str:user_id>/`
+-   **📡 HTTP Method:** `POST`
+-   **📝 Description:** Sends a follow request to another user.
+-   **🔐 Authentication:** Required (Bearer Token in Header: Authorization: Bearer <auth_token>)
+-   **🔗 URL Parameters:**
+    - `user_id`: string (required) - The ID of the user to send a follow request to.
+-   **📤 Request Body:** None
+-   **✅ Success Response (Status: 201 Created):**
     ```json
     {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
+        "success": true,
+        "message": "Follow request sent successfully.",
+        "data": {
+            "id": "string",
+            "requester_id": "string",
+            "target_user_id": "string",
+            "status": "pending",
+            "created_at": "datetime",
+            "updated_at": "datetime"
         },
-        "status_code": 400
+        "status_code": 201
     }
     ```
 
-### 2.6. 👥 Follow User
+### 2.7. ✅❌ Handle Follow Request
 
--   **🔗 Endpoint:** `/api/v1/users/follow/<str:user_id>/`
+-   **🔗 Endpoint:** `/api/v1/users/follow-request/handle/<str:request_id>/`
 -   **📡 HTTP Method:** `POST`
--   **📝 Description:** Allows an authenticated user to follow another user.
--   **🔐 Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
+-   **📝 Description:** Accept or decline a follow request.
+-   **🔐 Authentication:** Required (Bearer Token in Header: Authorization: Bearer <auth_token>)
 -   **🔗 URL Parameters:**
-    -   `user_id`: string (required) - The ID of the user to be followed.
+    - `request_id`: string (required) - The ID of the follow request to handle.
+-   **📤 Request Body:**
+    ```json
+    {
+        "action": "accept" // or "decline"
+    }
+    ```
+-   **✅ Success Response (Status: 201 Created):**
+    ```json
+    {
+        "success": true,
+        "message": "Follow request accepted successfully.",
+        "data": {
+            "id": "string",
+            "requester_id": "string",
+            "target_user_id": "string",
+            "status": "accepted", // or "declined"
+            "created_at": "datetime",
+            "updated_at": "datetime"
+        },
+        "status_code": 200
+    }
+    ```
+
+### 2.8. 📋 Get Pending Requests (Paginated)
+
+-   **🔗 Endpoint:** `/api/v1/users/follow-requests/pending/<int:page>/<int:page_size>/`
+-   **📡 HTTP Method:** `GET`
+-   **📝 Description:** Get pending follow requests (both sent and received) with pagination.
+-   **🔐 Authentication:** Required (Bearer Token in Header: Authorization: Bearer <auth_token>)
+-   **🔗 URL Parameters:**
+    - `page`: integer (required) - The page number (starts from 1).
+    - `page_size`: integer (required) - Number of requests per page (1-100).
 -   **📤 Request Body:** None
 -   **✅ Success Response (Status: 200 OK):**
     ```json
     {
         "success": true,
-        "message": "User followed successfully.",
+        "message": "Pending requests fetched successfully.",
         "data": {
-            "id": "string",
-            "follower_id": "string",
-            "following_id": "string",
-            "created_at": "datetime"
+            "received_requests": [
+                {
+                    "id": "string",
+                    "requester_id": "string",
+                    "target_user_id": "string",
+                    "status": "pending",
+                    "created_at": "datetime",
+                    "updated_at": "datetime"
+                }
+            ],
+            "sent_requests": [
+                {
+                    "id": "string",
+                    "requester_id": "string",
+                    "target_user_id": "string", 
+                    "status": "pending",
+                    "created_at": "datetime",
+                    "updated_at": "datetime"
+                }
+            ],
+            "previous_requests_data": "/api/v1/users/follow-requests/pending/1/10/",
+            "next_requests_data": "/api/v1/users/follow-requests/pending/3/10/",
         },
         "status_code": 200
     }
     ```
--   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
+### 2.9. 👫 Get Friends List (Paginated)
+
+-   **🔗 Endpoint:** `/api/v1/users/friends/<int:page>/<int:page_size>/`
+-   **📡 HTTP Method:** `GET`
+-   **📝 Description:** Get list of friends (users who mutually follow each other) with pagination.
+-   **🔐 Authentication:** Required (Bearer Token in Header: Authorization: Bearer <auth_token>)
+-   **🔗 URL Parameters:**
+    - `page`: integer (required) - The page number (starts from 1).
+    - `page_size`: integer (required) - Number of friends per page (1-100).
+-   **📤 Request Body:** None
+-   **✅ Success Response (Status: 200 OK):**
     ```json
     {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
+        "success": true,
+        "message": "Friends list fetched successfully.",
+        "data": {
+            "friends": [
+                {
+                    "user_id": "string",
+                    "birth_date": "YYYY-MM-DD",
+                    "ethnicity": "string", 
+                    "relationship_status": "string",
+                    "first_name": "string",
+                    "last_name": "string",
+                    "bio": "string",
+                    "occupation": "string",
+                    "profile_picture": "url_to_image",
+                    "height": "decimal",
+                    "weight": "decimal",
+                    "id": "string",
+                    "following_ids": [],
+                    "follower_ids": [],
+                    "created_at": "datetime",
+                    "updated_at": "datetime"
+                }
+            ],
+            "previous_friends_link": "/api/v1/users/friends/1/10/",
+            "next_friends_link": "/api/v1/users/friends/3/10/"
         },
-        "status_code": 400
+        "status_code": 200
     }
     ```
 
@@ -708,3 +683,9 @@ All API responses follow a consistent format:
     "status_code": 400
 }
 ```
+
+## 👫 7. Friends Logic
+-   **What Makes Users "Friends"?**
+Users are considered friends when both conditions are met:
+1) `User A` → `User B`: Has an accepted follow request
+2) `User B` → `User A`: Has an accepted follow request

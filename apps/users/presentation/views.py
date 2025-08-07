@@ -19,7 +19,10 @@ from core.presentation.serializers import (
 )
 
 from ...users.application.dtos import (
-    FollowUserDTO,
+    FollowRequestDTO,
+    FriendsListDTO,
+    HandleFollowRequestDTO,
+    PendingRequestsDTO,
     UserDetailDTO,
     UserProfileDetailDTO,
     UserProfileListDTO,
@@ -28,12 +31,17 @@ from ...users.infrastructure.factory import (
     create_user_profile_rule,
     fetch_user_profile_rule,
     fetch_user_rule,
-    follow_user_rule,
+    get_friends_list_rule,
+    get_pending_requests_rule,
+    handle_follow_request_rule,
+    send_follow_request_rule,
     update_user_rule,
     user_profile_list_rule,
 )
 from ...users.presentation.serializers import (
-    FollowUserSerializer,
+    FollowRequestSerializer,
+    HandleFollowRequestSerializer,
+    PaginatedDataRequestSerializer,
     UserDetailSerializer,
     UserProfileDetailSerializer,
     UserProfileListSerializer,
@@ -55,7 +63,8 @@ from ...users.presentation.serializers import (
 @throttle_classes([UserRateThrottle])
 def fetch_user(request: Request) -> StandardResponse:
     user_rule = fetch_user_rule()
-    user = user_rule.execute(UserDetailDTO(id=request.user.id))
+    user_id = request.query_params.get("id") or request.user.id
+    user = user_rule.execute(UserDetailDTO(id=user_id))
 
     return StandardResponse.success(
         data=asdict(user), message="User fetched successfully."
@@ -176,27 +185,119 @@ def fetch_profiles_list(
 
 
 @extend_schema(
-    request=FollowUserSerializer,
+    request=FollowRequestSerializer,
     responses={
-        200: SuccessResponseExampleSerializer,
+        201: SuccessResponseExampleSerializer,
         400: ErrorResponseExampleSerializer,
         500: ErrorResponseExampleSerializer,
     },
-    description="Follow another existing user.",
+    description="Send a follow request to another user.",
     tags=["Users"],
 )
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 @throttle_classes([UserRateThrottle])
-def follow_user(request: Request, user_id: str) -> StandardResponse:
-    serializer = FollowUserSerializer(
-        data={"following_id": user_id}, context={"follower_id": request.user.id}
+def send_follow_request(request: Request, user_id: str) -> StandardResponse:
+    serializer = FollowRequestSerializer(
+        data={}, context={"target_id": user_id, "requester_id": request.user.id}
     )
     serializer.is_valid(raise_exception=True)
 
-    follow_rule = follow_user_rule()
-    follow_data = follow_rule.execute(FollowUserDTO(**serializer.validated_data))
+    send_request_rule = send_follow_request_rule()
+    follow_request = send_request_rule.execute(
+        FollowRequestDTO(**serializer.validated_data)
+    )
+
+    return StandardResponse.created(
+        data=asdict(follow_request), message="Follow request sent successfully."
+    )
+
+
+@extend_schema(
+    request=HandleFollowRequestSerializer,
+    responses={
+        200: SuccessResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer,
+    },
+    description="Accept or decline a follow request.",
+    tags=["Users"],
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
+def handle_follow_request(request: Request, request_id: str) -> StandardResponse:
+    serializer = HandleFollowRequestSerializer(
+        data={**request.data},
+        context={"request_id": request_id, "user_id": request.user.id},
+    )
+    serializer.is_valid(raise_exception=True)
+
+    handle_request_rule = handle_follow_request_rule()
+    updated_request = handle_request_rule.execute(
+        HandleFollowRequestDTO(**serializer.validated_data)
+    )
+
+    action = serializer.validated_data["action"]
+    message = f"Follow request {action}ed successfully."
+
+    return StandardResponse.success(data=asdict(updated_request), message=message)
+
+
+@extend_schema(
+    request=PaginatedDataRequestSerializer,
+    responses={
+        200: SuccessResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer,
+    },
+    description="Get pending follow requests (sent and received).",
+    tags=["Users"],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
+def get_pending_requests(
+    request: Request, page: int, page_size: int
+) -> StandardResponse:
+    serializer = PaginatedDataRequestSerializer(
+        data={"page": page, "page_size": page_size},
+        context={"user_id": request.user.id},
+    )
+    serializer.is_valid(raise_exception=True)
+
+    pending_requests_rule = get_pending_requests_rule()
+    requests_data = pending_requests_rule.execute(
+        PendingRequestsDTO(**serializer.validated_data)
+    )
 
     return StandardResponse.success(
-        data=asdict(follow_data), message="User followed successfully."
+        data=asdict(requests_data), message="Pending requests fetched successfully."
+    )
+
+
+@extend_schema(
+    responses={
+        200: SuccessResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer,
+    },
+    description="Get friends list (mutual followers).",
+    tags=["Users"],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
+def get_friends_list(request: Request, page: int, page_size: int) -> StandardResponse:
+    serializer = PaginatedDataRequestSerializer(
+        data={"page": page, "page_size": page_size},
+        context={"user_id": request.user.id},
+    )
+    serializer.is_valid(raise_exception=True)
+
+    friends_rule = get_friends_list_rule()
+    friends_data = friends_rule.execute(FriendsListDTO(**serializer.validated_data))
+
+    return StandardResponse.success(
+        data=asdict(friends_data), message="Friends list fetched successfully."
     )

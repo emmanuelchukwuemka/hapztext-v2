@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import List
 
-from .value_objects import Ethnicity, RelationshipStatus
+from .value_objects import Ethnicity, FollowRequestStatus, RelationshipStatus
 
 
 @dataclass
@@ -29,6 +29,7 @@ class UserProfile:
     bio: str = ""
     occupation: str = ""
     profile_picture: str | None = None
+    location: str | None = None
     height: float = 0.00
     weight: float = 0.00
     following_ids: List = field(default_factory=list)
@@ -45,5 +46,19 @@ class UserProfile:
 class UserFollowing:
     follower_id: str
     following_id: str
+    status: str = "pending"
     id: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(tz=UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(tz=UTC))
+
+    def __post_init__(self) -> None:
+        self.status = FollowRequestStatus(self.status).value
+
+    def is_pending(self) -> None:
+        return self.status == "pending"
+
+    def is_accepted(self) -> None:
+        return self.status == "accepted"
+
+    def is_declined(self) -> None:
+        return self.status == "declined"

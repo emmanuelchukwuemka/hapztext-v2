@@ -40,3 +40,17 @@ class RelationshipStatus(StrEnum):
     @classmethod
     def values(cls) -> List[str]:
         return [tag.value for tag in cls]
+
+
+class FollowRequestStatus(StrEnum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+
+    @classmethod
+    def choices(cls) -> List[Tuple[str]]:
+        return [(tag.value, tag.name) for tag in cls]
+
+    @classmethod
+    def values(cls) -> List[str]:
+        return [tag.value for tag in cls]

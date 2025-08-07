@@ -177,17 +177,163 @@ class DjangoUserFollowingRepository(UserFollowingRepositoryInterface):
         django_user_following = self._to_django_user_following_data(user_following)
 
         try:
+            existing = UserFollowing.objects.filter(
+                follower=django_user_following["follower"],
+                following=django_user_following["following"],
+                status="declined",
+            )
+            if existing.exists():
+                existing.delete()
+
             created_user_following = UserFollowing.objects.create(
                 **django_user_following
             )
         except IntegrityError as e:
-            if (
-                "UNIQUE constraint failed: user_following.follower_id, user_following.following_id"
-                in str(e)
-            ):
-                raise ConflictError("You already follow this user.")
+            if "UNIQUE constraint failed" in str(e):
+                raise ConflictError("A follow request already exists.")
 
         return self._to_domain_user_following_data(created_user_following)
+
+    def find_by_id(self, request_id: str) -> DomainUserFollowing | None:
+        try:
+            request = UserFollowing.objects.get(id=request_id)
+            return self._to_domain_user_following_data(request)
+        except UserFollowing.DoesNotExist:
+            return None
+
+    def find_existing_request(
+        self, follower_id: str, following_id: str
+    ) -> DomainUserFollowing | None:
+        try:
+            request = UserFollowing.objects.get(
+                follower__user_id=follower_id, following__user_id=following_id
+            )
+            return self._to_domain_user_following_data(request)
+        except UserFollowing.DoesNotExist:
+            return None
+
+    def update_status(self, request_id: str, status: str) -> DomainUserFollowing:
+        try:
+            request = UserFollowing.objects.get(id=request_id)
+            request.status = status
+            request.save()
+            return self._to_domain_user_following_data(request)
+        except UserFollowing.DoesNotExist:
+            raise ValueError("Follow request not found.")
+
+    def get_received_requests(
+        self, user_id, page, page_size, status=None
+    ) -> Tuple[List[DomainUserFollowing], str, str]:
+        received_requests = (
+            UserFollowing.objects.filter(following__user_id=user_id)
+            .select_related("follower__user", "following__user")
+            .order_by("-created_at")
+        )
+
+        if status:
+            received_requests = received_requests.filter(status=status)
+
+        total_received_requests = received_requests.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        received_requests = [
+            self._to_domain_user_following_data(qs)
+            for qs in list(received_requests[offset:end])
+        ]
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "get-pending-requests",
+                kwargs={"page": page - 1, "page_size": page_size},
+            )
+
+        next_link = None
+        if end < total_received_requests:
+            next_link = reverse(
+                "get-pending-requests",
+                kwargs={"page": page + 1, "page_size": page_size},
+            )
+
+        return received_requests, previous_link, next_link
+
+    def get_sent_requests(
+        self, user_id, page, page_size, status=None
+    ) -> Tuple[List[DomainUserFollowing], str, str]:
+        sent_requests = (
+            UserFollowing.objects.filter(follower__user_id=user_id)
+            .select_related("follower__user", "following__user")
+            .order_by("-created_at")
+        )
+
+        if status:
+            sent_requests = sent_requests.filter(status=status)
+
+        total_sent_requests = sent_requests.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        sent_requests = [
+            self._to_domain_user_following_data(qs)
+            for qs in list(sent_requests[offset:end])
+        ]
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "get-pending-requests",
+                kwargs={"page": page - 1, "page_size": page_size},
+            )
+
+        next_link = None
+        if end < total_sent_requests:
+            next_link = reverse(
+                "get-pending-requests",
+                kwargs={"page": page + 1, "page_size": page_size},
+            )
+
+        return sent_requests, previous_link, next_link
+
+    def get_mutual_followers(
+        self, user_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str, str]:
+        following = UserFollowing.objects.filter(
+            follower__user_id=user_id, status="accepted"
+        ).values_list("following__user_id", flat=True)
+
+        mutual_followers = (
+            UserFollowing.objects.filter(
+                following__user_id=user_id,
+                status="accepted",
+                follower__user_id__in=following,
+            )
+            .select_related("follower__user")
+            .order_by("-created_at")
+        )
+
+        total_friends = mutual_followers.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        friends = [
+            self._to_domain_user_following_data(qs)
+            for qs in list(mutual_followers[offset:end])
+        ]
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "get-friends-list", kwargs={"page": page - 1, "page_size": page_size}
+            )
+
+        next_link = None
+        if end < total_friends:
+            next_link = reverse(
+                "get-friends-list", kwargs={"page": page + 1, "page_size": page_size}
+            )
+
+        return friends, previous_link, next_link
 
     def _to_django_user_following_data(
         self, domain_user_following: DomainUserFollowing
@@ -202,6 +348,7 @@ class DjangoUserFollowingRepository(UserFollowingRepositoryInterface):
             return {
                 "follower": follower_profile,
                 "following": following_profile,
+                "status": domain_user_following.status,
             }
         except UserProfile.DoesNotExist:
             raise ValueError(
@@ -210,10 +357,12 @@ class DjangoUserFollowingRepository(UserFollowingRepositoryInterface):
 
     def _to_domain_user_following_data(
         self, django_user_following: UserFollowing
-    ) -> Any:
+    ) -> DomainUserFollowing:
         return DomainUserFollowing(
             id=django_user_following.id,
-            follower_id=django_user_following.follower_id,
-            following_id=django_user_following.following_id,
+            follower_id=django_user_following.follower.user_id,
+            following_id=django_user_following.following.user_id,
+            status=django_user_following.status,
             created_at=django_user_following.created_at,
+            updated_at=django_user_following.updated_at,
         )

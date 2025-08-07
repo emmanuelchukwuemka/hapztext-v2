@@ -20,10 +20,9 @@ class UserDetailDTO:
 @dataclass
 class UserResponseDTO(UserDetailDTO):
     email: str = None
-    username: str = None
-    is_email_verified: bool = None
-    created_at: datetime = None
-    updated_at: datetime = None
+    is_email_verified: bool = False
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @dataclass
@@ -37,6 +36,7 @@ class UserProfileDetailDTO:
     bio: str | None = None
     occupation: str | None = None
     profile_picture: str | None = None
+    location: str | None = None
     height: float | None = None
     weight: float | None = None
 
@@ -64,14 +64,52 @@ class PaginatedUserProfileListResponseDTO:
 
 
 @dataclass
-class FollowUserDTO:
-    follower_id: str
-    following_id: str
+class FollowRequestDTO:
+    requester_id: str
+    target_id: str
 
 
 @dataclass
-class UserFollowingResponseDTO:
+class HandleFollowRequestDTO:
+    request_id: str
+    user_id: str
+    action: str
+
+
+@dataclass
+class FollowRequestResponseDTO:
     id: str
-    follower_id: str
-    following_id: str
+    requester_id: str
+    target_id: str
+    status: str
     created_at: datetime
+    updated_at: datetime
+
+
+@dataclass
+class PendingRequestsDTO:
+    user_id: str
+    page: int
+    page_size: int
+
+
+@dataclass
+class PaginatedPendingRequestsResponseDTO:
+    received_requests: List[FollowRequestResponseDTO]
+    sent_requests: List[FollowRequestResponseDTO]
+    previous_requests_data: str | None = None
+    next_requests_data: str | None = None
+
+
+@dataclass
+class FriendsListDTO:
+    user_id: str
+    page: int
+    page_size: int
+
+
+@dataclass
+class PaginatedFriendsListResponseDTO:
+    friends: List[UserProfileResponseDTO]
+    previous_friends_data: str | None = None
+    next_friends_data: str | None = None

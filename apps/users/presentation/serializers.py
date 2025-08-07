@@ -43,14 +43,38 @@ class UserProfileListSerializer(serializers.Serializer):
     page_size = serializers.IntegerField(required=True)
 
 
-class FollowUserSerializer(serializers.Serializer):
-    follower_id = serializers.CharField(read_only=True)
-    following_id = serializers.CharField(required=True)
+class FollowRequestSerializer(serializers.Serializer):
+    requester_id = serializers.CharField(read_only=True)
+    target_id = serializers.CharField(read_only=True)
 
     def validate(self, attrs):
-        attrs["follower_id"] = self.context.get("follower_id")
+        attrs["requester_id"] = self.context.get("requester_id")
+        attrs["target_id"] = self.context.get("target_id")
 
-        if attrs["following_id"] == attrs["follower_id"]:
-            raise serializers.ValidationError("Users cannot follow themselves.")
+        if attrs["target_id"] == attrs["requester_id"]:
+            raise serializers.ValidationError(
+                "Users cannot send follow requests to themselves."
+            )
 
+        return attrs
+
+
+class HandleFollowRequestSerializer(serializers.Serializer):
+    request_id = serializers.CharField(read_only=True)
+    action = serializers.ChoiceField(choices=["accept", "decline"], required=True)
+    user_id = serializers.CharField(read_only=True)
+
+    def validate(self, attrs):
+        attrs["request_id"] = self.context.get("request_id")
+        attrs["user_id"] = self.context.get("user_id")
+        return attrs
+
+
+class PaginatedDataRequestSerializer(serializers.Serializer):
+    page = serializers.IntegerField(required=True)
+    page_size = serializers.IntegerField(required=True)
+    user_id = serializers.CharField(read_only=True)
+
+    def validate(self, attrs):
+        attrs["user_id"] = self.context.get("user_id")
         return attrs
