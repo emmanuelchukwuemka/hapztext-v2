@@ -1,7 +1,14 @@
 from dataclasses import asdict
 
 from ..domain.entities import Post
-from .dtos import PaginatedPostsResponseDTO, PostDetailDTO, PostListDTO, PostResponseDTO
+from .dtos import (
+    PaginatedPostsResponseDTO,
+    PaginatedUserPostsResponseDTO,
+    PostDetailDTO,
+    PostListDTO,
+    PostResponseDTO,
+    UserPostsDTO,
+)
 from .ports import PostRepositoryInterface
 
 
@@ -63,4 +70,34 @@ class CreatePostRule:
                 for key, value in asdict(created_post).items()
                 if key in PostResponseDTO.__dataclass_fields__
             }
+        )
+
+
+class UserPostsRule:
+    def __init__(
+        self,
+        post_repository: PostRepositoryInterface,
+    ) -> None:
+        self.post_repository = post_repository
+
+    def execute(self, dto: UserPostsDTO) -> PaginatedUserPostsResponseDTO:
+        posts, previous_link, next_link = self.post_repository.user_posts_list(
+            user_id=dto.user_id, page=dto.page, page_size=dto.page_size
+        )
+
+        posts_data = [
+            PostResponseDTO(
+                **{
+                    key: value
+                    for key, value in asdict(post).items()
+                    if key in PostResponseDTO.__dataclass_fields__
+                }
+            )
+            for post in posts
+        ]
+
+        return PaginatedUserPostsResponseDTO(
+            result=posts_data,
+            previous_posts_data=previous_link,
+            next_posts_data=next_link,
         )

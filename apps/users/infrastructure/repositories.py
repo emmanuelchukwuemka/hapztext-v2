@@ -104,8 +104,12 @@ class DjangoUserProfileRepository(UserProfileRepositoryInterface):
         except UserProfile.DoesNotExist:
             return None
 
-    def profiles_list(self, page: int, page_size: int) -> Tuple[List[Any], str, str]:
-        queryset = UserProfile.objects.all().order_by("-created_at")
+    def profiles_list(
+        self, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        queryset = (
+            UserProfile.objects.all().select_related("user").order_by("-created_at")
+        )
         total_profiles = queryset.count()
 
         offset = (page - 1) * page_size
@@ -129,6 +133,81 @@ class DjangoUserProfileRepository(UserProfileRepositoryInterface):
 
         return profiles, previous_link, next_link
 
+    def get_followers(
+        self, user_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        """Get profiles of users who follow the given user"""
+        followers_queryset = (
+            UserProfile.objects.filter(
+                following_set__following__user_id=user_id,
+                following_set__status="accepted",
+            )
+            .select_related("user")
+            .order_by("-following_set__created_at")
+        )
+
+        total_followers = followers_queryset.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        followers = [
+            self._to_domain_user_profile_data(profile)
+            for profile in list(followers_queryset[offset:end])
+        ]
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "get-user-followers",
+                kwargs={"user_id": user_id, "page": page - 1, "page_size": page_size},
+            )
+
+        next_link = None
+        if end < total_followers:
+            next_link = reverse(
+                "get-user-followers",
+                kwargs={"user_id": user_id, "page": page + 1, "page_size": page_size},
+            )
+
+        return followers, previous_link, next_link
+
+    def get_followings(
+        self, user_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        """Get profiles of users that the given user follows"""
+        followings_queryset = (
+            UserProfile.objects.filter(
+                follower_set__follower__user_id=user_id, follower_set__status="accepted"
+            )
+            .select_related("user")
+            .order_by("-follower_set__created_at")
+        )
+
+        total_followings = followings_queryset.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        followings = [
+            self._to_domain_user_profile_data(profile)
+            for profile in list(followings_queryset[offset:end])
+        ]
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "get-user-followings",
+                kwargs={"user_id": user_id, "page": page - 1, "page_size": page_size},
+            )
+
+        next_link = None
+        if end < total_followings:
+            next_link = reverse(
+                "get-user-followings",
+                kwargs={"user_id": user_id, "page": page + 1, "page_size": page_size},
+            )
+
+        return followings, previous_link, next_link
+
     def _to_django_user_profile_data(
         self, domain_user_profile: DomainUserProfile
     ) -> Dict[str, Any]:
@@ -149,15 +228,16 @@ class DjangoUserProfileRepository(UserProfileRepositoryInterface):
     def _to_domain_user_profile_data(
         self, django_user_profile: UserProfile
     ) -> DomainUserProfile:
-        following_ids = list(django_user_profile.following.values_list("id", flat=True))
-        follower_ids = list(django_user_profile.followers.values_list("id", flat=True))
-
         return DomainUserProfile(
             id=django_user_profile.id,
             user_id=django_user_profile.user_id,
             first_name=django_user_profile.first_name,
             last_name=django_user_profile.last_name,
-            profile_picture=django_user_profile.profile_picture.name,
+            profile_picture=(
+                django_user_profile.profile_picture.name
+                if django_user_profile.profile_picture
+                else None
+            ),
             bio=django_user_profile.bio,
             birth_date=django_user_profile.birth_date,
             occupation=django_user_profile.occupation,
@@ -165,8 +245,6 @@ class DjangoUserProfileRepository(UserProfileRepositoryInterface):
             weight=django_user_profile.weight,
             ethnicity=django_user_profile.ethnicity,
             relationship_status=django_user_profile.relationship_status,
-            following_ids=following_ids,
-            follower_ids=follower_ids,
             created_at=django_user_profile.created_at,
             updated_at=django_user_profile.updated_at,
         )
@@ -223,7 +301,7 @@ class DjangoUserFollowingRepository(UserFollowingRepositoryInterface):
 
     def get_received_requests(
         self, user_id, page, page_size, status=None
-    ) -> Tuple[List[DomainUserFollowing], str, str]:
+    ) -> Tuple[List[DomainUserFollowing], str | None, str | None]:
         received_requests = (
             UserFollowing.objects.filter(following__user_id=user_id)
             .select_related("follower__user", "following__user")
@@ -260,7 +338,7 @@ class DjangoUserFollowingRepository(UserFollowingRepositoryInterface):
 
     def get_sent_requests(
         self, user_id, page, page_size, status=None
-    ) -> Tuple[List[DomainUserFollowing], str, str]:
+    ) -> Tuple[List[DomainUserFollowing], str | None, str | None]:
         sent_requests = (
             UserFollowing.objects.filter(follower__user_id=user_id)
             .select_related("follower__user", "following__user")
@@ -297,7 +375,7 @@ class DjangoUserFollowingRepository(UserFollowingRepositoryInterface):
 
     def get_mutual_followers(
         self, user_id: str, page: int, page_size: int
-    ) -> Tuple[List[Any], str, str]:
+    ) -> Tuple[List[Any], str | None, str | None]:
         following = UserFollowing.objects.filter(
             follower__user_id=user_id, status="accepted"
         ).values_list("following__user_id", flat=True)

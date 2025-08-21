@@ -19,7 +19,7 @@ class UserDetailDTO:
 
 @dataclass
 class UserResponseDTO(UserDetailDTO):
-    email: str = None
+    email: str | None = None
     is_email_verified: bool = False
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -43,11 +43,9 @@ class UserProfileDetailDTO:
 
 @dataclass
 class UserProfileResponseDTO(UserProfileDetailDTO):
-    id: str = None
-    following_ids: List = None
-    follower_ids: List = None
-    created_at: datetime = None
-    updated_at: datetime = None
+    id: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @dataclass
@@ -113,3 +111,31 @@ class PaginatedFriendsListResponseDTO:
     friends: List[UserProfileResponseDTO]
     previous_friends_data: str | None = None
     next_friends_data: str | None = None
+
+
+@dataclass
+class UserFollowersDTO:
+    user_id: str
+    page: int
+    page_size: int
+
+
+@dataclass
+class UserFollowingsDTO:
+    user_id: str
+    page: int
+    page_size: int
+
+
+@dataclass
+class PaginatedFollowersResponseDTO:
+    followers: List[UserProfileResponseDTO]
+    previous_followers_data: str | None = None
+    next_followers_data: str | None = None
+
+
+@dataclass
+class PaginatedFollowingsResponseDTO:
+    followings: List[UserProfileResponseDTO]
+    previous_followings_data: str | None = None
+    next_followings_data: str | None = None

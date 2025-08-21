@@ -6,7 +6,7 @@ from typing import List
 @dataclass
 class PostDetailDTO:
     sender_id: str
-    post_format: str = None
+    post_format: str | None = None
     text_content: str | None = None
     image_content: str | None = None
     audio_content: str | None = None
@@ -18,9 +18,9 @@ class PostDetailDTO:
 
 @dataclass
 class PostResponseDTO(PostDetailDTO):
-    id: str = None
-    created_at: datetime = None
-    updated_at: datetime = None
+    id: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @dataclass
@@ -31,6 +31,20 @@ class PostListDTO:
 
 @dataclass
 class PaginatedPostsResponseDTO:
+    result: List[PostResponseDTO]
+    previous_posts_data: str | None = None
+    next_posts_data: str | None = None
+
+
+@dataclass
+class UserPostsDTO:
+    user_id: str
+    page: int = 1
+    page_size: int = 20
+
+
+@dataclass
+class PaginatedUserPostsResponseDTO:
     result: List[PostResponseDTO]
     previous_posts_data: str | None = None
     next_posts_data: str | None = None

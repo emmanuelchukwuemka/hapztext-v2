@@ -76,3 +76,13 @@ class PostCreateSerializer(serializers.Serializer):
 class PostListSerializer(serializers.Serializer):
     page = serializers.IntegerField(required=True)
     page_size = serializers.IntegerField(required=True)
+
+
+class UserPostsSerializer(serializers.Serializer):
+    user_id = serializers.CharField(read_only=True)
+    page = serializers.IntegerField(required=True)
+    page_size = serializers.IntegerField(required=True)
+
+    def validate(self, attrs):
+        attrs["user_id"] = self.context.get("user_id")
+        return attrs

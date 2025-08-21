@@ -283,8 +283,6 @@ All API endpoints are prefixed with `/api/v1/`.
             "height": "decimal",
             "weight": "decimal",
             "id": "string",
-            "following_ids": [],
-            "follower_ids": [],
             "created_at": "datetime",
             "updated_at": "datetime"
         },
@@ -319,8 +317,6 @@ All API endpoints are prefixed with `/api/v1/`.
             "height": "decimal",
             "weight": "decimal",
             "id": "string",
-            "following_ids": [],
-            "follower_ids": [],
             "created_at": "datetime",
             "updated_at": "datetime"
         },
@@ -358,8 +354,6 @@ All API endpoints are prefixed with `/api/v1/`.
                     "height": "decimal",
                     "weight": "decimal",
                     "id": "string",
-                    "following_ids": [],
-                    "follower_ids": [],
                     "created_at": "datetime",
                     "updated_at": "datetime"
                 }
@@ -500,14 +494,98 @@ All API endpoints are prefixed with `/api/v1/`.
                     "height": "decimal",
                     "weight": "decimal",
                     "id": "string",
-                    "following_ids": [],
-                    "follower_ids": [],
                     "created_at": "datetime",
                     "updated_at": "datetime"
                 }
             ],
             "previous_friends_link": "/api/v1/users/friends/1/10/",
             "next_friends_link": "/api/v1/users/friends/3/10/"
+        },
+        "status_code": 200
+    }
+    ```
+
+### 2.10. 👥 Get User Followers (Paginated)
+
+-   **🔗 Endpoint:** `/api/v1/users/followers/<str:user_id>/<int:page>/<int:page_size>/`
+-   **📡 HTTP Method:** `GET`
+-   **📝 Description:** Get list of followers for a specific user with pagination.
+-   **🔐 Authentication:** Required (Bearer Token in Header: Authorization: Bearer <auth_token>)
+-   **🔗 URL Parameters:**
+    - `user_id`: string (required) - The ID of the user whose followers to fetch.
+    - `page`: integer (required) - The page number (starts from 1).
+    - `page_size`: integer (required) - Number of followers per page (1-100).
+-   **📤 Request Body:** None
+-   **✅ Success Response (Status: 200 OK):**
+    ```json
+    {
+        "success": true,
+        "message": "User followers fetched successfully.",
+        "data": {
+            "followers": [
+                {
+                    "user_id": "string",
+                    "birth_date": "YYYY-MM-DD",
+                    "ethnicity": "string", 
+                    "relationship_status": "string",
+                    "first_name": "string",
+                    "last_name": "string",
+                    "bio": "string",
+                    "occupation": "string",
+                    "profile_picture": "url_to_image",
+                    "location": "string",
+                    "height": "decimal",
+                    "weight": "decimal",
+                    "id": "string",
+                    "created_at": "datetime",
+                    "updated_at": "datetime"
+                }
+            ],
+            "previous_followers_data": "/api/v1/users/followers/user123/1/10/",
+            "next_followers_data": "/api/v1/users/followers/user123/3/10/"
+        },
+        "status_code": 200
+    }
+    ```
+
+### 2.11. 👤 Get User Followings (Paginated)
+
+-   **🔗 Endpoint:** `/api/v1/users/followings/<str:user_id>/<int:page>/<int:page_size>/`
+-   **📡 HTTP Method:** `GET`
+-   **📝 Description:** Get list of users that a specific user follows with pagination.
+-   **🔐 Authentication:** Required (Bearer Token in Header: Authorization: Bearer <auth_token>)
+-   **🔗 URL Parameters:**
+    - `user_id`: string (required) - The ID of the user whose followings to fetch.
+    - `page`: integer (required) - The page number (starts from 1).
+    - `page_size`: integer (required) - Number of followings per page (1-100).
+-   **📤 Request Body:** None
+-   **✅ Success Response (Status: 200 OK):**
+    ```json
+    {
+        "success": true,
+        "message": "User followings fetched successfully.",
+        "data": {
+            "followings": [
+                {
+                    "user_id": "string",
+                    "birth_date": "YYYY-MM-DD",
+                    "ethnicity": "string", 
+                    "relationship_status": "string",
+                    "first_name": "string",
+                    "last_name": "string",
+                    "bio": "string",
+                    "occupation": "string",
+                    "profile_picture": "url_to_image",
+                    "location": "string",
+                    "height": "decimal",
+                    "weight": "decimal",
+                    "id": "string",
+                    "created_at": "datetime",
+                    "updated_at": "datetime"
+                }
+            ],
+            "previous_followings_data": "/api/v1/users/followings/user123/1/10/",
+            "next_followings_data": "/api/v1/users/followings/user123/3/10/"
         },
         "status_code": 200
     }
@@ -602,6 +680,57 @@ All API endpoints are prefixed with `/api/v1/`.
             ],
             "previous_posts_data": "string",
             "next_posts_data": "string"
+        },
+        "status_code": 200
+    }
+    ```
+-   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
+    ```json
+    {
+        "success": false,
+        "message": "Error description",
+        "errors": {
+            "field_name": ["Error message"]
+        },
+        "status_code": 400
+    }
+    ```
+
+### 3.3. 👤 Fetch User Posts (Paginated)
+
+-   **🔗 Endpoint:** `/api/v1/posts/user/<str:user_id>/<int:page>/<int:page_size>/`
+-   **📡 HTTP Method:** `GET`
+-   **📝 Description:** Fetches a paginated list of posts for a specific user.
+-   **🔐 Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
+-   **🔗 URL Parameters:**
+    -   `user_id`: string (required) - The ID of the user whose posts to fetch.
+    -   `page`: integer (required) - The page number for pagination.
+    -   `page_size`: integer (required) - The number of posts per page.
+-   **📤 Request Body:** None
+-   **✅ Success Response (Status: 200 OK):**
+    ```json
+    {
+        "success": true,
+        "message": "User posts fetched successfully.",
+        "data": {
+            "result": [
+                {
+                    "id": "string",
+                    "sender": "string",
+                    "post_format": "",
+                    "text_content": "string",
+                    "image_content": null,
+                    "audio_content": null,
+                    "video_content": null,
+                    "is_reply": false,
+                    "previous_post_id": null,
+                    "sender_username": "string",
+                    "created_at": "datetime",
+                    "updated_at": "datetime"
+                }
+            ],
+            "previous_posts_data": "/api/v1/posts/user/user123/1/10/",
+            "next_posts_data": "/api/v1/posts/user/user123/3/10/"
         },
         "status_code": 200
     }

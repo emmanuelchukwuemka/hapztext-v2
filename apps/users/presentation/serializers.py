@@ -78,3 +78,23 @@ class PaginatedDataRequestSerializer(serializers.Serializer):
     def validate(self, attrs):
         attrs["user_id"] = self.context.get("user_id")
         return attrs
+
+
+class UserFollowersSerializer(serializers.Serializer):
+    user_id = serializers.CharField(read_only=True)
+    page = serializers.IntegerField(required=True)
+    page_size = serializers.IntegerField(required=True)
+
+    def validate(self, attrs):
+        attrs["user_id"] = self.context.get("user_id")
+        return attrs
+
+
+class UserFollowingsSerializer(serializers.Serializer):
+    user_id = serializers.CharField(read_only=True)
+    page = serializers.IntegerField(required=True)
+    page_size = serializers.IntegerField(required=True)
+
+    def validate(self, attrs):
+        attrs["user_id"] = self.context.get("user_id")
+        return attrs

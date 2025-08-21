@@ -41,6 +41,18 @@ class UserProfileRepositoryInterface(ABC):
     def profiles_list(self, page: int, page_size: int) -> Tuple[List[Any], str, str]:
         pass
 
+    @abstractmethod
+    def get_followers(
+        self, user_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str, str]:
+        pass
+
+    @abstractmethod
+    def get_followings(
+        self, user_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str, str]:
+        pass
+
 
 class UserFollowingRepositoryInterface(ABC):
     @abstractmethod
@@ -63,13 +75,13 @@ class UserFollowingRepositoryInterface(ABC):
 
     @abstractmethod
     def get_received_requests(
-        self, user_id: str, page: int, page_size: int, status: str = None
+        self, user_id: str, page: int, page_size: int, status: str | None = None
     ) -> Tuple[List[DomainUserFollowing], str, str]:
         pass
 
     @abstractmethod
     def get_sent_requests(
-        self, user_id: str, page: int, page_size: int, status: str = None
+        self, user_id: str, page: int, page_size: int, status: str | None = None
     ) -> Tuple[List[DomainUserFollowing], str, str]:
         pass
 

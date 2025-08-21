@@ -16,7 +16,9 @@ class DjangoPostRepository(PostRepositoryInterface):
         created_post = Post.objects.create(**django_post)
         return self._to_domain_post_data(created_post)
 
-    def posts_list(self, page: int, page_size: int) -> Tuple[List[Any], str, str]:
+    def posts_list(
+        self, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
         queryset = Post.objects.all().order_by("-created_at")
         total_posts = queryset.count()
 
@@ -38,6 +40,34 @@ class DjangoPostRepository(PostRepositoryInterface):
             )
 
         return profiles, previous_link, next_link
+
+    def user_posts_list(
+        self, user_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        """Get posts for a specific user"""
+        queryset = Post.objects.filter(sender_id=user_id).order_by("-created_at")
+        total_posts = queryset.count()
+
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        posts = [self._to_domain_post_data(qs) for qs in list(queryset[offset:end])]
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "fetch-user-posts",
+                kwargs={"user_id": user_id, "page": page - 1, "page_size": page_size},
+            )
+
+        next_link = None
+        if end < total_posts:
+            next_link = reverse(
+                "fetch-user-posts",
+                kwargs={"user_id": user_id, "page": page + 1, "page_size": page_size},
+            )
+
+        return posts, previous_link, next_link
 
     def _to_django_post_data(self, domain_post: DomainPost) -> Dict[str, Any]:
         return {

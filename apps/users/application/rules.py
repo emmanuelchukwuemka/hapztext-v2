@@ -7,11 +7,15 @@ from .dtos import (
     FollowRequestResponseDTO,
     FriendsListDTO,
     HandleFollowRequestDTO,
+    PaginatedFollowersResponseDTO,
+    PaginatedFollowingsResponseDTO,
     PaginatedFriendsListResponseDTO,
     PaginatedPendingRequestsResponseDTO,
     PaginatedUserProfileListResponseDTO,
     PendingRequestsDTO,
     UserDetailDTO,
+    UserFollowersDTO,
+    UserFollowingsDTO,
     UserProfileDetailDTO,
     UserProfileListDTO,
     UserProfileResponseDTO,
@@ -104,7 +108,7 @@ class FetchUserProfileRule:
     ) -> None:
         self.user_profile_repository = user_profile_repository
 
-    def execute(self, dto: UserProfileDetailDTO) -> UserResponseDTO:
+    def execute(self, dto: UserProfileDetailDTO) -> UserProfileResponseDTO:
         user_profile = self.user_profile_repository.find_by_user(dto.user_id)
         if not user_profile:
             raise ValueError(
@@ -137,7 +141,9 @@ class UpdateUserProfileRule:
             if key != "user_id" and value is not None
         }
 
-        updated_profile = self.user_repository.update(user_profile, **update_fields)
+        updated_profile = self.user_profile_repository.update(
+            user_profile, **update_fields
+        )
 
         return UserProfileResponseDTO(
             **{
@@ -336,4 +342,68 @@ class GetFriendsListRule:
             friends=friends_profiles,
             previous_friends_data=previous_friends,
             next_friends_data=next_friends,
+        )
+
+
+class GetUserFollowersRule:
+    def __init__(
+        self,
+        user_profile_repository: UserProfileRepositoryInterface,
+    ):
+        self.user_profile_repository = user_profile_repository
+
+    def execute(self, dto: UserFollowersDTO) -> PaginatedFollowersResponseDTO:
+        followers, previous_link, next_link = (
+            self.user_profile_repository.get_followers(
+                dto.user_id, dto.page, dto.page_size
+            )
+        )
+
+        followers_data = [
+            UserProfileResponseDTO(
+                **{
+                    key: value
+                    for key, value in asdict(follower).items()
+                    if key in UserProfileResponseDTO.__dataclass_fields__
+                }
+            )
+            for follower in followers
+        ]
+
+        return PaginatedFollowersResponseDTO(
+            followers=followers_data,
+            previous_followers_data=previous_link,
+            next_followers_data=next_link,
+        )
+
+
+class GetUserFollowingsRule:
+    def __init__(
+        self,
+        user_profile_repository: UserProfileRepositoryInterface,
+    ):
+        self.user_profile_repository = user_profile_repository
+
+    def execute(self, dto: UserFollowingsDTO) -> PaginatedFollowingsResponseDTO:
+        followings, previous_link, next_link = (
+            self.user_profile_repository.get_followings(
+                dto.user_id, dto.page, dto.page_size
+            )
+        )
+
+        followings_data = [
+            UserProfileResponseDTO(
+                **{
+                    key: value
+                    for key, value in asdict(following).items()
+                    if key in UserProfileResponseDTO.__dataclass_fields__
+                }
+            )
+            for following in followings
+        ]
+
+        return PaginatedFollowingsResponseDTO(
+            followings=followings_data,
+            previous_followings_data=previous_link,
+            next_followings_data=next_link,
         )

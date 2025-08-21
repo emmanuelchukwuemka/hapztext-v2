@@ -12,3 +12,9 @@ class PostRepositoryInterface(ABC):
     @abstractmethod
     def posts_list(self, page: int, page_size: int) -> Tuple[List[Any], str, str]:
         pass
+
+    @abstractmethod
+    def user_posts_list(
+        self, user_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str, str]:
+        pass

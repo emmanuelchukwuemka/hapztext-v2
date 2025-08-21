@@ -32,8 +32,6 @@ class UserProfile:
     location: str | None = None
     height: float = 0.00
     weight: float = 0.00
-    following_ids: List = field(default_factory=list)
-    follower_ids: List = field(default_factory=list)
     created_at: datetime = field(default_factory=lambda: datetime.now(tz=UTC))
     updated_at: datetime = field(default_factory=lambda: datetime.now(tz=UTC))
 
@@ -54,11 +52,11 @@ class UserFollowing:
     def __post_init__(self) -> None:
         self.status = FollowRequestStatus(self.status).value
 
-    def is_pending(self) -> None:
+    def is_pending(self) -> bool:
         return self.status == "pending"
 
-    def is_accepted(self) -> None:
+    def is_accepted(self) -> bool:
         return self.status == "accepted"
 
-    def is_declined(self) -> None:
+    def is_declined(self) -> bool:
         return self.status == "declined"

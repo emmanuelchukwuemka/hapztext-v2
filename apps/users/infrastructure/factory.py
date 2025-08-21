@@ -4,6 +4,8 @@ from ...users.application.rules import (
     FetchUserRule,
     GetFriendsListRule,
     GetPendingRequestsRule,
+    GetUserFollowersRule,
+    GetUserFollowingsRule,
     HandleFollowRequestRule,
     SendFollowRequestRule,
     UpdateUserRule,
@@ -70,5 +72,17 @@ def get_pending_requests_rule() -> GetPendingRequestsRule:
 def get_friends_list_rule() -> GetFriendsListRule:
     return GetFriendsListRule(
         user_following_repository=get_user_following_repository(),
+        user_profile_repository=get_user_profile_repository(),
+    )
+
+
+def get_user_followers_rule() -> GetUserFollowersRule:
+    return GetUserFollowersRule(
+        user_profile_repository=get_user_profile_repository(),
+    )
+
+
+def get_user_followings_rule() -> GetUserFollowingsRule:
+    return GetUserFollowingsRule(
         user_profile_repository=get_user_profile_repository(),
     )
