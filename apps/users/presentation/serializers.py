@@ -13,7 +13,7 @@ class UserDetailSerializer(serializers.Serializer):
 
 
 class UserProfileDetailSerializer(serializers.Serializer):
-    user_id = serializers.CharField(read_only=True)
+    user_id = serializers.CharField(required=True)
     birth_date = serializers.DateField(required=False)
     ethnicity = serializers.ChoiceField(
         choices=Ethnicity.choices(), default=Ethnicity.OTHER
@@ -32,10 +32,6 @@ class UserProfileDetailSerializer(serializers.Serializer):
     )
     height = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
     weight = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
-
-    def validate(self, attrs):
-        attrs["user_id"] = self.context.get("user_id")
-        return attrs
 
 
 class UserProfileListSerializer(serializers.Serializer):
