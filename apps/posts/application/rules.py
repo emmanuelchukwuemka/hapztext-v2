@@ -63,6 +63,39 @@ class CreatePostRule:
         )
 
         created_post = self.post_repository.create(post)
+        
+        try:
+            if created_post.is_reply and created_post.previous_post_id:
+                # Notify original post creator of reply
+                from apps.notifications.infrastructure.factory import get_notify_post_creator_of_reply_rule
+                from apps.posts.infrastructure.repositories import DjangoPostRepository
+                
+                post_repo = DjangoPostRepository()
+                original_post = post_repo._to_domain_post_data(
+                    post_repo.Post.objects.get(id=created_post.previous_post_id)
+                )
+                
+                notify_reply_rule = get_notify_post_creator_of_reply_rule()
+                notify_reply_rule.execute(
+                    post_creator_id=original_post.sender_id,
+                    replier_id=created_post.sender_id,
+                    original_post_id=created_post.previous_post_id,
+                    reply_id=created_post.id
+                )
+            else:
+                # Notify followers of new post
+                from apps.notifications.infrastructure.factory import get_notify_followers_of_post_rule
+                
+                notify_followers_rule = get_notify_followers_of_post_rule()
+                notify_followers_rule.execute(
+                    post_creator_id=created_post.sender_id,
+                    post_id=created_post.id,
+                    post_content=created_post.text_content or "New media post"
+                )
+        except Exception as e:
+            # Log error but don't fail post creation
+            from core.infrastructure.logging.base import logger
+            logger.error(f"Failed to send post notifications: {e}")
 
         return PostResponseDTO(
             **{

@@ -8,6 +8,7 @@ env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env")
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -20,9 +21,12 @@ INSTALLED_APPS = [
     "knox",
     "drf_spectacular",
     "drf_spectacular_sidecar",
+    "django_eventstream",
+    # "django_redis",
     "apps.users",
     "apps.authentication",
     "apps.posts",
+    "apps.notifications",
 ]
 
 MIDDLEWARE = [
@@ -141,3 +145,50 @@ LOG_FILE.touch(exist_ok=True)
 LOGGING_LEVEL = env.str("DJANGO_LOGGING_LEVEL", default="INFO")
 
 BACKEND_DOMAIN = env.str("BACKEND_DOMAIN", default="http://127.0.0.1:8000")
+
+# REDIS_URL = env.str("REDIS_URL", default="redis://localhost:6379")
+
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": REDIS_URL,
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#         }
+#     }
+# }
+
+
+EVENTSTREAM_CHANNELMANAGER_CLASS = (
+    "apps.notifications.infrastructure.channels.AuthenticatedChannelManager"
+)
+
+EVENTSTREAM_REDIS = {
+    "host": env.str("REDIS_HOST"),
+    "port": env.int("REDIS_PORT"),
+    "db": env.int("REDIS_DB"),
+    "password": env.str("REDIS_PASSWORD"),
+}
+
+EVENTSTREAM_STORAGE_CLASS = "django_eventstream.storage.DjangoModelStorage"
+
+EVENTSTREAM_ALLOW_ORIGINS = ["*"]
+EVENTSTREAM_ALLOW_CREDENTIALS = True
+EVENTSTREAM_ALLOW_HEADERS = "Authorization"
+
+
+# CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default=REDIS_URL)
+# CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", default=REDIS_URL)
+
+# # Celery Task Configuration
+# CELERY_TASK_SERIALIZER = "json"
+# CELERY_RESULT_SERIALIZER = "json"
+# CELERY_ACCEPT_CONTENT = ["json"]
+# CELERY_TIMEZONE = TIME_ZONE
+# CELERY_ENABLE_UTC = True
+
+
+# # Celery Worker Configuration
+# CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+# CELERY_TASK_ACKS_LATE = True
+# CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000

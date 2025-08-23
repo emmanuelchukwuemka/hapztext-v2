@@ -4,4 +4,5 @@ urlpatterns = [
     path("authentication/", include("api.v1.authentication")),
     path("users/", include("api.v1.users")),
     path("posts/", include("api.v1.posts")),
+    path("notifications/", include("api.v1.notifications")),
 ]

@@ -218,12 +218,30 @@ class SendFollowRequestRule:
 
         created_request = self.user_following_repository.create(user_following)
 
+        try:
+            from apps.notifications.infrastructure.factory import (
+                get_notify_user_of_follow_rule,
+            )
+
+            notify_follow_rule = get_notify_user_of_follow_rule()
+            notify_follow_rule.execute(
+                target_user_id=dto.target_id,
+                follower_id=dto.requester_id,
+                follow_request_id=created_request.id,
+            )
+        except Exception as e:
+            from core.infrastructure.logging.base import logger
+
+            logger.error(f"Failed to send follow request notification: {e}")
+
         return FollowRequestResponseDTO(
+            requester_id=created_request.follower_id,
+            target_id=created_request.following_id,
             **{
                 key: value
                 for key, value in asdict(created_request).items()
                 if key in FollowRequestResponseDTO.__dataclass_fields__
-            }
+            },
         )
 
 
@@ -250,12 +268,31 @@ class HandleFollowRequestRule:
             dto.request_id, dto.action
         )
 
+        if dto.action == "accepted":
+            try:
+                from apps.notifications.infrastructure.factory import (
+                    get_notify_user_of_follow_acceptance_rule,
+                )
+
+                notify_acceptance_rule = get_notify_user_of_follow_acceptance_rule()
+                notify_acceptance_rule.execute(
+                    requester_id=follow_request.follower_id,
+                    accepter_id=dto.user_id,
+                    follow_request_id=dto.request_id,
+                )
+            except Exception as e:
+                from core.infrastructure.logging.base import logger
+
+                logger.error(f"Failed to send follow acceptance notification: {e}")
+
         return FollowRequestResponseDTO(
+            requester_id=updated_request.follower_id,
+            target_id=updated_request.following_id,
             **{
                 key: value
                 for key, value in asdict(updated_request).items()
                 if key in FollowRequestResponseDTO.__dataclass_fields__
-            }
+            },
         )
 
 
