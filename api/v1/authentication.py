@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.authentication.presentation.views import (
+from apps.presentation.views.authentication import (
     login_user,
     logout_user,
     register_user,

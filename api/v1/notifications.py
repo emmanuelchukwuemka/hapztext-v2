@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.notifications.presentation.views import (
+from apps.presentation.views.notifications import (
     get_notification_preferences,
     get_notifications,
     mark_notifications_read,

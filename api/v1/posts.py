@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.posts.presentation.views import (
+from apps.presentation.views.posts import (
     create_post,
     fetch_posts_list,
     fetch_user_posts,

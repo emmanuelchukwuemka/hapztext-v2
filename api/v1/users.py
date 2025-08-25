@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.users.presentation.views import (
+from apps.presentation.views.users import (
     create_user_profile,
     fetch_profiles_list,
     fetch_user,

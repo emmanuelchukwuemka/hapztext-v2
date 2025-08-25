@@ -10,6 +10,6 @@ environ.Env.read_env(BASE_DIR / ".env")
 ENVIRONMENT = env.str("DJANGO_ENVIRONMENT", "development")
 
 if ENVIRONMENT == "production":
-    from .production import *  # noqa
+    from .production import *
 else:
-    from .development import *  # noqa
+    from .development import *
