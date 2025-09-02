@@ -91,7 +91,20 @@ class CreateUserProfileRule:
                 f"Profile for user with id '{dto.user_id}' already exists."
             )
 
-        user_profile = UserProfile(**asdict(dto))
+        user_profile = UserProfile(
+            user_id=dto.user_id,
+            birth_date=dto.birth_date,
+            ethnicity=dto.ethnicity,
+            relationship_status=dto.relationship_status,
+            first_name=dto.first_name,
+            last_name=dto.last_name,
+            bio=dto.bio,
+            occupation=dto.occupation,
+            profile_picture=dto.profile_picture,
+            location=dto.location,
+            height=dto.height,
+            weight=dto.weight,
+        )
 
         created_profile = self.user_profile_repository.create(user_profile)
 
