@@ -591,6 +591,30 @@ All API endpoints are prefixed with `/api/v1/`.
     }
     ```
 
+### 2.12. 👫 🔍 Friend Search
+
+-   **🔗 Endpoint:** `/api/v1/users/friends/search/`
+-   **📡 HTTP Method:** `GET`
+-   **📝 Description:** Autocomplete search for friends (useful for tagging).
+-   **🔐 Authentication:** Required (Bearer Token in Header: Authorization: Bearer <auth_token>)
+-   **🔗 Query Parameters:**
+    - `query`: string - The start of or complete username (prefixed with @).
+    - `limit`: integer - Number of friends to be returned by search (1-100).
+-   **📤 Request Body:** None
+-   **✅ Success Response (Status: 200 OK):**
+    ```json
+    {
+        "success": true,
+        "data": {
+            "friends": [
+                {"id": "user123", "username": "@john"},
+                {"id": "user456", "username": "@johndoe"}
+            ]
+        }
+        "status_code": 200
+    }
+    ```
+
 ---
 
 ## 📝 3. Post Endpoints
@@ -655,6 +679,8 @@ All API endpoints are prefixed with `/api/v1/`.
 -   **🔗 URL Parameters:**
     -   `page`: integer (required) - The page number for pagination.
     -   `page_size`: integer (required) - The number of posts per page.
+-   **🔗 Query Parameters:**
+    - `feed_type`: string - Defaults to 'timeline'.
 -   **📤 Request Body:** None
 -   **✅ Success Response (Status: 200 OK):**
     ```json
@@ -674,8 +700,16 @@ All API endpoints are prefixed with `/api/v1/`.
                     "is_reply": false,
                     "previous_post_id": null,
                     "sender_username": "string",
+                    "is_published": true,
+                    "scheduled_at": null,
+                    "tagged_user_ids": [],
+                    "reaction_counts": {
+                        "like": 1
+                    },
+                    "share_count": 1,
+                    "current_user_reaction": "like",
                     "created_at": "datetime",
-                    "updated_at": "datetime"
+                    "updated_at": "datetime",
                 }
             ],
             "previous_posts_data": "string",
@@ -725,6 +759,14 @@ All API endpoints are prefixed with `/api/v1/`.
                     "is_reply": false,
                     "previous_post_id": null,
                     "sender_username": "string",
+                    "is_published": true,
+                    "scheduled_at": null,
+                    "tagged_user_ids": [],
+                    "reaction_counts": {
+                        "like": 1
+                    },
+                    "share_count": 1,
+                    "current_user_reaction": "like",
                     "created_at": "datetime",
                     "updated_at": "datetime"
                 }
@@ -733,6 +775,119 @@ All API endpoints are prefixed with `/api/v1/`.
             "next_posts_data": "/api/v1/posts/user/user123/3/10/"
         },
         "status_code": 200
+    }
+    ```
+-   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
+    ```json
+    {
+        "success": false,
+        "message": "Error description",
+        "errors": {
+            "field_name": ["Error message"]
+        },
+        "status_code": 400
+    }
+    ```
+
+### 3.4. 😊 React to Post
+
+-   **🔗 Endpoint:** `/api/v1/posts/<str:post_id>/react/`
+-   **📡 HTTP Method:** `POST`
+-   **📝 Description:** React to post with emojis (like, love, haha, wow, sad, angry).
+-   **🔐 Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
+-   **🔗 URL Parameters:**
+    -   `post_id`: string (required) - The ID of the post.
+-   **📤 Request Body:** 
+    ```json
+    {
+        "reaction_type": "love"
+    }
+    ```
+-   **✅ Success Response (Status: 201 Created):**
+    ```json
+    {
+        "success": true,
+        "message": "Reaction added successfully.",
+        "data": {
+            "id": "string",
+            "user_id": "string",
+            "post_id": "string",
+            "reaction_type": "love",
+            "created_at": "datetime",
+            "updated_at": "datetime"
+        },
+        "status_code": 201
+    }
+    ```
+-   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
+    ```json
+    {
+        "success": false,
+        "message": "Error description",
+        "errors": {
+            "field_name": ["Error message"]
+        },
+        "status_code": 400
+    }
+    ```
+
+### 3.5. 🔗 Remove Reaction
+
+-   **🔗 Endpoint:** `/api/v1/posts/<str:post_id>/react/delete/`
+-   **📡 HTTP Method:** `DELETE`
+-   **📝 Description:** Delete user's reaction from post.
+-   **🔐 Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
+-   **🔗 URL Parameters:**
+    -   `post_id`: string (required) - The ID of the post.
+-   **📤 Request Body:** None
+-   **✅ Success Response (Status: 201 Created):**
+    ```json
+    {
+        "success": true,
+        "message": "Reaction removed successfully.",
+        "status_code": 204
+    }
+    ```
+-   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
+    ```json
+    {
+        "success": false,
+        "message": "Error description",
+        "errors": {
+            "field_name": ["Error message"]
+        },
+        "status_code": 400
+    }
+    ```
+
+### 3.6. 🔄 Post Sharing
+
+-   **🔗 Endpoint:** `/api/v1/posts/<str:post_id>/share/`
+-   **📡 HTTP Method:** `POST`
+-   **📝 Description:** Share post with optional messages.
+-   **🔐 Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
+-   **🔗 URL Parameters:**
+    -   `post_id`: string (required) - The ID of the post.
+-   **📤 Request Body:** 
+    ```json
+    {
+        "shared_with_message": "string"
+    }
+    ```
+-   **✅ Success Response (Status: 201 Created):**
+    ```json
+    {
+        "success": true,
+        "message": "Post shared successfully.",
+        "data": {
+            "id": "string",
+            "user_id": "string",
+            "post_id": "string",
+            "shared_with_message": "string",
+            "created_at": "datetime",
+            "updated_at": "datetime"
+        },
+        "status_code": 201
     }
     ```
 -   **❌ Error Response (Status: 400 Bad Request / 500 Internal Server Error):**

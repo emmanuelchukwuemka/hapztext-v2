@@ -17,7 +17,15 @@ from apps.application.notifications.rules import (
     NotifyUserOfFollowRule,
     UpdateNotificationPreferencesRule,
 )
-from apps.application.posts.rules import CreatePostRule, PostListRule, UserPostsRule
+from apps.application.posts.rules import (
+    CreatePostRule,
+    PostListRule,
+    PublishScheduledPostsRule,
+    ReactToPostRule,
+    RemoveReactionRule,
+    SharePostRule,
+    UserPostsRule,
+)
 from apps.application.users.rules import (
     CreateUserProfileRule,
     FetchUserProfileRule,
@@ -27,6 +35,7 @@ from apps.application.users.rules import (
     GetUserFollowersRule,
     GetUserFollowingsRule,
     HandleFollowRequestRule,
+    SearchFriendsRule,
     SendFollowRequestRule,
     UpdateUserRule,
     UserProfileListRule,
@@ -49,7 +58,12 @@ from apps.infrastructure.password_service import (
     password_check,
     validate_password,
 )
-from apps.infrastructure.posts.repositories import DjangoPostRepository
+from apps.infrastructure.posts.repositories import (
+    DjangoPostReactionRepository,
+    DjangoPostRepository,
+    DjangoPostShareRepository,
+    DjangoPostTagRepository,
+)
 from apps.infrastructure.users.repositories import (
     DjangoUserFollowingRepository,
     DjangoUserProfileRepository,
@@ -119,7 +133,8 @@ def get_user_followers_rule() -> GetUserFollowersRule:
     return GetUserFollowersRule(
         user_profile_repository=get_user_profile_repository(),
     )
-    
+
+
 def get_user_followings_rule() -> GetUserFollowingsRule:
     return GetUserFollowingsRule(
         user_profile_repository=get_user_profile_repository(),
@@ -188,16 +203,69 @@ def get_post_repository() -> DjangoPostRepository:
     return DjangoPostRepository()
 
 
+def get_post_reaction_repository() -> DjangoPostReactionRepository:
+    return DjangoPostReactionRepository()
+
+
+def get_post_share_repository() -> DjangoPostShareRepository:
+    return DjangoPostShareRepository()
+
+
+def get_post_tag_repository() -> DjangoPostTagRepository:
+    return DjangoPostTagRepository()
+
+
 def create_post_rule() -> CreatePostRule:
-    return CreatePostRule(post_repository=get_post_repository())
+    return CreatePostRule(
+        post_repository=get_post_repository(),
+        post_tag_repository=get_post_tag_repository(),
+    )
 
 
 def posts_list_rule() -> PostListRule:
-    return PostListRule(post_repository=get_post_repository())
+    return PostListRule(
+        post_repository=get_post_repository(),
+        post_reaction_repository=get_post_reaction_repository(),
+        post_share_repository=get_post_share_repository(),
+    )
 
 
 def user_posts_rule() -> UserPostsRule:
-    return UserPostsRule(post_repository=get_post_repository())
+    return UserPostsRule(
+        post_repository=get_post_repository(),
+        post_reaction_repository=get_post_reaction_repository(),
+        post_share_repository=get_post_share_repository(),
+    )
+
+
+def react_to_post_rule() -> ReactToPostRule:
+    return ReactToPostRule(
+        post_reaction_repository=get_post_reaction_repository(),
+    )
+
+
+def remove_reaction_rule() -> RemoveReactionRule:
+    return RemoveReactionRule(
+        post_reaction_repository=get_post_reaction_repository(),
+    )
+
+
+def share_post_rule() -> SharePostRule:
+    return SharePostRule(
+        post_share_repository=get_post_share_repository(),
+    )
+
+
+def search_friends_rule() -> SearchFriendsRule:
+    return SearchFriendsRule(
+        user_following_repository=get_user_following_repository(),
+    )
+
+
+def publish_scheduled_posts_rule() -> PublishScheduledPostsRule:
+    return PublishScheduledPostsRule(
+        post_repository=get_post_repository(),
+    )
 
 
 def get_notification_repository() -> DjangoNotificationRepository:

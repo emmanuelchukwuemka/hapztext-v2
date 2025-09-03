@@ -10,6 +10,7 @@ from apps.presentation.views.users import (
     get_user_followers,
     get_user_followings,
     handle_follow_request,
+    search_friends,
     send_follow_request,
     update_user,
 )
@@ -40,6 +41,7 @@ urlpatterns = [
     path(
         "friends/<int:page>/<int:page_size>/", get_friends_list, name="get-friends-list"
     ),
+    path("friends/search/", search_friends, name="search-friends"),
     path(
         "followers/<str:user_id>/<int:page>/<int:page_size>/",
         get_user_followers,

@@ -3,7 +3,7 @@ from functools import partial
 from django.db import models
 from nanoid import generate
 
-from apps.domain.posts.enums import PostFormat
+from apps.domain.posts.enums import PostFormat, ReactionType
 
 
 class Post(models.Model):
@@ -25,6 +25,8 @@ class Post(models.Model):
     sender = models.ForeignKey(
         "users.User", related_name="posts", on_delete=models.CASCADE
     )
+    is_published = models.BooleanField(default=True)
+    scheduled_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -36,3 +38,91 @@ class Post(models.Model):
 
     def __str__(self):
         return f"{str(self.get_post_format_display())} post from {str(self.sender)}"
+
+
+class PostReaction(models.Model):
+    id = models.CharField(
+        max_length=21,
+        primary_key=True,
+        editable=False,
+        default=partial(generate, size=21),
+    )
+    user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="post_reactions"
+    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="reactions")
+    reaction_type = models.CharField(
+        max_length=10, choices=ReactionType.choices(), default=ReactionType.LIKE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "post_reaction"
+        verbose_name = "post reaction"
+        verbose_name_plural = "post reactions"
+        unique_together = ["user", "post"]
+        indexes = [
+            models.Index(fields=["post", "reaction_type"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} {self.reaction_type} {self.post.id}"
+
+
+class PostShare(models.Model):
+    id = models.CharField(
+        max_length=21,
+        primary_key=True,
+        editable=False,
+        default=partial(generate, size=21),
+    )
+    user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="post_shares"
+    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="shares")
+    shared_with_message = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "post_share"
+        verbose_name = "post share"
+        verbose_name_plural = "post shares"
+        unique_together = ["user", "post"]
+        indexes = [
+            models.Index(fields=["post", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} shared {self.post.id}"
+
+
+class PostTag(models.Model):
+    id = models.CharField(
+        max_length=21,
+        primary_key=True,
+        editable=False,
+        default=partial(generate, size=21),
+    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="tags")
+    tagged_user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="post_tags"
+    )
+    tagged_by_user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="created_post_tags"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "post_tag"
+        verbose_name = "post tag"
+        verbose_name_plural = "post tags"
+        unique_together = ["post", "tagged_user"]
+        indexes = [
+            models.Index(fields=["tagged_user", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.tagged_by_user.username} tagged {self.tagged_user.username} in {self.post.id}"

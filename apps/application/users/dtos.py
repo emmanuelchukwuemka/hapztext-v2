@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import List
+from typing import Dict, List
 
 
 @dataclass
@@ -139,3 +139,15 @@ class PaginatedFollowingsResponseDTO:
     followings: List[UserProfileResponseDTO]
     previous_followings_data: str | None = None
     next_followings_data: str | None = None
+
+
+@dataclass
+class FriendSearchDTO:
+    user_id: str
+    query: str
+    limit: int = 10
+
+
+@dataclass
+class FriendSearchResponseDTO:
+    friends: List[Dict[str, str]]

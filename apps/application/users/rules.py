@@ -1,13 +1,12 @@
 from dataclasses import asdict
-from typing import Any, Callable
-
-from loguru import logger
 
 from apps.domain.users.entities import UserFollowing, UserProfile
 
 from .dtos import (
     FollowRequestDTO,
     FollowRequestResponseDTO,
+    FriendSearchDTO,
+    FriendSearchResponseDTO,
     FriendsListDTO,
     HandleFollowRequestDTO,
     PaginatedFollowersResponseDTO,
@@ -427,3 +426,42 @@ class GetUserFollowingsRule:
             previous_followings_data=previous_link,
             next_followings_data=next_link,
         )
+
+
+class SearchFriendsRule:
+    def __init__(
+        self,
+        user_following_repository: UserFollowingRepositoryInterface,
+    ) -> None:
+        self.user_following_repository = user_following_repository
+
+    def __call__(self, dto: FriendSearchDTO) -> FriendSearchResponseDTO:
+        friends, _, _ = self.user_following_repository.get_mutual_followers(
+            dto.user_id, page=1, page_size=1000
+        )
+
+        matching_friends = []
+        query_lower = dto.query.lower().strip("@")
+
+        for friend in friends:
+            if hasattr(friend, "username") and friend.username.lower().startswith(
+                query_lower
+            ):
+                matching_friends.append(
+                    {
+                        "id": (
+                            friend.user_id
+                            if hasattr(friend, "user_id")
+                            else friend.follower_id
+                        ),
+                        "username": (
+                            f"@{friend.username}"
+                            if hasattr(friend, "username")
+                            else f"@{friend.user_id}"
+                        ),
+                    }
+                )
+
+        limited_friends = matching_friends[: dto.limit]
+
+        return FriendSearchResponseDTO(friends=limited_friends)

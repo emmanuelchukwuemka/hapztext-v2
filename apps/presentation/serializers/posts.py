@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from rest_framework import serializers
 
-from apps.domain.posts.enums import PostFormat
+from apps.domain.posts.enums import PostFormat, ReactionType
 
 
 class PostCreateSerializer(serializers.Serializer):
@@ -15,6 +17,11 @@ class PostCreateSerializer(serializers.Serializer):
     previous_post_id = serializers.CharField(
         required=False, allow_null=True, allow_blank=True
     )
+    is_published = serializers.BooleanField(required=False, default=True)
+    scheduled_at = serializers.DateTimeField(required=False, allow_null=True)
+    tagged_user_ids = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_empty=True, default=list
+    )
 
     def validate(self, attrs):
         post_format = attrs.get("post_format")
@@ -22,6 +29,7 @@ class PostCreateSerializer(serializers.Serializer):
         image_content = attrs.get("image_content")
         audio_content = attrs.get("audio_content")
         video_content = attrs.get("video_content")
+        scheduled_at = attrs.get("scheduled_at")
 
         content_fields = {
             PostFormat.TEXT: text_content,
@@ -68,6 +76,12 @@ class PostCreateSerializer(serializers.Serializer):
                 )
                 raise serializers.ValidationError("Unsupported video file type.")
 
+        if scheduled_at and scheduled_at <= datetime.now(scheduled_at.tzinfo):
+            raise serializers.ValidationError("Scheduled time must be in the future.")
+
+        if scheduled_at and attrs.get("is_published", True):
+            attrs["is_published"] = False
+
         attrs["sender_id"] = self.context.get("sender_id")
 
         return attrs
@@ -76,6 +90,14 @@ class PostCreateSerializer(serializers.Serializer):
 class PostListSerializer(serializers.Serializer):
     page = serializers.IntegerField(required=True)
     page_size = serializers.IntegerField(required=True)
+    feed_type = serializers.ChoiceField(
+        choices=[
+            ("timeline", "Timeline"),
+            ("trending", "Trending"),
+            ("popular", "Popular"),
+        ],
+        default="timeline",
+    )
 
 
 class UserPostsSerializer(serializers.Serializer):
@@ -84,5 +106,31 @@ class UserPostsSerializer(serializers.Serializer):
     page_size = serializers.IntegerField(required=True)
 
     def validate(self, attrs):
+        attrs["user_id"] = self.context.get("user_id")
+        return attrs
+
+
+class PostReactionSerializer(serializers.Serializer):
+    reaction_type = serializers.ChoiceField(
+        choices=ReactionType.choices(), required=True
+    )
+    post_id = serializers.CharField(read_only=True)
+    user_id = serializers.CharField(read_only=True)
+
+    def validate(self, attrs):
+        attrs["post_id"] = self.context.get("post_id")
+        attrs["user_id"] = self.context.get("user_id")
+        return attrs
+
+
+class PostShareSerializer(serializers.Serializer):
+    shared_with_message = serializers.CharField(
+        required=False, allow_blank=True, max_length=500
+    )
+    post_id = serializers.CharField(read_only=True)
+    user_id = serializers.CharField(read_only=True)
+
+    def validate(self, attrs):
+        attrs["post_id"] = self.context.get("post_id")
         attrs["user_id"] = self.context.get("user_id")
         return attrs

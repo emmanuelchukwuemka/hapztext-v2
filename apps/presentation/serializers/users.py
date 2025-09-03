@@ -99,3 +99,15 @@ class UserFollowingsSerializer(serializers.Serializer):
     def validate(self, attrs):
         attrs["user_id"] = self.context.get("user_id")
         return attrs
+
+
+class FriendSearchSerializer(serializers.Serializer):
+    query = serializers.CharField(required=True, min_length=1, max_length=50)
+    limit = serializers.IntegerField(
+        required=False, default=10, min_value=1, max_value=20
+    )
+    user_id = serializers.CharField(read_only=True)
+
+    def validate(self, attrs):
+        attrs["user_id"] = self.context.get("user_id")
+        return attrs

@@ -14,9 +14,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
-from apps.presentation.factory import get_user_followings_rule
 from apps.application.users.dtos import (
     FollowRequestDTO,
+    FriendSearchDTO,
     FriendsListDTO,
     HandleFollowRequestDTO,
     PendingRequestsDTO,
@@ -35,7 +35,9 @@ from apps.presentation.factory import (
     get_notify_user_of_follow_rule,
     get_pending_requests_rule,
     get_user_followers_rule,
+    get_user_followings_rule,
     handle_follow_request_rule,
+    search_friends_rule,
     send_follow_request_rule,
     update_user_rule,
     user_profile_list_rule,
@@ -47,6 +49,7 @@ from apps.presentation.serializers.examples import (
 )
 from apps.presentation.serializers.users import (
     FollowRequestSerializer,
+    FriendSearchSerializer,
     HandleFollowRequestSerializer,
     PaginatedDataRequestSerializer,
     UserDetailSerializer,
@@ -382,4 +385,33 @@ def get_user_followings(
 
     return StandardResponse.success(
         data=asdict(followings_data), message="User followings fetched successfully."
+    )
+
+
+@extend_schema(
+    request=FriendSearchSerializer,
+    responses={
+        200: SuccessResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer,
+    },
+    description="Search friends especially for tagging autocompletion (e.g., type '@jo' to find '@john').",
+    tags=["Users"],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
+def search_friends(request: Request) -> Response:
+    query = request.query_params.get("query", "").strip()
+    limit = int(request.query_params.get("limit", 10))
+    serializer = FriendSearchSerializer(
+        data={"query": query, "limit": limit}, context={"user_id": request.user.id}
+    )
+    serializer.is_valid(raise_exception=True)
+
+    search_rule = search_friends_rule()
+    friends_data = search_rule(FriendSearchDTO(**serializer.validated_data))
+
+    return StandardResponse.success(
+        data=asdict(friends_data), message="Friends search completed successfully."
     )
