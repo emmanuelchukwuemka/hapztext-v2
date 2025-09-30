@@ -5,8 +5,9 @@ from apps.domain.users.entities import UserFollowing, UserProfile
 from .dtos import (
     FollowRequestDTO,
     FollowRequestResponseDTO,
+    UserSearchDTO,
     FriendSearchDTO,
-    FriendSearchResponseDTO,
+    SearchResponseDTO,
     FriendsListDTO,
     HandleFollowRequestDTO,
     PaginatedFollowersResponseDTO,
@@ -48,6 +49,38 @@ class FetchUserRule:
                 for key, value in asdict(user).items()
                 if key in UserResponseDTO.__dataclass_fields__
             }
+        )
+
+
+class SearchUserRule:
+    def __init__(
+        self,
+        user_repository: UserRepositoryInterface,
+    ) -> None:
+        self.user_repository = user_repository 
+
+    def __call__(self, dto: UserSearchDTO) -> SearchResponseDTO:
+        query_lower = dto.query.lower().strip("@")
+
+        users, previous_link, next_link = self.user_repository.search(
+            query_lower, page=dto.offset, page_size=dto.limit
+        )
+
+        users_data = [
+            UserResponseDTO(
+                **{
+                    key: value
+                    for key, value in asdict(user).items()
+                    if key in UserResponseDTO.__dataclass_fields__
+                }
+            )
+            for user in users
+        ]
+
+        return SearchResponseDTO(
+            users=users_data,
+            previous_search_data=previous_link,
+            next_search_data=next_link,
         )
 
 
@@ -435,9 +468,9 @@ class SearchFriendsRule:
     ) -> None:
         self.user_following_repository = user_following_repository
 
-    def __call__(self, dto: FriendSearchDTO) -> FriendSearchResponseDTO:
-        friends, _, _ = self.user_following_repository.get_mutual_followers(
-            dto.user_id, page=1, page_size=1000
+    def __call__(self, dto: FriendSearchDTO) -> SearchResponseDTO:
+        friends, previous_link, next_link = self.user_following_repository.get_mutual_followers(
+            user_id=dto.user_id, page=dto.offset, page_size=dto.limit, query=dto.query
         )
 
         matching_friends = []
@@ -462,6 +495,8 @@ class SearchFriendsRule:
                     }
                 )
 
-        limited_friends = matching_friends[: dto.limit]
-
-        return FriendSearchResponseDTO(friends=limited_friends)
+        return SearchResponseDTO(
+            users=matching_friends,
+            previous_search_data=previous_link,
+            next_search_data=next_link,
+        )

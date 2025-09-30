@@ -25,11 +25,13 @@ from apps.application.users.dtos import (
     UserFollowingsDTO,
     UserProfileDetailDTO,
     UserProfileListDTO,
+    UserSearchDTO,
 )
 from apps.presentation.factory import (
     create_user_profile_rule,
     fetch_user_profile_rule,
     fetch_user_rule,
+    search_users_rule,
     get_friends_list_rule,
     get_notify_user_of_follow_acceptance_rule,
     get_notify_user_of_follow_rule,
@@ -57,6 +59,7 @@ from apps.presentation.serializers.users import (
     UserFollowingsSerializer,
     UserProfileDetailSerializer,
     UserProfileListSerializer,
+    UserSearchSerializer,
 )
 
 
@@ -389,6 +392,37 @@ def get_user_followings(
 
 
 @extend_schema(
+    request=UserSearchSerializer,
+    responses={
+        200: SuccessResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer,
+    },
+    description="Search users (e.g., type '@jo' to find '@john').",
+    tags=["Users"],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
+def search_users(request: Request) -> Response:
+    query = request.query_params.get("query", "").strip()
+    offset = int(request.query_params.get("offset", 1))
+    limit = int(request.query_params.get("limit", 10))
+    serializer = UserSearchSerializer(
+        data={"query": query, "offset": offset, "limit": limit}
+    )
+    serializer.is_valid(raise_exception=True)
+
+    search_rule = search_users_rule()
+    users_data = search_rule(UserSearchDTO(**serializer.validated_data))
+
+    return StandardResponse.success(
+        data=asdict(users_data), message="Users search completed successfully."
+    )
+
+
+
+@extend_schema(
     request=FriendSearchSerializer,
     responses={
         200: SuccessResponseExampleSerializer,
@@ -403,9 +437,10 @@ def get_user_followings(
 @throttle_classes([UserRateThrottle])
 def search_friends(request: Request) -> Response:
     query = request.query_params.get("query", "").strip()
+    offset = int(request.query_params.get("offset", 1))
     limit = int(request.query_params.get("limit", 10))
     serializer = FriendSearchSerializer(
-        data={"query": query, "limit": limit}, context={"user_id": request.user.id}
+        data={"query": query, "offset": offset, "limit": limit}, context={"user_id": request.user.id}
     )
     serializer.is_valid(raise_exception=True)
 

@@ -599,6 +599,8 @@ All API endpoints are prefixed with `/api/v1/`.
 -   **🔐 Authentication:** Required (Bearer Token in Header: Authorization: Bearer <auth_token>)
 -   **🔗 Query Parameters:**
     - `query`: string - The start of or complete username (prefixed with @).
+    - `offset`: integer - Number of pages to be
+    returned by the search (1-50)
     - `limit`: integer - Number of friends to be returned by search (1-100).
 -   **📤 Request Body:** None
 -   **✅ Success Response (Status: 200 OK):**
@@ -609,7 +611,37 @@ All API endpoints are prefixed with `/api/v1/`.
             "friends": [
                 {"id": "user123", "username": "@john"},
                 {"id": "user456", "username": "@johndoe"}
-            ]
+            ],
+            "previous_search_data": ...,
+            "next_search_data": ...,
+        }
+        "status_code": 200
+    }
+    ```
+
+### 2.13. 🔍 User Search
+
+-   **🔗 Endpoint:** `/api/v1/users/search/`
+-   **📡 HTTP Method:** `GET`
+-   **📝 Description:** Autocomplete search for users.
+-   **🔐 Authentication:** Required (Bearer Token in Header: Authorization: Bearer <auth_token>)
+-   **🔗 Query Parameters:**
+    - `query`: string - The start of or complete username/firstname/lastname (prefixed with @).
+    - `offset`: integer - Number of pages to be
+    returned by the search (1-50)
+    - `limit`: integer - Number of users to be returned by search (1-100).
+-   **📤 Request Body:** None
+-   **✅ Success Response (Status: 200 OK):**
+    ```json
+    {
+        "success": true,
+        "data": {
+            "friends": [
+                {"id": "user123", "username": "@john",...},
+                {"id": "user456", "username": "@johndoe",...}
+            ],
+            "previous_search_data": ...,
+            "next_search_data": ...,
         }
         "status_code": 200
     }

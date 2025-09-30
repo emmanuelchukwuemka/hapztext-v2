@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Tuple
 
 from django.db import IntegrityError
+from django.db.models import Q
 from django.urls import reverse
 
 from apps.application.users.ports import (
@@ -152,6 +153,38 @@ class DjangoUserRepository(UserRepositoryInterface):
 
         except User.DoesNotExist:
             return None
+
+    def search(
+        self, query: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        query_data = User.objects.filter(
+            Q(username__istartswith=query) | Q(user_profile__first_name__istartswith=query) | Q(user_profile__last_name__istartswith=query),
+            is_email_verified=True,
+            is_active=True
+        ).order_by("-created_at")
+
+        total_users = query_data.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        users = [
+            to_domain_user_data(qs)
+            for qs in list(query_data[offset:end])
+        ]
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "search-users", query={"query": query, "offset": page - 1, "limit": page_size}
+            )
+
+        next_link = None
+        if end < total_users:
+            next_link = reverse(
+                "search-users", query={"query": query, "offset": page + 1, "limit": page_size}
+            )
+
+        return users, previous_link, next_link
 
 
 class DjangoUserProfileRepository(UserProfileRepositoryInterface):
@@ -409,7 +442,7 @@ class DjangoUserFollowingRepository(UserFollowingRepositoryInterface):
         return sent_requests, previous_link, next_link
 
     def get_mutual_followers(
-        self, user_id: str, page: int, page_size: int
+        self, user_id: str, page: int, page_size: int, query: str | None = None
     ) -> Tuple[List[Any], str | None, str | None]:
         following = UserFollowing.objects.filter(
             follower__user_id=user_id, status="accepted"
@@ -437,13 +470,13 @@ class DjangoUserFollowingRepository(UserFollowingRepositoryInterface):
         previous_link = None
         if page > 1:
             previous_link = reverse(
-                "get-friends-list", kwargs={"page": page - 1, "page_size": page_size}
+                "search-friends", query={"query": query, "offset": page - 1, "limit": page_size}
             )
 
         next_link = None
         if end < total_friends:
             next_link = reverse(
-                "get-friends-list", kwargs={"page": page + 1, "page_size": page_size}
+                "search-friends", query={"query": query, "offset": page + 1, "limit": page_size}
             )
 
         return friends, previous_link, next_link

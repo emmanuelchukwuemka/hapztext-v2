@@ -39,6 +39,7 @@ from apps.application.users.rules import (
     SendFollowRequestRule,
     UpdateUserRule,
     UserProfileListRule,
+    SearchUserRule,
 )
 from apps.infrastructure.authentication.repositories import DjangoOTPCodeRepository
 from apps.infrastructure.authentication.services import (
@@ -86,6 +87,8 @@ def get_user_following_repository() -> DjangoUserFollowingRepository:
 def fetch_user_rule() -> FetchUserRule:
     return FetchUserRule(user_repository=get_user_repository())
 
+def search_users_rule() -> SearchUserRule:
+    return SearchUserRule(user_repository=get_user_repository())
 
 def create_user_profile_rule() -> CreateUserProfileRule:
     return CreateUserProfileRule(user_profile_repository=get_user_profile_repository())

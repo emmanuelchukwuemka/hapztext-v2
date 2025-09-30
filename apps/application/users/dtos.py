@@ -26,6 +26,13 @@ class UserResponseDTO(UserDetailDTO):
 
 
 @dataclass
+class UserSearchDTO:
+    query: str
+    offset: int = 10
+    limit: int = 1000
+
+
+@dataclass
 class UserProfileDetailDTO:
     user_id: str
     birth_date: date | None = None
@@ -145,9 +152,12 @@ class PaginatedFollowingsResponseDTO:
 class FriendSearchDTO:
     user_id: str
     query: str
-    limit: int = 10
+    offset: int = 10
+    limit: int = 1000
 
 
 @dataclass
-class FriendSearchResponseDTO:
-    friends: List[Dict[str, str]]
+class SearchResponseDTO:
+    users: List[Dict[str, str]]
+    previous_search_data: str | None = None
+    next_search_data: str | None = None

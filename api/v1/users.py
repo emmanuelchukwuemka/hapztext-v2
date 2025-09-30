@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.presentation.views.users import (
     create_user_profile,
+    search_users,
     fetch_profiles_list,
     fetch_user,
     fetch_user_profile,
@@ -17,6 +18,11 @@ from apps.presentation.views.users import (
 
 urlpatterns = [
     path("", fetch_user, name="fetch-user"),
+    path(
+        "search/",
+        search_users,
+        name="search-users",
+    ),
     path("update/", update_user, name="update-user"),
     path("profile/create/", create_user_profile, name="create-user-profile"),
     path("profile/<str:user_id>/", fetch_user_profile, name="fetch-user-profile"),
