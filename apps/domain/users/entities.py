@@ -67,6 +67,7 @@ class UserSearchResult:
     email: str
     username: str
     is_email_verified: bool = False
+    is_active: bool = True
     follower_count: int = 0
     following_count: int = 0
     mention_count: int = 0

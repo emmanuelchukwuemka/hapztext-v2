@@ -63,3 +63,4 @@ logs/
 management/
 MIGRATION*
 dump.rdb
+uv.lock

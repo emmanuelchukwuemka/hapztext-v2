@@ -131,6 +131,8 @@ def to_domain_user_search_result(
         following_count=following_count,
         mention_count=mention_count,
         profile_picture=profile_picture,
+        is_email_verified=django_user.is_email_verified,
+        is_active=django_user.is_active,
         created_at=django_user.created_at,
         updated_at=django_user.updated_at,
     )
@@ -203,7 +205,7 @@ class DjangoUserRepository(UserRepositoryInterface):
     .values("count")[:1]
         )
 
-        query_data = (
+        query_data = [user for user in (
             User.objects.filter(
                 Q(username__istartswith=query)
                 | Q(user_profile__first_name__istartswith=query)
@@ -217,9 +219,9 @@ class DjangoUserRepository(UserRepositoryInterface):
                 mention_count=Subquery(mention_count_subquery),
             )
             .order_by("-created_at")
-        )
+        ) if hasattr(user, "user_profile")]
 
-        total_users = query_data.count()
+        total_users = len(query_data)
         offset = (page - 1) * page_size
         end = offset + page_size
 
