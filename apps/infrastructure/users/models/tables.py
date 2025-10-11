@@ -16,9 +16,9 @@ class User(AbstractUser):
         editable=False,
         default=partial(generate, size=21),
     )
-    email = models.EmailField(max_length=50, unique=True, blank=False)
+    email = models.EmailField(max_length=50, unique=True, blank=False, db_index=True)
     username = models.CharField(max_length=50, unique=True, blank=False)
-    is_email_verified = models.BooleanField(default=False)
+    is_email_verified = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -48,7 +48,7 @@ class UserProfile(models.Model):
     last_name = models.CharField(max_length=100, blank=True, null=True)
     bio = models.TextField(max_length=500, blank=True, null=True)
     profile_picture = models.ImageField(
-        upload_to="media/profile_images/", blank=True, null=True
+        upload_to="media/profile_images/", blank=True, null=True, db_index=True
     )
     occupation = models.CharField(max_length=100, blank=True, null=True)
     birth_date = models.DateField(blank=False)
@@ -86,6 +86,7 @@ class UserProfile(models.Model):
         verbose_name = "user_profile"
         verbose_name_plural = "user_profiles"
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["first_name", "last_name"])]
 
     def __str__(self) -> str:
         return f"{self.first_name or ''} {self.last_name or ''}".strip() or str(
@@ -114,6 +115,7 @@ class UserFollowing(models.Model):
         verbose_name_plural = "user_followings"
         ordering = ["-created_at"]
         unique_together = ["follower", "following"]
+    indexes = [models.Index(fields=["follower", "following"])]
 
     def __str__(self) -> str:
         return f"{self.follower} -> {self.following}"

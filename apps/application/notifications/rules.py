@@ -89,11 +89,11 @@ class NotifyFollowersOfPostRule:
         self, post_creator_id: str, post_id: str, post_content: str
     ) -> List[NotificationResponseDTO]:
         user = self.user_repository.find_by_id(post_creator_id)
-        # Get all followers of the post creator
+        
         followers, _, _ = self.user_profile_repository.get_followers(
             user_id=post_creator_id,
             page=1,
-            page_size=10000000000,  # Large number to get all followers
+            page_size=1000,
         )
 
         notifications = []
@@ -142,7 +142,7 @@ class NotifyPostCreatorOfReplyRule:
         if post_creator_id == replier_id:
             return None
 
-        replier = self.user_repository.find_by_id(post_creator_id)
+        replier = self.user_repository.find_by_id(replier_id)
 
         try:
             notification_dto = CreateNotificationDTO(

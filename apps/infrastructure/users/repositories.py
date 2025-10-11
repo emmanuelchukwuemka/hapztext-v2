@@ -317,6 +317,7 @@ class DjangoUserProfileRepository(UserProfileRepositoryInterface):
                 following_set__following__user_id=user_id,
             )
             .select_related("user")
+            .prefetch_related("follower_set", "following_set")
             .order_by("-following_set__created_at")
         )
 
