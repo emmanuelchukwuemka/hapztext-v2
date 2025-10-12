@@ -176,36 +176,9 @@ class NotifyUserOfFollowRule:
             notification_dto = CreateNotificationDTO(
                 recipient_id=target_user_id,
                 sender_id=follower_id,
-                notification_type="follow_request",
-                message=f"{follower.username} sent you a follow request",
-                data={"follow_request_id": follow_request_id},
-            )
-            return self.create_notification_rule(notification_dto)
-        except ValueError:
-            return None
-
-
-class NotifyUserOfFollowAcceptanceRule:
-    def __init__(
-        self,
-        user_repository: UserRepositoryInterface,
-        create_notification_rule: CreateNotificationRule,
-    ) -> None:
-        self.user_repository = user_repository
-        self.create_notification_rule = create_notification_rule
-
-    def __call__(
-        self, requester_id: str, accepter_id: str, follow_request_id: str
-    ) -> NotificationResponseDTO | None:
-        accepter = self.user_repository.find_by_id(accepter_id)
-
-        try:
-            notification_dto = CreateNotificationDTO(
-                recipient_id=requester_id,
-                sender_id=accepter_id,
-                notification_type="follow_accepted",
-                message=f"{accepter.username} accepted your follow request",
-                data={"follow_request_id": follow_request_id},
+                notification_type="follow",
+                message=f"{follower.username} followed you",
+                data={},
             )
             return self.create_notification_rule(notification_dto)
         except ValueError:

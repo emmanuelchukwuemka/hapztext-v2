@@ -5,8 +5,7 @@ from typing import List, Tuple
 class NotificationType(StrEnum):
     POST_CREATED = "post_created"
     POST_REPLY = "post_reply"
-    FOLLOW_REQUEST = "follow_request"
-    FOLLOW_ACCEPTED = "follow_accepted"
+    FOLLOW_REQUEST = "follow"
 
     @classmethod
     def choices(cls) -> List[Tuple[str]]:

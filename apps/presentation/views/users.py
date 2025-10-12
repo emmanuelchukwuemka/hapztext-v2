@@ -215,7 +215,6 @@ def send_follow_request(request: Request, user_id: str) -> Response:
         notify_follow_rule(
             target_user_id=user_id,
             follower_id=request.user.id,
-            follow_request_id=follow_request_data["id"],
         )
     except Exception as e:
         logger.error(f"Failed to send user follow notification: {e}")
