@@ -118,7 +118,9 @@ class DjangoPostRepository(PostRepositoryInterface):
         self, post_id: str, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
         queryset = (
-            Post.objects.filter(is_reply=True, previous_post_id=post_id)
+            Post.objects.filter(
+                is_reply=True, previous_post_id=post_id, is_published=True
+            )
             .select_related("sender")
             .order_by("-created_at")
         )
@@ -156,7 +158,8 @@ class DjangoPostRepository(PostRepositoryInterface):
         self, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
         queryset = (
-            Post.objects.select_related("sender")
+            Post.objects.filter(is_published=True)
+            .select_related("sender")
             .prefetch_related("reactions", "shares")
             .order_by("-created_at")
         )
@@ -184,7 +187,9 @@ class DjangoPostRepository(PostRepositoryInterface):
     def user_posts_list(
         self, user_id: str, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
-        queryset = Post.objects.filter(sender_id=user_id).order_by("-created_at")
+        queryset = Post.objects.filter(sender_id=user_id, is_published=True).order_by(
+            "-created_at"
+        )
         total_posts = queryset.count()
 
         offset = (page - 1) * page_size
@@ -337,7 +342,7 @@ class DjangoPostReactionRepository(PostReactionRepositoryInterface):
 
         return result
 
-    def get_post_reactors(
+    def get_post_reactions(
         self, post_id: str, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
         queryset = (
@@ -346,11 +351,11 @@ class DjangoPostReactionRepository(PostReactionRepositoryInterface):
             .order_by("-created_at")
         )
 
-        total_reactors = queryset.count()
+        total_reactions = queryset.count()
         offset = (page - 1) * page_size
         end = offset + page_size
 
-        reactors = list(queryset[offset:end])
+        reactions = list(queryset[offset:end])
 
         previous_link = None
         if page > 1:
@@ -360,13 +365,13 @@ class DjangoPostReactionRepository(PostReactionRepositoryInterface):
             )
 
         next_link = None
-        if end < total_reactors:
+        if end < total_reactions:
             next_link = reverse(
                 "fetch-post-reactors",
                 kwargs={"post_id": post_id, "page": page + 1, "page_size": page_size},
             )
 
-        return reactors, previous_link, next_link
+        return reactions, previous_link, next_link
 
 
 class DjangoPostShareRepository(PostShareRepositoryInterface):

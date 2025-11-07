@@ -20,7 +20,7 @@ from apps.application.posts.rules import (
     CreatePostRule,
     DeletePostRule,
     FetchRepliesRule,
-    GetPostFriendReactorsRule,
+    GetPostReactorsRule,
     PostListRule,
     PublishScheduledPostsRule,
     ReactToPostRule,
@@ -273,8 +273,8 @@ def remove_reaction_rule() -> RemoveReactionRule:
     )
 
 
-def get_post_friend_reactors_rule() -> GetPostFriendReactorsRule:
-    return GetPostFriendReactorsRule(
+def get_post_friend_reactors_rule() -> GetPostReactorsRule:
+    return GetPostReactorsRule(
         post_reaction_repository=get_post_reaction_repository(),
         user_following_repository=get_user_following_repository(),
     )

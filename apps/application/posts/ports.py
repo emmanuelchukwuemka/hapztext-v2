@@ -78,7 +78,7 @@ class PostReactionRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def get_post_reactors(
+    def get_post_reactions(
         self, post_id: str, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
         pass

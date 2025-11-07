@@ -189,6 +189,7 @@ EVENTSTREAM_REDIS = {
     "port": env.int("REDIS_PORT"),
     "db": env.int("REDIS_DB"),
     "password": env.str("REDIS_PASSWORD"),
+    "ssl": True,
 }
 
 EVENTSTREAM_STORAGE_CLASS = "django_eventstream.storage.DjangoModelStorage"
@@ -207,3 +208,9 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
+CELERY_BROKER_URL = env.str("REDIS_URL")
+CELERY_RESULT_BACKEND = env.str("REDIS_URL")

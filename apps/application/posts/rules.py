@@ -326,7 +326,7 @@ class RemoveReactionRule:
         self.post_reaction_repository.delete(user_id, post_id)
 
 
-class GetPostFriendReactorsRule:
+class GetPostReactorsRule:
     def __init__(
         self,
         post_reaction_repository: PostReactionRepositoryInterface,
@@ -336,33 +336,35 @@ class GetPostFriendReactorsRule:
         self.user_following_repository = user_following_repository
 
     def __call__(self, dto: PostReactorsDTO) -> PaginatedPostReactorsResponseDTO:
-        reactors, previous_link, next_link = (
-            self.post_reaction_repository.get_post_reactors(
+        reactions, previous_link, next_link = (
+            self.post_reaction_repository.get_post_reactions(
                 dto.post_id, dto.page, dto.page_size
             )
         )
 
-        friend_reactors = []
-        for reactor in reactors:
-            is_friend = self.user_following_repository.are_friends(
-                dto.user_id, reactor.user_id
+        reactors_result = []
+        for reaction in reactions:
+            profile = getattr(reaction.user, "user_profile", None)
+
+            reactors_result.append(
+                PostReactorResponseDTO(
+                    user_id=reaction.user_id,
+                    username=getattr(reaction.user, "username", None),
+                    first_name=getattr(profile, "first_name", None),
+                    last_name=getattr(profile, "last_name", None),
+                    profile_picture=(
+                        profile.profile_picture.url
+                        if getattr(profile, "profile_picture", None)
+                        and profile.profile_picture.name
+                        else None
+                    ),
+                    reaction=reaction.reaction,
+                    reacted_at=reaction.created_at,
+                )
             )
 
-            if is_friend:
-                friend_reactors.append(
-                    PostReactorResponseDTO(
-                        user_id=reactor.user_id,
-                        username=reactor.username,
-                        first_name=getattr(reactor, "first_name", None),
-                        last_name=getattr(reactor, "last_name", None),
-                        profile_picture=getattr(reactor, "profile_picture", None),
-                        reaction=reactor.reaction,
-                        reacted_at=reactor.created_at,
-                    )
-                )
-
         return PaginatedPostReactorsResponseDTO(
-            result=friend_reactors,
+            result=reactors_result,
             previous_reactors_data=previous_link,
             next_reactors_data=next_link,
         )

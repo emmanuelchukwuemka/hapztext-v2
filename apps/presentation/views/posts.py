@@ -78,31 +78,40 @@ def create_post(request: Request) -> Response:
     post = post_creation_rule(PostDetailDTO(**serializer.validated_data))
     post_data = asdict(post)
 
-    try:
-        if post_data["is_reply"] and post_data["previous_post_id"]:
-            original_post = to_domain_post_data(
-                Post.objects.get(id=post_data["previous_post_id"])
-            )
+    if post_data.get("is_published", True):
+        try:
+            if post_data["is_reply"] and post_data["previous_post_id"]:
+                original_post = to_domain_post_data(
+                    Post.objects.get(id=post_data["previous_post_id"])
+                )
 
-            notify_reply_rule = get_notify_post_creator_of_reply_rule()
-            notify_reply_rule(
-                post_creator_id=original_post.sender_id,
-                replier_id=post_data["sender_id"],
-                original_post_id=post_data["previous_post_id"],
-                reply_id=post_data["id"],
-            )
-        else:
-            notify_followers_rule = get_notify_followers_of_post_rule()
-            notify_followers_rule(
-                post_creator_id=post_data["sender_id"],
-                post_id=post_data["id"],
-                post_content=post_data["text_content"] or "New media post",
-            )
-    except Exception as e:
-        logger.error(f"Failed to send post notifications: {e}")
+                notify_reply_rule = get_notify_post_creator_of_reply_rule()
+                notify_reply_rule(
+                    post_creator_id=original_post.sender_id,
+                    replier_id=post_data["sender_id"],
+                    original_post_id=post_data["previous_post_id"],
+                    reply_id=post_data["id"],
+                )
+            else:
+                notify_followers_rule = get_notify_followers_of_post_rule()
+                notify_followers_rule(
+                    post_creator_id=post_data["sender_id"],
+                    post_id=post_data["id"],
+                    post_content=post_data["text_content"] or "New media post",
+                )
+        except Exception as e:
+            logger.error(f"Failed to send post notifications: {e}")
 
-    return StandardResponse.created(
-        data=asdict(post), message="Post created successfully."
+        return StandardResponse.created(
+            data=asdict(post), message="Post created successfully."
+        )
+
+    from apps.core.celery import publish_scheduled_posts_task
+
+    publish_scheduled_posts_task.apply_async(args=[post.id], eta=post.scheduled_at)
+
+    return StandardResponse.success(
+        data=asdict(post), message="Post scheduled for creation successfully."
     )
 
 
