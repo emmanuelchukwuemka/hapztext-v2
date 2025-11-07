@@ -197,27 +197,6 @@ class DjangoUserRepository(UserRepositoryInterface):
             user_id=OuterRef("id")
         ).values("count")[:1]
 
-        # query_data = [
-        #     user
-        #     for user in (
-        #         User.objects.filter(
-        #             Q(username__istartswith=query)
-        #             | Q(user_profile__first_name__istartswith=query)
-        #             | Q(user_profile__last_name__istartswith=query),
-        #             is_email_verified=True,
-        #             is_active=True,
-        #         )
-        #         .select_related("user_profile")
-        #         .annotate(
-        #             follower_count=Subquery(follower_count_subquery),
-        #             following_count=Subquery(following_count_subquery),
-        #             mention_count=Subquery(mention_count_subquery),
-        #         )
-        #         .order_by("-created_at")
-        #     )
-        #     if hasattr(user, "user_profile")
-        # ]
-
         queryset = (
             User.objects.filter(
                 Q(username__istartswith=query)
@@ -454,3 +433,14 @@ class DjangoUserFollowingRepository(UserFollowingRepositoryInterface):
             )
 
         return friends, previous_link, next_link
+
+    def are_friends(self, user1_id: str, user2_id: str) -> bool:
+        user1_follows_user2 = UserFollowing.objects.filter(
+            follower_id=user1_id, following_id=user2_id
+        ).exists()
+
+        user2_follows_user1 = UserFollowing.objects.filter(
+            follower_id=user2_id, following_id=user1_id
+        ).exists()
+
+        return user1_follows_user2 and user2_follows_user1

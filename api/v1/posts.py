@@ -2,6 +2,9 @@ from django.urls import path
 
 from apps.presentation.views.posts import (
     create_post,
+    delete_post,
+    fetch_post_friend_reactors,
+    fetch_post_replies,
     fetch_posts_list,
     fetch_user_posts,
     react_to_post,
@@ -18,6 +21,16 @@ urlpatterns = [
         name="fetch-user-posts",
     ),
     path(
+        "<str:post_id>/delete/",
+        delete_post,
+        name="delete-post",
+    ),
+    path(
+        "<str:post_id>/replies/<int:page>/<int:page_size>/",
+        fetch_post_replies,
+        name="fetch-post-replies",
+    ),
+    path(
         "<str:post_id>/react/",
         react_to_post,
         name="react-to-post",
@@ -26,6 +39,11 @@ urlpatterns = [
         "<str:post_id>/react/delete/",
         remove_post_reaction,
         name="remove-post-reaction",
+    ),
+    path(
+        "<str:post_id>/reactors/friends/<int:page>/<int:page_size>/",
+        fetch_post_friend_reactors,
+        name="fetch-post-reactors",
     ),
     path(
         "<str:post_id>/share/",

@@ -110,6 +110,48 @@ class DjangoPostRepository(PostRepositoryInterface):
         created_post = Post.objects.create(**django_post)
         return to_domain_post_data(created_post)
 
+    def delete(self, post_id: str, user_id: str) -> None:
+        post = Post.objects.get(id=post_id, sender_id=user_id)
+        post.delete()
+
+    def get_post_replies(
+        self, post_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        queryset = (
+            Post.objects.filter(is_reply=True, previous_post_id=post_id)
+            .select_related("sender")
+            .order_by("-created_at")
+        )
+
+        total_replies = queryset.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        replies = [to_domain_post_data(qs) for qs in list(queryset[offset:end])]
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "fetch-post-replies",
+                kwargs={"post_id": post_id, "page": page - 1, "page_size": page_size},
+            )
+
+        next_link = None
+        if end < total_replies:
+            next_link = reverse(
+                "fetch-post-replies",
+                kwargs={"post_id": post_id, "page": page + 1, "page_size": page_size},
+            )
+
+        return replies, previous_link, next_link
+
+    def find_by_id(self, post_id: str) -> DomainPost | None:
+        try:
+            post = Post.objects.select_related("sender").get(id=post_id)
+            return to_domain_post_data(post)
+        except Post.DoesNotExist:
+            return None
+
     def posts_list(
         self, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
@@ -294,6 +336,37 @@ class DjangoPostReactionRepository(PostReactionRepositoryInterface):
             result[post_id][reaction["reaction"]] = reaction["count"]
 
         return result
+
+    def get_post_reactors(
+        self, post_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        queryset = (
+            PostReaction.objects.filter(post_id=post_id)
+            .select_related("user", "user__user_profile")
+            .order_by("-created_at")
+        )
+
+        total_reactors = queryset.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        reactors = list(queryset[offset:end])
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "fetch-post-reactors",
+                kwargs={"post_id": post_id, "page": page - 1, "page_size": page_size},
+            )
+
+        next_link = None
+        if end < total_reactors:
+            next_link = reverse(
+                "fetch-post-reactors",
+                kwargs={"post_id": post_id, "page": page + 1, "page_size": page_size},
+            )
+
+        return reactors, previous_link, next_link
 
 
 class DjangoPostShareRepository(PostShareRepositoryInterface):

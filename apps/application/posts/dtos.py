@@ -84,6 +84,32 @@ class PostReactionResponseDTO:
 
 
 @dataclass
+class PostReactorsDTO:
+    post_id: str
+    user_id: str
+    page: int = 1
+    page_size: int = 20
+
+
+@dataclass
+class PostReactorResponseDTO:
+    user_id: str
+    username: str
+    first_name: str | None
+    last_name: str | None
+    profile_picture: str | None
+    reaction: str
+    reacted_at: datetime
+
+
+@dataclass
+class PaginatedPostReactorsResponseDTO:
+    result: List[PostReactorResponseDTO]
+    previous_reactors_data: str | None = None
+    next_reactors_data: str | None = None
+
+
+@dataclass
 class PostShareDTO:
     user_id: str
     post_id: str
@@ -115,3 +141,17 @@ class PostTagResponseDTO:
     tagged_by_user_id: str
     created_at: datetime
     updated_at: datetime
+
+
+@dataclass
+class FetchRepliesDTO:
+    post_id: str
+    page: int = 1
+    page_size: int = 20
+
+
+@dataclass
+class PaginatedRepliesResponseDTO:
+    result: List["PostResponseDTO"]
+    previous_replies_data: str | None = None
+    next_replies_data: str | None = None

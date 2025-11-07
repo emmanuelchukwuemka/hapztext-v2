@@ -57,9 +57,7 @@ class PostReaction(models.Model):
         "users.User", on_delete=models.CASCADE, related_name="post_reactions"
     )
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="reactions")
-    reaction = models.CharField(
-        max_length=36, blank=False, null=False
-    )
+    reaction = models.CharField(max_length=36, blank=False, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
