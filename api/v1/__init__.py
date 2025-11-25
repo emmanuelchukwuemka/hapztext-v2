@@ -5,4 +5,5 @@ urlpatterns = [
     path("authentication/", include("api.v1.authentication")),
     path("posts/", include("api.v1.posts")),
     path("notifications/", include("api.v1.notifications")),
+    path("calls", include("api.v1.calls")),
 ]
