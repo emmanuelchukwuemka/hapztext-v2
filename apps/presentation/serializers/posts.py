@@ -2,7 +2,7 @@ from datetime import datetime
 
 from rest_framework import serializers
 
-from apps.domain.posts.enums import PostFormat, ReactionType
+from apps.domain.posts.enums import PostFormat
 
 
 class PostCreateSerializer(serializers.Serializer):
@@ -20,8 +20,43 @@ class PostCreateSerializer(serializers.Serializer):
     is_published = serializers.BooleanField(required=False, default=True)
     scheduled_at = serializers.DateTimeField(required=False, allow_null=True)
     tagged_user_ids = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_empty=True, default=list
+        child=serializers.CharField(max_length=21),
+        required=False,
+        allow_empty=True,
+        default=list,
     )
+    tagged_user_ids = serializers.CharField(
+        required=False, allow_blank=True, default=""
+    )
+
+    # def validate_tagged_user_ids(self, value):
+    #     if not value:
+    #         return []
+
+    #     cleaned_ids = []
+    #     for item in value:
+    #         if ',' in str(item):
+    #             split_ids = [id.strip() for id in str(item).split(',') if id.strip()]
+    #             cleaned_ids.extend(split_ids)
+    #         else:
+    #             cleaned_ids.append(str(item).strip())
+
+    #     seen = set()
+    #     unique_ids = []
+    #     for user_id in cleaned_ids:
+    #         if user_id and user_id not in seen:
+    #             seen.add(user_id)
+    #             unique_ids.append(user_id)
+
+    #     for user_id in unique_ids:
+    #         if len(user_id) > 21:
+    #             raise serializers.ValidationError(
+    #                 f"User ID '{user_id}' is too long (max 21 characters)"
+    #             )
+    #         if len(user_id) == 0:
+    #             raise serializers.ValidationError("User ID cannot be empty")
+
+    #     return unique_ids
 
     def validate(self, attrs):
         post_format = attrs.get("post_format")
@@ -84,6 +119,13 @@ class PostCreateSerializer(serializers.Serializer):
 
         attrs["sender_id"] = self.context.get("sender_id")
 
+        raw_ids = attrs.get("tagged_user_ids", "")
+        if raw_ids:
+            ids = [i.strip() for i in raw_ids.split(",") if i.strip()]
+            attrs["tagged_user_ids"] = list(dict.fromkeys(ids))
+        else:
+            attrs["tagged_user_ids"] = []
+
         return attrs
 
 
@@ -100,6 +142,16 @@ class PostListSerializer(serializers.Serializer):
     )
 
 
+class FetchRepliesSerializer(serializers.Serializer):
+    post_id = serializers.CharField(read_only=True)
+    page = serializers.IntegerField(required=True, min_value=1)
+    page_size = serializers.IntegerField(required=True, min_value=1, max_value=100)
+
+    def validate(self, attrs):
+        attrs["post_id"] = self.context.get("post_id")
+        return attrs
+
+
 class UserPostsSerializer(serializers.Serializer):
     user_id = serializers.CharField(read_only=True)
     page = serializers.IntegerField(required=True)
@@ -111,11 +163,21 @@ class UserPostsSerializer(serializers.Serializer):
 
 
 class PostReactionSerializer(serializers.Serializer):
-    reaction_type = serializers.ChoiceField(
-        choices=ReactionType.choices(), required=True
-    )
+    reaction = serializers.CharField(required=True)
     post_id = serializers.CharField(read_only=True)
     user_id = serializers.CharField(read_only=True)
+
+    def validate(self, attrs):
+        attrs["post_id"] = self.context.get("post_id")
+        attrs["user_id"] = self.context.get("user_id")
+        return attrs
+
+
+class PostReactorsSerializer(serializers.Serializer):
+    post_id = serializers.CharField(read_only=True)
+    user_id = serializers.CharField(read_only=True)
+    page = serializers.IntegerField(required=True, min_value=1)
+    page_size = serializers.IntegerField(required=True, min_value=1, max_value=100)
 
     def validate(self, attrs):
         attrs["post_id"] = self.context.get("post_id")

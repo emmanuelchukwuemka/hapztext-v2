@@ -823,7 +823,7 @@ posts_postreaction
 - id (PK, CharField)
 - user_id (FK → users_user)
 - post_id (FK → posts_post)
-- reaction_type (CharField, choices: like/love/haha/wow/sad/angry)
+- reaction (CharField)
 - created_at (DateTime)
 - updated_at (DateTime)
 UNIQUE(user_id, post_id)

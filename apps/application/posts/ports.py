@@ -39,6 +39,20 @@ class PostRepositoryInterface(ABC):
     def publish_post(self, post_id: str) -> Post:
         pass
 
+    @abstractmethod
+    def delete(self, post_id: str, user_id: str) -> None:
+        pass
+
+    @abstractmethod
+    def get_post_replies(
+        self, post_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        pass
+
+    @abstractmethod
+    def find_by_id(self, post_id: str) -> Any:
+        pass
+
 
 class PostReactionRepositoryInterface(ABC):
     @abstractmethod
@@ -61,6 +75,12 @@ class PostReactionRepositoryInterface(ABC):
     def get_posts_reaction_counts(
         self, post_ids: List[str]
     ) -> Dict[str, Dict[str, int]]:
+        pass
+
+    @abstractmethod
+    def get_post_reactions(
+        self, post_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
         pass
 
 

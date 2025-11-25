@@ -2,15 +2,21 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any, List
 
+from apps.application.users.ports import UserFollowingRepositoryInterface
 from apps.domain.posts.entities import Post, PostReaction, PostShare, PostTag
 
 from .dtos import (
+    FetchRepliesDTO,
+    PaginatedPostReactorsResponseDTO,
     PaginatedPostsResponseDTO,
+    PaginatedRepliesResponseDTO,
     PaginatedUserPostsResponseDTO,
     PostDetailDTO,
     PostListDTO,
     PostReactionDTO,
     PostReactionResponseDTO,
+    PostReactorResponseDTO,
+    PostReactorsDTO,
     PostResponseDTO,
     PostShareDTO,
     PostShareResponseDTO,
@@ -66,7 +72,7 @@ class PostListRule:
                     current_user_id, post_id
                 )
                 if reaction:
-                    user_reactions[post_id] = reaction.reaction_type
+                    user_reactions[post_id] = reaction.reaction
 
         posts_data = []
 
@@ -182,7 +188,7 @@ class UserPostsRule:
                     current_user_id, post_id
                 )
                 if reaction:
-                    user_reactions[post_id] = reaction.reaction_type
+                    user_reactions[post_id] = reaction.reaction
 
         posts_data = []
         for post in posts:
@@ -208,6 +214,82 @@ class UserPostsRule:
         )
 
 
+class DeletePostRule:
+    def __init__(
+        self,
+        post_repository: PostRepositoryInterface,
+    ) -> None:
+        self.post_repository = post_repository
+
+    def __call__(self, post_id: str, user_id: str) -> None:
+        post = self.post_repository.find_by_id(post_id)
+        if not post:
+            raise ValueError("Post not found")
+
+        if post.sender_id != user_id:
+            raise ValueError("You can only delete your own posts")
+
+        self.post_repository.delete(post_id, user_id)
+
+
+class FetchRepliesRule:
+    def __init__(
+        self,
+        post_repository: PostRepositoryInterface,
+        post_reaction_repository: PostReactionRepositoryInterface,
+        post_share_repository: PostShareRepositoryInterface,
+    ) -> None:
+        self.post_repository = post_repository
+        self.post_reaction_repository = post_reaction_repository
+        self.post_share_repository = post_share_repository
+
+    def __call__(
+        self, dto: FetchRepliesDTO, current_user_id: str = None
+    ) -> PaginatedRepliesResponseDTO:
+        replies, previous_link, next_link = self.post_repository.get_post_replies(
+            post_id=dto.post_id, page=dto.page, page_size=dto.page_size
+        )
+
+        reply_ids = [reply.id for reply in replies]
+
+        reaction_counts = self.post_reaction_repository.get_posts_reaction_counts(
+            reply_ids
+        )
+        share_counts = self.post_share_repository.get_posts_share_counts(reply_ids)
+
+        user_reactions = {}
+        if current_user_id:
+            for reply_id in reply_ids:
+                reaction = self.post_reaction_repository.find_user_reaction(
+                    current_user_id, reply_id
+                )
+                if reaction:
+                    user_reactions[reply_id] = reaction.reaction
+
+        replies_data = []
+        for reply in replies:
+            reply_dict = asdict(reply)
+            reply_dict["reaction_counts"] = reaction_counts.get(reply.id, {})
+            reply_dict["share_count"] = share_counts.get(reply.id, 0)
+            reply_dict["current_user_reaction"] = user_reactions.get(reply.id)
+
+            replies_data.append(
+                PostResponseDTO(
+                    **{
+                        key: value
+                        for key, value in reply_dict.items()
+                        if key in PostResponseDTO.__dataclass_fields__
+                    }
+                )
+            )
+
+        return PaginatedRepliesResponseDTO(
+            result=replies_data,
+            previous_replies_data=previous_link,
+            next_replies_data=next_link,
+        )
+
+
 class ReactToPostRule:
     def __init__(
         self,
@@ -219,7 +301,7 @@ class ReactToPostRule:
         reaction = PostReaction(
             user_id=dto.user_id,
             post_id=dto.post_id,
-            reaction_type=dto.reaction_type,
+            reaction=dto.reaction,
         )
 
         created_reaction = self.post_reaction_repository.create_or_update(reaction)
@@ -242,6 +324,50 @@ class RemoveReactionRule:
 
     def __call__(self, user_id: str, post_id: str) -> None:
         self.post_reaction_repository.delete(user_id, post_id)
+
+
+class GetPostReactorsRule:
+    def __init__(
+        self,
+        post_reaction_repository: PostReactionRepositoryInterface,
+        user_following_repository: UserFollowingRepositoryInterface,
+    ) -> None:
+        self.post_reaction_repository = post_reaction_repository
+        self.user_following_repository = user_following_repository
+
+    def __call__(self, dto: PostReactorsDTO) -> PaginatedPostReactorsResponseDTO:
+        reactions, previous_link, next_link = (
+            self.post_reaction_repository.get_post_reactions(
+                dto.post_id, dto.page, dto.page_size
+            )
+        )
+
+        reactors_result = []
+        for reaction in reactions:
+            profile = getattr(reaction.user, "user_profile", None)
+
+            reactors_result.append(
+                PostReactorResponseDTO(
+                    user_id=reaction.user_id,
+                    username=getattr(reaction.user, "username", None),
+                    first_name=getattr(profile, "first_name", None),
+                    last_name=getattr(profile, "last_name", None),
+                    profile_picture=(
+                        profile.profile_picture.url
+                        if getattr(profile, "profile_picture", None)
+                        and profile.profile_picture.name
+                        else None
+                    ),
+                    reaction=reaction.reaction,
+                    reacted_at=reaction.created_at,
+                )
+            )
+
+        return PaginatedPostReactorsResponseDTO(
+            result=reactors_result,
+            previous_reactors_data=previous_link,
+            next_reactors_data=next_link,
+        )
 
 
 class SharePostRule:

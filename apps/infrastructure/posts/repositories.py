@@ -74,7 +74,7 @@ def to_domain_post_reaction_data(django_reaction: PostReaction) -> DomainPostRea
     return DomainPostReaction(
         user_id=django_reaction.user_id,
         post_id=django_reaction.post_id,
-        reaction_type=django_reaction.reaction_type,
+        reaction=django_reaction.reaction,
         id=django_reaction.id,
         created_at=django_reaction.created_at,
         updated_at=django_reaction.updated_at,
@@ -110,11 +110,56 @@ class DjangoPostRepository(PostRepositoryInterface):
         created_post = Post.objects.create(**django_post)
         return to_domain_post_data(created_post)
 
+    def delete(self, post_id: str, user_id: str) -> None:
+        post = Post.objects.get(id=post_id, sender_id=user_id)
+        post.delete()
+
+    def get_post_replies(
+        self, post_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        queryset = (
+            Post.objects.filter(
+                is_reply=True, previous_post_id=post_id, is_published=True
+            )
+            .select_related("sender")
+            .order_by("-created_at")
+        )
+
+        total_replies = queryset.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        replies = [to_domain_post_data(qs) for qs in list(queryset[offset:end])]
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "fetch-post-replies",
+                kwargs={"post_id": post_id, "page": page - 1, "page_size": page_size},
+            )
+
+        next_link = None
+        if end < total_replies:
+            next_link = reverse(
+                "fetch-post-replies",
+                kwargs={"post_id": post_id, "page": page + 1, "page_size": page_size},
+            )
+
+        return replies, previous_link, next_link
+
+    def find_by_id(self, post_id: str) -> DomainPost | None:
+        try:
+            post = Post.objects.select_related("sender").get(id=post_id)
+            return to_domain_post_data(post)
+        except Post.DoesNotExist:
+            return None
+
     def posts_list(
         self, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
         queryset = (
-            Post.objects.select_related("sender")
+            Post.objects.filter(is_published=True)
+            .select_related("sender")
             .prefetch_related("reactions", "shares")
             .order_by("-created_at")
         )
@@ -142,7 +187,9 @@ class DjangoPostRepository(PostRepositoryInterface):
     def user_posts_list(
         self, user_id: str, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
-        queryset = Post.objects.filter(sender_id=user_id).order_by("-created_at")
+        queryset = Post.objects.filter(sender_id=user_id, is_published=True).order_by(
+            "-created_at"
+        )
         total_posts = queryset.count()
 
         offset = (page - 1) * page_size
@@ -253,7 +300,7 @@ class DjangoPostReactionRepository(PostReactionRepositoryInterface):
         django_reaction, created = PostReaction.objects.update_or_create(
             user_id=reaction.user_id,
             post_id=reaction.post_id,
-            defaults={"reaction_type": reaction.reaction_type},
+            defaults={"reaction": reaction.reaction},
         )
         return to_domain_post_reaction_data(django_reaction)
 
@@ -272,17 +319,17 @@ class DjangoPostReactionRepository(PostReactionRepositoryInterface):
     def get_post_reaction_counts(self, post_id: str) -> Dict[str, int]:
         reactions = (
             PostReaction.objects.filter(post_id=post_id)
-            .values("reaction_type")
+            .values("reaction")
             .annotate(count=models.Count("id"))
         )
-        return {reaction["reaction_type"]: reaction["count"] for reaction in reactions}
+        return {reaction["reaction"]: reaction["count"] for reaction in reactions}
 
     def get_posts_reaction_counts(
         self, post_ids: List[str]
     ) -> Dict[str, Dict[str, int]]:
         reactions = (
             PostReaction.objects.filter(post_id__in=post_ids)
-            .values("post_id", "reaction_type")
+            .values("post_id", "reaction")
             .annotate(count=models.Count("id"))
         )
 
@@ -291,9 +338,40 @@ class DjangoPostReactionRepository(PostReactionRepositoryInterface):
             post_id = reaction["post_id"]
             if post_id not in result:
                 result[post_id] = {}
-            result[post_id][reaction["reaction_type"]] = reaction["count"]
+            result[post_id][reaction["reaction"]] = reaction["count"]
 
         return result
+
+    def get_post_reactions(
+        self, post_id: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        queryset = (
+            PostReaction.objects.filter(post_id=post_id)
+            .select_related("user", "user__user_profile")
+            .order_by("-created_at")
+        )
+
+        total_reactions = queryset.count()
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        reactions = list(queryset[offset:end])
+
+        previous_link = None
+        if page > 1:
+            previous_link = reverse(
+                "fetch-post-reactors",
+                kwargs={"post_id": post_id, "page": page - 1, "page_size": page_size},
+            )
+
+        next_link = None
+        if end < total_reactions:
+            next_link = reverse(
+                "fetch-post-reactors",
+                kwargs={"post_id": post_id, "page": page + 1, "page_size": page_size},
+            )
+
+        return reactions, previous_link, next_link
 
 
 class DjangoPostShareRepository(PostShareRepositoryInterface):

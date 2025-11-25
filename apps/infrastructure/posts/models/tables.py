@@ -3,7 +3,7 @@ from functools import partial
 from django.db import models
 from nanoid import generate
 
-from apps.domain.posts.enums import PostFormat, ReactionType
+from apps.domain.posts.enums import PostFormat
 
 
 class Post(models.Model):
@@ -57,9 +57,7 @@ class PostReaction(models.Model):
         "users.User", on_delete=models.CASCADE, related_name="post_reactions"
     )
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="reactions")
-    reaction_type = models.CharField(
-        max_length=10, choices=ReactionType.choices(), default=ReactionType.LIKE
-    )
+    reaction = models.CharField(max_length=36, blank=False, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -69,11 +67,11 @@ class PostReaction(models.Model):
         verbose_name_plural = "post reactions"
         unique_together = ["user", "post"]
         indexes = [
-            models.Index(fields=["post", "reaction_type"]),
+            models.Index(fields=["post", "reaction"]),
         ]
 
     def __str__(self):
-        return f"{self.user.username} {self.reaction_type} {self.post.id}"
+        return f"{self.user.username} {self.reaction} {self.post.id}"
 
 
 class PostShare(models.Model):

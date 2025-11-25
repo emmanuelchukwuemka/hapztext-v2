@@ -239,14 +239,6 @@ class FollowUserRule:
         if dto.requester_id == dto.target_id:
             raise ValueError("Users cannot follow themselves.")
 
-        requester_profile = self.user_profile_repository.find_by_user(dto.requester_id)
-        target_profile = self.user_profile_repository.find_by_user(dto.target_id)
-
-        if not requester_profile or not target_profile:
-            raise ValueError(
-                "Both users must have profiles to send/receive follow requests."
-            )
-
         user_following = UserFollowing(
             follower_id=dto.requester_id, following_id=dto.target_id
         )

@@ -142,8 +142,8 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "5/min",
-        "user": "10/min",
+        "anon": "10/min",
+        "user": "20/min",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.core.exceptions.custom_exception_handler",
@@ -190,6 +190,7 @@ EVENTSTREAM_REDIS = {
     "port": env.int("REDIS_PORT"),
     "db": env.int("REDIS_DB"),
     "password": env.str("REDIS_PASSWORD"),
+    "ssl": True,
 }
 
 EVENTSTREAM_STORAGE_CLASS = "django_eventstream.storage.DjangoModelStorage"
@@ -208,3 +209,9 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
+CELERY_BROKER_URL = env.str("REDIS_URL")
+CELERY_RESULT_BACKEND = env.str("REDIS_URL")

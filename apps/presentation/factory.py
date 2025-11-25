@@ -18,6 +18,9 @@ from apps.application.notifications.rules import (
 )
 from apps.application.posts.rules import (
     CreatePostRule,
+    DeletePostRule,
+    FetchRepliesRule,
+    GetPostReactorsRule,
     PostListRule,
     PublishScheduledPostsRule,
     ReactToPostRule,
@@ -228,6 +231,20 @@ def create_post_rule() -> CreatePostRule:
     )
 
 
+def delete_post_rule() -> DeletePostRule:
+    return DeletePostRule(
+        post_repository=get_post_repository(),
+    )
+
+
+def fetch_replies_rule() -> FetchRepliesRule:
+    return FetchRepliesRule(
+        post_repository=get_post_repository(),
+        post_reaction_repository=get_post_reaction_repository(),
+        post_share_repository=get_post_share_repository(),
+    )
+
+
 def posts_list_rule() -> PostListRule:
     return PostListRule(
         post_repository=get_post_repository(),
@@ -253,6 +270,13 @@ def react_to_post_rule() -> ReactToPostRule:
 def remove_reaction_rule() -> RemoveReactionRule:
     return RemoveReactionRule(
         post_reaction_repository=get_post_reaction_repository(),
+    )
+
+
+def get_post_friend_reactors_rule() -> GetPostReactorsRule:
+    return GetPostReactorsRule(
+        post_reaction_repository=get_post_reaction_repository(),
+        user_following_repository=get_user_following_repository(),
     )
 
 

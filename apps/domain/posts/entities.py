@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from .value_objects import PostFormat, ReactionType
+from .value_objects import PostFormat
 
 
 @dataclass
@@ -26,13 +26,10 @@ class Post:
 class PostReaction:
     user_id: str
     post_id: str
-    reaction_type: str
+    reaction: str
     id: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
-
-    def __post_init__(self) -> None:
-        self.reaction_type = ReactionType(self.reaction_type).value
 
 
 @dataclass

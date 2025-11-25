@@ -585,12 +585,16 @@ All API endpoints are prefixed with `/api/v1/`.
 -   **Request Body:** (Can be `application/json` or `multipart/form-data` for `media`)
     ```json
     {
-        "post_format": "text",
-        "text_content": "string", (optional for media uploads)
-        "text_content": "file" (optional)
-        "image_content": "file" (optional)
-        "audio_content": "file" (optional)
-        "video_content": "file" (optional)
+        "post_format": "text|image|audio|video", (required)
+        "text_content": "string", (optional, but required for text format)
+        "image_content": "file", (optional, required for image format)
+        "audio_content": "file", (optional, required for audio format)
+        "video_content": "file", (optional, required for video format)
+        "is_reply": false, (optional, default: false)
+        "previous_post_id": "string", (optional, required if is_reply is true)
+        "is_published": true, (optional, default: true - set to false for scheduled posts)
+        "scheduled_at": "datetime", (optional, ISO 8601 format: "2024-12-25T10:00:00Z")
+        "tagged_user_ids": ["user_id1", "user_id2"] (optional, list of user IDs to tag)
     }
     ```
 -   **Success Response (Status: 201 Created):**
@@ -631,13 +635,16 @@ All API endpoints are prefixed with `/api/v1/`.
 
 -   **Endpoint:** `/api/v1/posts/list/<int:page>/<int:page_size>/`
 -   **HTTP Method:** `GET`
--   **Description:** Fetches a paginated list of all posts.
+-   **Description:** Fetches a paginated list of all posts. Supports different feed types: timeline, trending, and popular.
 -   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
 -   **URL Parameters:**
-    -   `page`: integer (required) - The page number for pagination.
-    -   `page_size`: integer (required) - The number of posts per page.
+    -   `page`: integer (required) - The page number for pagination (starts from 1).
+    -   `page_size`: integer (required) - The number of posts per page (1-100).
 -   **Query Parameters:**
-    - `feed_type`: string - Defaults to 'timeline'.
+    - `feed_type`: string (optional) - Options: "timeline" (default), "trending", "popular"
+        - `timeline`: Posts ordered by creation date
+        - `trending`: Posts with most reactions in the last 24 hours
+        - `popular`: Posts with most total reactions and shares
 -   **Request Body:** None
 -   **Success Response (Status: 200 OK):**
     ```json
@@ -648,8 +655,8 @@ All API endpoints are prefixed with `/api/v1/`.
             "result": [
                 {
                     "id": "string",
-                    "sender": "string",
-                    "post_format": "",
+                    "sender_id": "string",
+                    "post_format": "text",
                     "text_content": "string",
                     "image_content": null,
                     "audio_content": null,
@@ -659,31 +666,21 @@ All API endpoints are prefixed with `/api/v1/`.
                     "sender_username": "string",
                     "is_published": true,
                     "scheduled_at": null,
-                    "tagged_user_ids": [],
+                    "tagged_user_ids": ["user_id1"],
                     "reaction_counts": {
-                        "like": 1
+                        "👍": 5,
+                        "❤️": 3
                     },
-                    "share_count": 1,
-                    "current_user_reaction": "like",
+                    "share_count": 2,
+                    "current_user_reaction": "👍",
                     "created_at": "datetime",
-                    "updated_at": "datetime",
+                    "updated_at": "datetime"
                 }
             ],
-            "previous_posts_data": "string",
-            "next_posts_data": "string"
+            "previous_posts_data": "/api/v1/posts/list/1/20/",
+            "next_posts_data": "/api/v1/posts/list/3/20/"
         },
         "status_code": 200
-    }
-    ```
--   **Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
     }
     ```
 
@@ -695,8 +692,8 @@ All API endpoints are prefixed with `/api/v1/`.
 -   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
 -   **URL Parameters:**
     -   `user_id`: string (required) - The ID of the user whose posts to fetch.
-    -   `page`: integer (required) - The page number for pagination.
-    -   `page_size`: integer (required) - The number of posts per page.
+    -   `page`: integer (required) - The page number for pagination (starts from 1).
+    -   `page_size`: integer (required) - The number of posts per page (1-100).
 -   **Request Body:** None
 -   **Success Response (Status: 200 OK):**
     ```json
@@ -707,8 +704,8 @@ All API endpoints are prefixed with `/api/v1/`.
             "result": [
                 {
                     "id": "string",
-                    "sender": "string",
-                    "post_format": "",
+                    "sender_id": "string",
+                    "post_format": "text",
                     "text_content": "string",
                     "image_content": null,
                     "audio_content": null,
@@ -720,10 +717,10 @@ All API endpoints are prefixed with `/api/v1/`.
                     "scheduled_at": null,
                     "tagged_user_ids": [],
                     "reaction_counts": {
-                        "like": 1
+                        "👍": 1
                     },
                     "share_count": 1,
-                    "current_user_reaction": "like",
+                    "current_user_reaction": "👍",
                     "created_at": "datetime",
                     "updated_at": "datetime"
                 }
@@ -734,30 +731,90 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 200
     }
     ```
--   **Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
+
+### 3.4. Delete Post
+
+-   **Endpoint:** `/api/v1/posts/<str:post_id>/delete/`
+-   **HTTP Method:** `DELETE`
+-   **Description:** Delete a post. Only the post owner can delete their own posts.
+-   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
+-   **URL Parameters:**
+    -   `post_id`: string (required) - The ID of the post to delete.
+-   **Request Body:** None
+-   **Success Response (Status: 204 No Content):**
+    ```json
+    {
+        "success": true,
+        "message": "Post deleted successfully.",
+        "status_code": 204
+    }
+    ```
+-   **Error Response (Status: 403 Forbidden / 404 Not Found):**
     ```json
     {
         "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
+        "message": "You can only delete your own posts",
+        "status_code": 403
     }
     ```
 
-### 3.4. React to Post
+### 3.5. Fetch Post Comments
+
+-   **Endpoint:** `/api/v1/posts/<str:post_id>/comments/<int:page>/<int:page_size>/`
+-   **HTTP Method:** `GET`
+-   **Description:** Fetch comments (replies) for a specific post with pagination.
+-   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
+-   **URL Parameters:**
+    -   `post_id`: string (required) - The ID of the post.
+    -   `page`: integer (required) - The page number for pagination (starts from 1).
+    -   `page_size`: integer (required) - The number of comments per page (1-100).
+-   **Request Body:** None
+-   **Success Response (Status: 200 OK):**
+    ```json
+    {
+        "success": true,
+        "message": "Comments fetched successfully.",
+        "data": {
+            "result": [
+                {
+                    "id": "string",
+                    "sender_id": "string",
+                    "post_format": "text",
+                    "text_content": "This is a comment",
+                    "image_content": null,
+                    "audio_content": null,
+                    "video_content": null,
+                    "is_reply": true,
+                    "previous_post_id": "original_post_id",
+                    "sender_username": "commenter_username",
+                    "reaction_counts": {
+                        "👍": 2
+                    },
+                    "share_count": 0,
+                    "current_user_reaction": null,
+                    "created_at": "datetime",
+                    "updated_at": "datetime"
+                }
+            ],
+            "previous_comments_data": "/api/v1/posts/post123/comments/1/20/",
+            "next_comments_data": "/api/v1/posts/post123/comments/3/20/"
+        },
+        "status_code": 200
+    }
+    ```
+
+### 3.6. React to Post
 
 -   **Endpoint:** `/api/v1/posts/<str:post_id>/react/`
 -   **HTTP Method:** `POST`
--   **Description:** React to post with emojis (like, love, haha, wow, sad, angry).
+-   **Description:** React to post with emojis (like 👍, love ❤️, haha 😂, wow 😮, sad 😢, angry 😠, etc.).
 -   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
 -   **URL Parameters:**
     -   `post_id`: string (required) - The ID of the post.
 -   **Request Body:** 
     ```json
     {
-        "reaction_type": "love"
+        "reaction": "👍"
     }
     ```
 -   **Success Response (Status: 201 Created):**
@@ -769,35 +826,24 @@ All API endpoints are prefixed with `/api/v1/`.
             "id": "string",
             "user_id": "string",
             "post_id": "string",
-            "reaction_type": "love",
+            "reaction": "👍",
             "created_at": "datetime",
             "updated_at": "datetime"
         },
         "status_code": 201
     }
     ```
--   **Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
-    }
-    ```
 
-### 3.5. Remove Reaction
+### 3.7. Remove Reaction
 
 -   **Endpoint:** `/api/v1/posts/<str:post_id>/react/delete/`
 -   **HTTP Method:** `DELETE`
--   **Description:** Delete user's reaction from post.
+-   **Description:** Remove user's reaction from post.
 -   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
 -   **URL Parameters:**
     -   `post_id`: string (required) - The ID of the post.
 -   **Request Body:** None
--   **Success Response (Status: 201 Created):**
+-   **Success Response (Status: 204 No Content):**
     ```json
     {
         "success": true,
@@ -805,30 +851,19 @@ All API endpoints are prefixed with `/api/v1/`.
         "status_code": 204
     }
     ```
--   **Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
-    ```json
-    {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
-        },
-        "status_code": 400
-    }
-    ```
 
-### 3.6. Post Sharing
+### 3.8. Share Post
 
 -   **Endpoint:** `/api/v1/posts/<str:post_id>/share/`
 -   **HTTP Method:** `POST`
--   **Description:** Share post with optional messages.
+-   **Description:** Share post with optional message.
 -   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
 -   **URL Parameters:**
     -   `post_id`: string (required) - The ID of the post.
 -   **Request Body:** 
     ```json
     {
-        "shared_with_message": "string"
+        "shared_with_message": "string" (optional, max 500 characters)
     }
     ```
 -   **Success Response (Status: 201 Created):**
@@ -840,26 +875,73 @@ All API endpoints are prefixed with `/api/v1/`.
             "id": "string",
             "user_id": "string",
             "post_id": "string",
-            "shared_with_message": "string",
+            "shared_with_message": "Check this out!",
             "created_at": "datetime",
             "updated_at": "datetime"
         },
         "status_code": 201
     }
     ```
--   **Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
+
+### 3.9. Get Friends Who Reacted
+
+-   **Endpoint:** `/api/v1/posts/<str:post_id>/reactors/friends/<int:page>/<int:page_size>/`
+-   **HTTP Method:** `GET`
+-   **Description:** Fetch friends (mutual followers) who reacted to a post with pagination.
+-   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
+-   **URL Parameters:**
+    -   `post_id`: string (required) - The ID of the post.
+    -   `page`: integer (required) - The page number for pagination (starts from 1).
+    -   `page_size`: integer (required) - The number of reactors per page (1-100).
+-   **Request Body:** None
+-   **Success Response (Status: 200 OK):**
     ```json
     {
-        "success": false,
-        "message": "Error description",
-        "errors": {
-            "field_name": ["Error message"]
+        "success": true,
+        "message": "Friend reactors fetched successfully.",
+        "data": {
+            "result": [
+                {
+                    "user_id": "string",
+                    "username": "john_doe",
+                    "first_name": "John",
+                    "last_name": "Doe",
+                    "profile_picture": "https://example.com/profile.jpg",
+                    "reaction": "👍",
+                    "reacted_at": "datetime"
+                }
+            ],
+            "previous_reactors_data": "/api/v1/posts/post123/reactors/friends/1/20/",
+            "next_reactors_data": "/api/v1/posts/post123/reactors/friends/3/20/"
         },
-        "status_code": 400
+        "status_code": 200
     }
     ```
 
 ---
+
+## Post Features Summary
+
+### Tagging Users
+- Include `tagged_user_ids` array in post creation request
+- Tagged users receive notifications
+- Tags are visible in the post response
+
+### Scheduled Posts
+- Set `is_published: false` and provide future `scheduled_at` datetime
+- Posts automatically publish at scheduled time (via background task)
+- Use ISO 8601 format for datetime: "2024-12-25T10:00:00Z"
+
+### Post Comments
+- Comments are posts with `is_reply: true` and `previous_post_id` set
+- Create comments using the regular post creation endpoint with these fields
+- Fetch comments using the dedicated comments endpoint
+
+### Feed Types
+1. **Timeline**: Recent posts ordered by creation date
+2. **Trending**: Posts with most reactions in last 24 hours
+3. **Popular**: Posts with most total engagement (reactions + shares)
+
 
 ## 4. API Documentation
 
