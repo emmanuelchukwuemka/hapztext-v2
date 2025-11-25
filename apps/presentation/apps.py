@@ -44,3 +44,19 @@ class ChatConfig(AppConfig):
 
     def ready(self) -> None:
         pass
+
+
+class CallsConfig(AppConfig):
+    """
+    Calls Config
+    """
+
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.infrastructure.calls"
+    verbose_name = "calls"
+
+    def ready(self) -> None:
+        """
+        Ready
+        """
+        pass
