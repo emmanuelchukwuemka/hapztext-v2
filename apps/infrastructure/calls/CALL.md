@@ -53,12 +53,12 @@ All outgoing messages must be sent as a **JSON object** containing a mandatory `
 
 ### A. Call Lifecycle Management
 
-| Event Type     | Purpose                                                                                 | Payload Structure (`type: ...`)                                                        |
-| :------------- | :-------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- | --------- |
-| `join_call`    | Notify the group that this user has fully joined.                                       | `{"type": "join_call", "data": {}}`                                                    |
-| `leave_call`   | Notify the group that this user is leaving.                                             | `{"type": "leave_call", "data": {}}`                                                   |
-| `end_call`     | Signal to all participants that the call is ending (Initiated by the host/ending user). | `{"type": "end_call", "data": {}}`                                                     |
-| `invite_users` | Invite other users to the call.                                                         | `{"type": "invite_users", "user_ids": ["user_a_id", "user_b_id"], "call_type": "video" | "audio"}` |
+| Event Type     | Purpose                                                                          | Payload Structure (`type: ...`)                                                         |
+| :------------- | :------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- | ---------- |
+| `join_call`    | Notify the call group that this user has successfully joined the call.           | `{ "type": "join_call", "data": {} }`                                                   |
+| `leave_call`   | Notify the call group that this user is leaving the call.                        | `{ "type": "leave_call", "data": {} }`                                                  |
+| `end_call`     | Signal all participants that the call has ended (usually initiated by the host). | `{ "type": "end_call", "data": {} }`                                                    |
+| `invite_users` | Invite one or more users to join the call via notifications.                     | `{ "type": "invite_users", "user_ids": ["user_a_id", "user_b_id"], "call_type": "video" | "audio" }` |
 
 ### B. WebRTC Signaling (P2P Setup)
 
