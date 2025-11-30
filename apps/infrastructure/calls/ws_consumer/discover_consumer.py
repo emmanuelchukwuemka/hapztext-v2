@@ -63,7 +63,7 @@ class DiscoverConsumer(AsyncJsonWebsocketConsumer):
 
             await self.send_json(
                 {
-                    "message": "connection usccessful",
+                    "message": "connection susccessful",
                     "type": "connection_success",
                     "data": {
                         "events": {
@@ -78,7 +78,9 @@ class DiscoverConsumer(AsyncJsonWebsocketConsumer):
             await self._send_current_list()
 
             # Mark user as active in discover
-            await self.repo.enter_discover(str(self.user.id))
+            await self.repo.enter_discover(
+                user_id=str(self.user.id), username=str(self.user.username)
+            )
 
             # Notify others
             await self.channel_layer.group_send(
@@ -92,13 +94,16 @@ class DiscoverConsumer(AsyncJsonWebsocketConsumer):
             )
 
             # Send updated discover list to everyone except the newly joined user
-            current_users = await self.repo.get_active_users()
+            previous_cursor, current_users = await self.repo.get_active_users(
+                previous_cursor=0, limit=100
+            )
             await self.channel_layer.group_send(
                 self.group_name,
                 {
                     "type": "discover_update_list",
                     "data": current_users,
                     "user_id": self.user and self.user.id,
+                    "previous_cursor": previous_cursor,
                 },
             )
 
@@ -135,7 +140,21 @@ class DiscoverConsumer(AsyncJsonWebsocketConsumer):
             event = content.get("type")
 
             if event == "get_list":
-                await self._send_current_list()
+                previous_cursor = content.get("previous_cursor", 0)
+                if not isinstance(previous_cursor, int) or previous_cursor < 0:
+                    await self.send_json(
+                        {
+                            "errors": [
+                                "previous_cursor must be an integer",
+                                "previous_cursor must be greater than zer(0)",
+                            ],
+                            "type": "error",
+                            "status_code": 4000,
+                            "message": "Invalid previous_cursor.",
+                        }
+                    )
+                    return
+                await self._send_current_list(previous_cursor_=previous_cursor)
 
             elif event == "leave_discover":
                 await self._handle_leave()
@@ -157,16 +176,21 @@ class DiscoverConsumer(AsyncJsonWebsocketConsumer):
             )
 
     # ######################### ###################
-    async def _send_current_list(self):
+    async def _send_current_list(self, previous_cursor_: int = 0):
         """
         Sends current list of users in discover mode
         """
         try:
-            users = await self.repo.get_active_users()  # type: ignore
+            previous_cursor, active_users = await self.repo.get_active_users(  # type: ignore
+                previous_cursor=previous_cursor_,
+                limit=100,
+            )
             await self.send_json(
                 {
                     "type": "discover_list",
-                    "data": users,
+                    "data": active_users,
+                    "limit": 100,
+                    "previous_cursor": previous_cursor,  # should be sent along for next batch
                 }
             )
         except Exception as exc:
@@ -185,21 +209,23 @@ class DiscoverConsumer(AsyncJsonWebsocketConsumer):
         Handles leave discover mode
         """
         try:
-            await self.repo.leave_discover(str(self.user and self.user.id))  # type: ignore
+            if await self.repo.is_in_discover(user_id=str(self.user and self.user.id)):  # type: ignore
 
-            # Notify others
-            await self.channel_layer.group_send(
-                group=self.group_name or "",
-                message={
-                    "type": "discover_presence",
-                    "event": "user_left",
-                    "user_id": str(self.user and self.user.id),
-                    "username": str(self.user and self.user.username),
-                },
-            )
+                await self.repo.leave_discover(user_id=str(self.user and self.user.id))  # type: ignore
 
-            await self.send_json({"type": "left_discover"})
-            await self.close()
+                # Notify others
+                await self.channel_layer.group_send(
+                    group=self.group_name or "",
+                    message={
+                        "type": "discover_presence",
+                        "event": "user_left",
+                        "user_id": str(self.user and self.user.id),
+                        "username": str(self.user and self.user.username),
+                    },
+                )
+
+                await self.send_json({"type": "left_discover"})
+                await self.close()
         except Exception as exc:
             logger.error("Error handling leave discover mode: %s", str(exc))
             await self.send_json(

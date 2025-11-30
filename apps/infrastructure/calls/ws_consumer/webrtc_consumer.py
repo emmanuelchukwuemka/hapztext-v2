@@ -51,6 +51,7 @@ BACKEND_EVENT_TYPES = [
     "media_state_changed",
     "call_invite",
     "end_call",
+    "call_busied",
     "error",
 ]
 
