@@ -9,6 +9,7 @@ class Post:
     sender_id: str
     post_format: PostFormat
     text_content: str | None = None
+    background_color: str | None = None
     image_content: str | None = None
     audio_content: str | None = None
     video_content: str | None = None
@@ -47,6 +48,18 @@ class PostTag:
     post_id: str
     tagged_user_id: str
     tagged_by_user_id: str
+    id: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+@dataclass
+class PostMedia:
+    post_id: str
+    media_type: PostFormat
+    image_file: str | None = None
+    audio_file: str | None = None
+    video_file: str | None = None
     id: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

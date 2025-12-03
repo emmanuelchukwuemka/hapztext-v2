@@ -580,43 +580,78 @@ All API endpoints are prefixed with `/api/v1/`.
 
 -   **Endpoint:** `/api/v1/posts/`
 -   **HTTP Method:** `POST`
--   **Description:** Creates a new post for the authenticated user.
+-   **Description:** Creates a new post for the authenticated user. Supports multiple media files per post.
 -   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
--   **Request Body:** (Can be `application/json` or `multipart/form-data` for `media`)
+-   **Request Body:** (Can be `application/json` or `multipart/form-data` for media files)
     ```json
     {
         "post_format": "text|image|audio|video", (required)
         "text_content": "string", (optional, but required for text format)
-        "image_content": "file", (optional, required for image format)
-        "audio_content": "file", (optional, required for audio format)
-        "video_content": "file", (optional, required for video format)
+        "background_color": "string", (optional, hex color code like "#FF5733" for text posts)
+        "image_files": ["file1", "file2"], (optional, required for image format - supports multiple files)
+        "audio_files": ["file1", "file2"], (optional, required for audio format - supports multiple files)
+        "video_files": ["file1", "file2"], (optional, required for video format - supports multiple files)
         "is_reply": false, (optional, default: false)
         "previous_post_id": "string", (optional, required if is_reply is true)
-        "is_published": true, (optional, default: true - set to false for scheduled posts)
-        "scheduled_at": "datetime", (optional, ISO 8601 format: "2024-12-25T10:00:00Z")
-        "tagged_user_ids": ["user_id1", "user_id2"] (optional, list of user IDs to tag)
+        "is_published": true, (optional, default: true - automatically set to false if scheduled_at is provided)
+        "scheduled_at": "datetime", (optional, ISO 8601 format: "2024-12-25T10:00:00Z" - must be future time)
+        "tagged_user_ids": "user_id1,user_id2,user_id3" (optional, comma-separated string of user IDs to tag)
     }
     ```
--   **Success Response (Status: 201 Created):**
+    **File Type Validations:**
+    - **Audio files**: Supported types: audio/mpeg, audio/wav, audio/ogg, audio/aac, audio/flac, audio/mp3
+    - **Video files**: Supported types: video/mp4, video/x-msvideo, video/quicktime, video/webm
+    - **Background color**: Must be valid hex color format (e.g., #FF5733)
+
+-   **Success Response (Status: 201 Created - for published posts):**
     ```json
     {
         "success": true,
         "message": "Post created successfully.",
         "data": {
             "id": "string",
-            "sender": "string",
-            "post_format": "",
+            "sender_id": "string",
+            "post_format": "text|image|audio|video",
             "text_content": "string",
+            "background_color": "#FF5733",
             "image_content": null,
             "audio_content": null,
             "video_content": null,
             "is_reply": false,
             "previous_post_id": null,
             "sender_username": "string",
+            "is_published": true,
+            "scheduled_at": null,
+            "tagged_user_ids": ["user_id1", "user_id2"],
+            "reaction_counts": {},
+            "share_count": 0,
+            "current_user_reaction": null,
+            "media_files": [
+                {
+                    "id": "string",
+                    "media_type": "image|audio|video",
+                    "image_file": "url_to_image",
+                    "audio_file": null,
+                    "video_file": null,
+                    "created_at": "datetime",
+                    "updated_at": "datetime"
+                }
+            ],
             "created_at": "datetime",
             "updated_at": "datetime"
         },
         "status_code": 201
+    }
+    ```
+-   **Success Response (Status: 200 OK - for scheduled posts):**
+    ```json
+    {
+        "success": true,
+        "message": "Post scheduled for creation successfully.",
+        "data": {
+            // Same structure as above but with is_published: false and scheduled_at filled
+        },
+        "status_code": 200
     }
     ```
 -   **Error Response (Status: 400 Bad Request / 500 Internal Server Error):**
@@ -658,6 +693,7 @@ All API endpoints are prefixed with `/api/v1/`.
                     "sender_id": "string",
                     "post_format": "text",
                     "text_content": "string",
+                    "background_color": "#FF5733",
                     "image_content": null,
                     "audio_content": null,
                     "video_content": null,
@@ -673,6 +709,17 @@ All API endpoints are prefixed with `/api/v1/`.
                     },
                     "share_count": 2,
                     "current_user_reaction": "👍",
+                    "media_files": [
+                        {
+                            "id": "string",
+                            "media_type": "image|audio|video",
+                            "image_file": "url_to_image",
+                            "audio_file": null,
+                            "video_file": null,
+                            "created_at": "datetime",
+                            "updated_at": "datetime"
+                        }
+                    ],
                     "created_at": "datetime",
                     "updated_at": "datetime"
                 }
@@ -707,6 +754,7 @@ All API endpoints are prefixed with `/api/v1/`.
                     "sender_id": "string",
                     "post_format": "text",
                     "text_content": "string",
+                    "background_color": null,
                     "image_content": null,
                     "audio_content": null,
                     "video_content": null,
@@ -721,6 +769,7 @@ All API endpoints are prefixed with `/api/v1/`.
                     },
                     "share_count": 1,
                     "current_user_reaction": "👍",
+                    "media_files": [],
                     "created_at": "datetime",
                     "updated_at": "datetime"
                 }
@@ -758,46 +807,51 @@ All API endpoints are prefixed with `/api/v1/`.
     }
     ```
 
-### 3.5. Fetch Post Comments
+### 3.5. Fetch Post Replies (Comments)
 
 -   **Endpoint:** `/api/v1/posts/<str:post_id>/comments/<int:page>/<int:page_size>/`
 -   **HTTP Method:** `GET`
--   **Description:** Fetch comments (replies) for a specific post with pagination.
+-   **Description:** Fetch replies (comments) for a specific post with pagination. Replies are posts where is_reply is true.
 -   **Authentication:** Required (Bearer Token in Header: `Authorization: Bearer <auth_token>`)
 -   **URL Parameters:**
     -   `post_id`: string (required) - The ID of the post.
     -   `page`: integer (required) - The page number for pagination (starts from 1).
-    -   `page_size`: integer (required) - The number of comments per page (1-100).
+    -   `page_size`: integer (required) - The number of replies per page (1-100).
 -   **Request Body:** None
 -   **Success Response (Status: 200 OK):**
     ```json
     {
         "success": true,
-        "message": "Comments fetched successfully.",
+        "message": "replies fetched successfully.",
         "data": {
             "result": [
                 {
                     "id": "string",
                     "sender_id": "string",
                     "post_format": "text",
-                    "text_content": "This is a comment",
+                    "text_content": "This is a reply/comment",
+                    "background_color": null,
                     "image_content": null,
                     "audio_content": null,
                     "video_content": null,
                     "is_reply": true,
                     "previous_post_id": "original_post_id",
                     "sender_username": "commenter_username",
+                    "is_published": true,
+                    "scheduled_at": null,
+                    "tagged_user_ids": [],
                     "reaction_counts": {
                         "👍": 2
                     },
                     "share_count": 0,
                     "current_user_reaction": null,
+                    "media_files": [],
                     "created_at": "datetime",
                     "updated_at": "datetime"
                 }
             ],
-            "previous_comments_data": "/api/v1/posts/post123/comments/1/20/",
-            "next_comments_data": "/api/v1/posts/post123/comments/3/20/"
+            "previous_replies_data": "/api/v1/posts/post123/comments/1/20/",
+            "next_replies_data": "/api/v1/posts/post123/comments/3/20/"
         },
         "status_code": 200
     }
@@ -922,25 +976,54 @@ All API endpoints are prefixed with `/api/v1/`.
 
 ## Post Features Summary
 
+### Multiple Media Files
+- Posts now support **multiple media files** of the same type (multiple images, audios, or videos)
+- Use `image_files`, `audio_files`, or `video_files` arrays in the request
+- **All files are stored in the `media_files` array** in the response
+- **Note**: Legacy fields (`image_content`, `audio_content`, `video_content`) are set to `null` when using multi-file uploads
+- All files are stored in the `PostMedia` table and returned in the `media_files` array
+- Response includes both individual content fields and a comprehensive `media_files` array
+
 ### Tagging Users
-- Include `tagged_user_ids` array in post creation request
-- Tagged users receive notifications
-- Tags are visible in the post response
+- Include `tagged_user_ids` as a **comma-separated string** in post creation request (e.g., "user_id1,user_id2,user_id3")
+- Tagged users receive notifications via the notification system
+- Tags are visible in the post response as an array
+- Tagged users are tracked in the `PostTag` table
 
 ### Scheduled Posts
-- Set `is_published: false` and provide future `scheduled_at` datetime
-- Posts automatically publish at scheduled time (via background task)
-- Use ISO 8601 format for datetime: "2024-12-25T10:00:00Z"
+- Provide future `scheduled_at` datetime in ISO 8601 format: "2024-12-25T10:00:00Z"
+- The `is_published` field is **automatically set to false** when `scheduled_at` is provided
+- Posts automatically publish at scheduled time via Celery background task
+- Scheduled posts return status 200 with message "Post scheduled for creation successfully."
+- Published posts return status 201 with message "Post created successfully."
 
-### Post Comments
-- Comments are posts with `is_reply: true` and `previous_post_id` set
-- Create comments using the regular post creation endpoint with these fields
-- Fetch comments using the dedicated comments endpoint
+### Post Replies (Comments)
+- Replies are posts with `is_reply: true` and `previous_post_id` set to the original post ID
+- Create replies using the regular post creation endpoint with these fields
+- Fetch replies using the dedicated replies/comments endpoint: `/api/v1/posts/<post_id>/comments/<page>/<page_size>/`
+- Original post creator receives notification when someone replies
+- Replies support all post features (reactions, shares, media, tagging)
+
+### Background Colors
+- Text posts can include an optional `background_color` field
+- Must be a valid hex color code (e.g., "#FF5733")
+- Useful for creating visually distinctive text posts
 
 ### Feed Types
-1. **Timeline**: Recent posts ordered by creation date
-2. **Trending**: Posts with most reactions in last 24 hours
-3. **Popular**: Posts with most total engagement (reactions + shares)
+1. **Timeline** (default): Recent posts ordered by creation date (descending)
+2. **Trending**: Posts with most reactions in the last 24 hours
+3. **Popular**: Posts with most total engagement (reactions + shares combined)
+
+### Post Reactions
+- Users can react to posts with emojis (👍, ❤️, 😂, 😮, 😢, 😠, etc.)
+- Each user can only have one reaction per post (updating replaces previous reaction)
+- Reaction counts are aggregated by emoji type in the `reaction_counts` object
+- Response includes `current_user_reaction` showing the authenticated user's reaction
+
+### Post Sharing
+- Users can share posts with an optional message (max 500 characters)
+- Each user can only share a post once (enforced by unique constraint)
+- Share counts are tracked and included in post responses
 
 
 ## 4. API Documentation

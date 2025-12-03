@@ -8,6 +8,7 @@ class PostDetailDTO:
     sender_id: str
     post_format: str | None = None
     text_content: str | None = None
+    background_color: str | None = None
     image_content: str | None = None
     audio_content: str | None = None
     video_content: str | None = None
@@ -24,6 +25,17 @@ class PostDetailDTO:
 
 
 @dataclass
+class PostMediaDTO:
+    id: str
+    media_type: str
+    image_file: str | None = None
+    audio_file: str | None = None
+    video_file: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+@dataclass
 class PostResponseDTO(PostDetailDTO):
     id: str | None = None
     created_at: datetime | None = None
@@ -31,11 +43,14 @@ class PostResponseDTO(PostDetailDTO):
     reaction_counts: Dict[str, int] | None = None
     share_count: int = 0
     current_user_reaction: str | None = None
+    media_files: List["PostMediaDTO"] | None = None
 
     def __post_init__(self):
         super().__post_init__()
         if self.reaction_counts is None:
             self.reaction_counts = {}
+        if self.media_files is None:
+            self.media_files = []
 
 
 @dataclass

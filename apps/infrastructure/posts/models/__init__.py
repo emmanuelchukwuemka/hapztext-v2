@@ -1,3 +1,3 @@
-from .tables import Post, PostReaction, PostShare, PostTag
+from .tables import Post, PostMedia, PostReaction, PostShare, PostTag
 
-__all__ = ["Post", "PostReaction", "PostShare", "PostTag"]
+__all__ = ["Post", "PostMedia", "PostReaction", "PostShare", "PostTag"]

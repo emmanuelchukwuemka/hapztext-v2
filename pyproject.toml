@@ -25,4 +25,5 @@ dependencies = [
     "pyotp>=2.9.0",
     "redis>=6.4.0",
     "whitenoise>=6.9.0",
+    "emoji>=2.14.0",
 ]

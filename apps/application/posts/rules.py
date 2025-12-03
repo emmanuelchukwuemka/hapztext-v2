@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import UTC, datetime
-from typing import Any, List
+from typing import Any, List, Dict
 
 from apps.application.users.ports import UserFollowingRepositoryInterface
 from apps.domain.posts.entities import Post, PostReaction, PostShare, PostTag
@@ -64,6 +64,12 @@ class PostListRule:
         )
         share_counts = self.post_share_repository.get_posts_share_counts(post_ids)
 
+        # Get media files for all posts
+        from apps.infrastructure.posts.repositories import DjangoPostMediaRepository
+        from .dtos import PostMediaDTO
+        media_repository = DjangoPostMediaRepository()
+        posts_media = media_repository.get_posts_media(post_ids)
+
         user_reactions = {}
 
         if current_user_id:
@@ -81,6 +87,19 @@ class PostListRule:
             post_dict["reaction_counts"] = reaction_counts.get(post.id, {})
             post_dict["share_count"] = share_counts.get(post.id, 0)
             post_dict["current_user_reaction"] = user_reactions.get(post.id)
+
+            # Add media files
+            media_files = posts_media.get(post.id, [])
+            post_dict["media_files"] = [
+                PostMediaDTO(
+                    **{
+                        key: value
+                        for key, value in asdict(media).items()
+                        if key in PostMediaDTO.__dataclass_fields__
+                    }
+                )
+                for media in media_files
+            ]
 
             posts_data.append(
                 PostResponseDTO(
@@ -110,11 +129,12 @@ class CreatePostRule:
         self.post_tag_repository = post_tag_repository
         self.user_mention_count_model = user_mention_count_model
 
-    def __call__(self, dto: PostDetailDTO) -> PostResponseDTO:
+    def __call__(self, dto: PostDetailDTO, media_files: List[Dict[str, Any]] = None) -> PostResponseDTO:
         post = Post(
             sender_id=dto.sender_id,
             post_format=dto.post_format,
             text_content=dto.text_content,
+            background_color=dto.background_color,
             image_content=dto.image_content,
             audio_content=dto.audio_content,
             video_content=dto.video_content,
@@ -126,6 +146,13 @@ class CreatePostRule:
         )
 
         created_post = self.post_repository.create(post)
+
+        # Handle multiple media files if provided
+        created_media_files = []
+        if media_files:
+            from apps.infrastructure.posts.repositories import DjangoPostMediaRepository
+            media_repository = DjangoPostMediaRepository()
+            created_media_files = media_repository.create_media_files(created_post.id, media_files)
 
         if dto.tagged_user_ids:
             tags = [
@@ -146,13 +173,26 @@ class CreatePostRule:
 
                 logger.error(f"Failed to increment mention count: {e}")
 
-        return PostResponseDTO(
-            **{
-                key: value
-                for key, value in asdict(created_post).items()
-                if key in PostResponseDTO.__dataclass_fields__
-            }
-        )
+        # Create response with media files
+        response_data = {
+            key: value
+            for key, value in asdict(created_post).items()
+            if key in PostResponseDTO.__dataclass_fields__
+        }
+        
+        # Add media files to response
+        if created_media_files:
+            from apps.application.posts.dtos import PostMediaDTO
+            response_data["media_files"] = [
+                PostMediaDTO(**{
+                    key: value
+                    for key, value in asdict(media).items()
+                    if key in PostMediaDTO.__dataclass_fields__
+                })
+                for media in created_media_files
+            ]
+        
+        return PostResponseDTO(**response_data)
 
 
 class UserPostsRule:
@@ -180,6 +220,12 @@ class UserPostsRule:
         )
         share_counts = self.post_share_repository.get_posts_share_counts(post_ids)
 
+        # Get media files for all posts
+        from apps.infrastructure.posts.repositories import DjangoPostMediaRepository
+        from .dtos import PostMediaDTO
+        media_repository = DjangoPostMediaRepository()
+        posts_media = media_repository.get_posts_media(post_ids)
+
         user_reactions = {}
 
         if current_user_id:
@@ -196,6 +242,19 @@ class UserPostsRule:
             post_dict["reaction_counts"] = reaction_counts.get(post.id, {})
             post_dict["share_count"] = share_counts.get(post.id, 0)
             post_dict["current_user_reaction"] = user_reactions.get(post.id)
+
+            # Add media files
+            media_files = posts_media.get(post.id, [])
+            post_dict["media_files"] = [
+                PostMediaDTO(
+                    **{
+                        key: value
+                        for key, value in asdict(media).items()
+                        if key in PostMediaDTO.__dataclass_fields__
+                    }
+                )
+                for media in media_files
+            ]
 
             posts_data.append(
                 PostResponseDTO(
@@ -257,6 +316,12 @@ class FetchRepliesRule:
         )
         share_counts = self.post_share_repository.get_posts_share_counts(reply_ids)
 
+        # Get media files for all replies
+        from apps.infrastructure.posts.repositories import DjangoPostMediaRepository
+        from .dtos import PostMediaDTO
+        media_repository = DjangoPostMediaRepository()
+        posts_media = media_repository.get_posts_media(reply_ids)
+
         user_reactions = {}
         if current_user_id:
             for reply_id in reply_ids:
@@ -272,6 +337,19 @@ class FetchRepliesRule:
             reply_dict["reaction_counts"] = reaction_counts.get(reply.id, {})
             reply_dict["share_count"] = share_counts.get(reply.id, 0)
             reply_dict["current_user_reaction"] = user_reactions.get(reply.id)
+
+            # Add media files
+            media_files = posts_media.get(reply.id, [])
+            reply_dict["media_files"] = [
+                PostMediaDTO(
+                    **{
+                        key: value
+                        for key, value in asdict(media).items()
+                        if key in PostMediaDTO.__dataclass_fields__
+                    }
+                )
+                for media in media_files
+            ]
 
             replies_data.append(
                 PostResponseDTO(

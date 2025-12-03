@@ -14,10 +14,11 @@ from apps.application.posts.ports import (
     PostTagRepositoryInterface,
 )
 from apps.domain.posts.entities import Post as DomainPost
+from apps.domain.posts.entities import PostMedia as DomainPostMedia
 from apps.domain.posts.entities import PostReaction as DomainPostReaction
 from apps.domain.posts.entities import PostShare as DomainPostShare
 from apps.domain.posts.entities import PostTag as DomainPostTag
-from apps.infrastructure.posts.models import Post, PostReaction, PostShare, PostTag
+from apps.infrastructure.posts.models import Post, PostMedia, PostReaction, PostShare, PostTag
 
 
 def is_absolute_url(url) -> bool:
@@ -41,6 +42,7 @@ def from_domain_post_data(domain_post: DomainPost) -> Dict[str, Any]:
         "sender_id": domain_post.sender_id,
         "post_format": domain_post.post_format,
         "text_content": domain_post.text_content,
+        "background_color": domain_post.background_color,
         "image_content": domain_post.image_content,
         "audio_content": domain_post.audio_content,
         "video_content": domain_post.video_content,
@@ -56,6 +58,7 @@ def to_domain_post_data(django_post: Post) -> DomainPost:
         sender_id=django_post.sender.id,
         post_format=django_post.post_format,
         text_content=django_post.text_content,
+        background_color=django_post.background_color,
         image_content=build_absolute_url(django_post.image_content),
         audio_content=build_absolute_url(django_post.audio_content),
         video_content=build_absolute_url(django_post.video_content),
@@ -100,6 +103,19 @@ def to_domain_post_tag_data(django_tag: PostTag) -> DomainPostTag:
         id=django_tag.id,
         created_at=django_tag.created_at,
         updated_at=django_tag.updated_at,
+    )
+
+
+def to_domain_post_media_data(django_media: PostMedia) -> DomainPostMedia:
+    return DomainPostMedia(
+        post_id=django_media.post_id,
+        media_type=django_media.media_type,
+        image_file=build_absolute_url(django_media.image_file),
+        audio_file=build_absolute_url(django_media.audio_file),
+        video_file=build_absolute_url(django_media.video_file),
+        id=django_media.id,
+        created_at=django_media.created_at,
+        updated_at=django_media.updated_at,
     )
 
 
@@ -411,3 +427,33 @@ class DjangoPostTagRepository(PostTagRepositoryInterface):
     def get_post_tags(self, post_id: str) -> List[DomainPostTag]:
         tags = PostTag.objects.filter(post_id=post_id)
         return [to_domain_post_tag_data(tag) for tag in tags]
+
+
+class DjangoPostMediaRepository:
+    def create_media_files(self, post_id: str, media_files: List[Dict[str, Any]]) -> List[DomainPostMedia]:
+        django_media = [
+            PostMedia(
+                post_id=post_id,
+                media_type=media["media_type"],
+                image_file=media.get("image_file"),
+                audio_file=media.get("audio_file"),
+                video_file=media.get("video_file"),
+            )
+            for media in media_files
+        ]
+        created_media = PostMedia.objects.bulk_create(django_media)
+        return [to_domain_post_media_data(media) for media in created_media]
+
+    def get_post_media(self, post_id: str) -> List[DomainPostMedia]:
+        media_files = PostMedia.objects.filter(post_id=post_id).order_by("created_at")
+        return [to_domain_post_media_data(media) for media in media_files]
+
+    def get_posts_media(self, post_ids: List[str]) -> Dict[str, List[DomainPostMedia]]:
+        media_files = PostMedia.objects.filter(post_id__in=post_ids).order_by("post_id", "created_at")
+        result = {}
+        for media in media_files:
+            post_id = media.post_id
+            if post_id not in result:
+                result[post_id] = []
+            result[post_id].append(to_domain_post_media_data(media))
+        return result
