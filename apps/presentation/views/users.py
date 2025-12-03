@@ -31,7 +31,6 @@ from apps.presentation.factory import (
     fetch_user_rule,
     search_users_rule,
     get_friends_list_rule,
-    get_notify_user_of_follow_rule,
     get_user_followers_rule,
     get_user_followings_rule,
     search_friends_rule,
@@ -210,14 +209,12 @@ def send_follow_request(request: Request, user_id: str) -> Response:
     follow_request = send_request_rule(FollowRequestDTO(**serializer.validated_data))
     follow_request_data = asdict(follow_request)
 
-    try:
-        notify_follow_rule = get_notify_user_of_follow_rule()
-        notify_follow_rule(
-            target_user_id=user_id,
-            follower_id=request.user.id,
-        )
-    except Exception as e:
-        logger.error(f"Failed to send user follow notification: {e}")
+    # Send follow notification asynchronously
+    from apps.core.celery import send_follow_notification_task
+    send_follow_notification_task.delay(
+        target_user_id=user_id,
+        follower_id=request.user.id,
+    )
 
     return StandardResponse.created(
         data=follow_request_data, message="User followed successfully."

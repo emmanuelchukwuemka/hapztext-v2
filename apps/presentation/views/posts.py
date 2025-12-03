@@ -29,8 +29,6 @@ from apps.presentation.factory import (
     create_post_rule,
     delete_post_rule,
     fetch_replies_rule,
-    get_notify_followers_of_post_rule,
-    get_notify_post_creator_of_reply_rule,
     get_post_friend_reactors_rule,
     posts_list_rule,
     react_to_post_rule,
@@ -74,33 +72,45 @@ def create_post(request: Request) -> Response:
     )
     serializer.is_valid(raise_exception=True)
 
+    validated_data = serializer.validated_data
+
+    # Extract multiple file fields
+    image_files = validated_data.pop("image_files", [])
+    audio_files = validated_data.pop("audio_files", [])
+    video_files = validated_data.pop("video_files", [])
+
+    # Prepare media files for PostMedia table
+    media_files = []
+    for img in image_files:
+        media_files.append({
+            "media_type": "image",
+            "image_file": img,
+            "audio_file": None,
+            "video_file": None,
+        })
+    for audio in audio_files:
+        media_files.append({
+            "media_type": "audio",
+            "image_file": None,
+            "audio_file": audio,
+            "video_file": None,
+        })
+    for video in video_files:
+        media_files.append({
+            "media_type": "video",
+            "image_file": None,
+            "audio_file": None,
+            "video_file": video,
+        })
+
     post_creation_rule = create_post_rule()
-    post = post_creation_rule(PostDetailDTO(**serializer.validated_data))
+    post = post_creation_rule(PostDetailDTO(**validated_data), media_files=media_files if media_files else None)
     post_data = asdict(post)
 
     if post_data.get("is_published", True):
-        try:
-            if post_data["is_reply"] and post_data["previous_post_id"]:
-                original_post = to_domain_post_data(
-                    Post.objects.get(id=post_data["previous_post_id"])
-                )
-
-                notify_reply_rule = get_notify_post_creator_of_reply_rule()
-                notify_reply_rule(
-                    post_creator_id=original_post.sender_id,
-                    replier_id=post_data["sender_id"],
-                    original_post_id=post_data["previous_post_id"],
-                    reply_id=post_data["id"],
-                )
-            else:
-                notify_followers_rule = get_notify_followers_of_post_rule()
-                notify_followers_rule(
-                    post_creator_id=post_data["sender_id"],
-                    post_id=post_data["id"],
-                    post_content=post_data["text_content"] or "New media post",
-                )
-        except Exception as e:
-            logger.error(f"Failed to send post notifications: {e}")
+        # Send notifications asynchronously without blocking response
+        from apps.core.celery import send_post_notifications_task
+        send_post_notifications_task.delay(post_data)
 
         return StandardResponse.created(
             data=asdict(post), message="Post created successfully."

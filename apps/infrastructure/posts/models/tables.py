@@ -17,6 +17,7 @@ class Post(models.Model):
         max_length=5, choices=PostFormat.choices, default=PostFormat.TEXT
     )
     text_content = models.TextField(blank=True, null=True)
+    background_color = models.CharField(max_length=7, blank=True, null=True)
     image_content = models.ImageField(upload_to="posts/images/", blank=True, null=True)
     audio_content = models.FileField(upload_to="posts/audios/", blank=True, null=True)
     video_content = models.FileField(upload_to="posts/videos/", blank=True, null=True)
@@ -130,3 +131,34 @@ class PostTag(models.Model):
 
     def __str__(self):
         return f"{self.tagged_by_user.username} tagged {self.tagged_user.username} in {self.post.id}"
+
+
+class PostMedia(models.Model):
+    id = models.CharField(
+        max_length=21,
+        primary_key=True,
+        editable=False,
+        default=partial(generate, size=21),
+    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="media_files")
+    media_type = models.CharField(
+        max_length=5, choices=PostFormat.choices
+    )
+    image_file = models.ImageField(upload_to="posts/images/", blank=True, null=True)
+    audio_file = models.FileField(upload_to="posts/audios/", blank=True, null=True)
+    video_file = models.FileField(upload_to="posts/videos/", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "post_media"
+        verbose_name = "post media"
+        verbose_name_plural = "post media"
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["post", "created_at"]),
+            models.Index(fields=["media_type"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_media_type_display()} media for post {self.post.id}"

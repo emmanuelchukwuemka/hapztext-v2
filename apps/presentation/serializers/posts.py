@@ -10,21 +10,33 @@ class PostCreateSerializer(serializers.Serializer):
     text_content = serializers.CharField(
         required=False, allow_null=True, allow_blank=True
     )
-    image_content = serializers.ImageField(required=False, allow_null=True)
-    audio_content = serializers.FileField(required=False, allow_null=True)
-    video_content = serializers.FileField(required=False, allow_null=True)
+    background_color = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=7
+    )
+    image_files = serializers.ListField(
+        child=serializers.ImageField(),
+        required=False,
+        allow_empty=True,
+        default=list,
+    )
+    audio_files = serializers.ListField(
+        child=serializers.FileField(),
+        required=False,
+        allow_empty=True,
+        default=list,
+    )
+    video_files = serializers.ListField(
+        child=serializers.FileField(),
+        required=False,
+        allow_empty=True,
+        default=list,
+    )
     is_reply = serializers.BooleanField(required=False, default=False)
     previous_post_id = serializers.CharField(
         required=False, allow_null=True, allow_blank=True
     )
     is_published = serializers.BooleanField(required=False, default=True)
     scheduled_at = serializers.DateTimeField(required=False, allow_null=True)
-    tagged_user_ids = serializers.ListField(
-        child=serializers.CharField(max_length=21),
-        required=False,
-        allow_empty=True,
-        default=list,
-    )
     tagged_user_ids = serializers.CharField(
         required=False, allow_blank=True, default=""
     )
@@ -61,30 +73,35 @@ class PostCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         post_format = attrs.get("post_format")
         text_content = attrs.get("text_content")
-        image_content = attrs.get("image_content")
-        audio_content = attrs.get("audio_content")
-        video_content = attrs.get("video_content")
+        image_files = attrs.get("image_files", [])
+        audio_files = attrs.get("audio_files", [])
+        video_files = attrs.get("video_files", [])
         scheduled_at = attrs.get("scheduled_at")
 
-        content_fields = {
-            PostFormat.TEXT: text_content,
-            PostFormat.IMAGE: image_content,
-            PostFormat.AUDIO: audio_content,
-            PostFormat.VIDEO: video_content,
-        }
-
-        if not content_fields.get(post_format):
-            raise serializers.ValidationError(
-                f"For post_format '{post_format}', corresponding content is required."
-            )
-
-        for format, content in content_fields.items():
-            if format != post_format and content not in [None, "", text_content]:
+        # Validate that content is provided for the post format
+        if post_format == PostFormat.TEXT:
+            if not text_content:
                 raise serializers.ValidationError(
-                    f"Only content for '{post_format}' should be provided. Found content for '{format}'."
+                    f"For post_format '{post_format}', text_content is required."
+                )
+        elif post_format == PostFormat.IMAGE:
+            if not image_files:
+                raise serializers.ValidationError(
+                    f"For post_format '{post_format}', at least one image file is required."
+                )
+        elif post_format == PostFormat.AUDIO:
+            if not audio_files:
+                raise serializers.ValidationError(
+                    f"For post_format '{post_format}', at least one audio file is required."
+                )
+        elif post_format == PostFormat.VIDEO:
+            if not video_files:
+                raise serializers.ValidationError(
+                    f"For post_format '{post_format}', at least one video file is required."
                 )
 
-        if post_format == PostFormat.AUDIO and audio_content:
+        # Validate audio files
+        if audio_files:
             allowed_audio_types = [
                 "audio/mpeg",
                 "audio/wav",
@@ -93,23 +110,38 @@ class PostCreateSerializer(serializers.Serializer):
                 "audio/flac",
                 "audio/mp3",
             ]
-            if audio_content.content_type not in allowed_audio_types:
-                raise serializers.ValidationError("Unsupported audio file type.")
+            for audio_file in audio_files:
+                if audio_file.content_type not in allowed_audio_types:
+                    raise serializers.ValidationError(
+                        f"Unsupported audio file type: {audio_file.content_type}"
+                    )
 
-        if post_format == PostFormat.VIDEO and video_content:
+        # Validate video files
+        if video_files:
             allowed_video_types = [
                 "video/mp4",
                 "video/x-msvideo",
                 "video/quicktime",
                 "video/webm",
             ]
-            if video_content.content_type not in allowed_video_types:
-                from loguru import logger
+            for video_file in video_files:
+                if video_file.content_type not in allowed_video_types:
+                    from loguru import logger
+                    logger.critical(
+                        f"Unsupported video file type: {video_file.content_type}, Allowed types are: {allowed_video_types}"
+                    )
+                    raise serializers.ValidationError(
+                        f"Unsupported video file type: {video_file.content_type}"
+                    )
 
-                logger.critical(
-                    f"Unsupported video file type: {video_content.content_type}, Allowed types are: {allowed_video_types}"
+        # Validate background_color format if provided (hex color)
+        background_color = attrs.get("background_color")
+        if background_color:
+            import re
+            if not re.match(r'^#[0-9A-Fa-f]{6}$', background_color):
+                raise serializers.ValidationError(
+                    "background_color must be a valid hex color (e.g., #FF5733)"
                 )
-                raise serializers.ValidationError("Unsupported video file type.")
 
         if scheduled_at and scheduled_at <= datetime.now(scheduled_at.tzinfo):
             raise serializers.ValidationError("Scheduled time must be in the future.")
