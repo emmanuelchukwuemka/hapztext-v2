@@ -21,8 +21,8 @@ logger = logging.Logger(__name__)
 CLIENT_EVENT_TYPES = [
     "accept_call",
     "decline_call",
-    # "busy_call",
-    # "missed_call",
+    "busy_call",
+    "missed_call",
     # "cancel_call",
     # "call_ringing",
 ]
@@ -341,7 +341,7 @@ class WebRTCNotifyConsumer(AsyncJsonWebsocketConsumer):
             )
             if is_successful:
                 await self.channel_layer.send(
-                    channel=self.channel_name,
+                    channel=f"call_{call_id}",
                     message={
                         "type": "call_missed",
                         "data": {
