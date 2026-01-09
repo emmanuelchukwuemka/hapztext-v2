@@ -172,7 +172,6 @@ class FetchUserProfileRule:
 
         return UserProfileResponseDTO(**response_data)
 
-
 class UpdateUserProfileRule:
     def __init__(self, user_profile_repository: UserProfileRepositoryInterface) -> None:
         self.user_profile_repository = user_profile_repository
@@ -184,17 +183,19 @@ class UpdateUserProfileRule:
                 f"Profile for user with id '{dto.user_id}' does not exist."
             )
 
-        update_fields = {
-            key: value
-            for key, value in asdict(dto).items()
-            if key != "user_id" and value is not None
-        }
+        update_fields = {}
+        for field_name in dto.__dataclass_fields__:
+            if field_name == "user_id":
+                continue
+                
+            value = getattr(dto, field_name)
+            if value is not None:
+                update_fields[field_name] = value
 
         updated_profile = self.user_profile_repository.update(
             user_profile, **update_fields
         )
 
-        # Fetch stats after update
         result = self.user_profile_repository.find_by_user_with_stats(dto.user_id)
         stats = result["stats"] if result else {}
 

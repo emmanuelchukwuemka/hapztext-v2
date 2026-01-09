@@ -85,12 +85,22 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+db_config = dj_database_url.config(
+    default=env.str("DATABASE_URL"),
+    conn_max_age=300,
+    conn_health_checks=True,
+)
+
+db_config['OPTIONS'] = {
+    'connect_timeout': 10,
+    'keepalives': 1,
+    'keepalives_idle': 30,
+    'keepalives_interval': 10,
+    'keepalives_count': 5,
+}
+
 DATABASES = {
-    "default": dj_database_url.config(
-        default=env.str("DATABASE_URL"),
-        conn_max_age=60,
-        conn_health_checks=True,
-    )
+    "default": db_config
 }
 
 AUTH_PASSWORD_VALIDATORS = [

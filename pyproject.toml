@@ -28,4 +28,5 @@ dependencies = [
     "emoji>=2.14.0",
     "django-cloudinary-storage>=0.3.0",
     "cloudinary>=1.44.1",
+    "psycopg2-pool>=1.2",
 ]
