@@ -64,7 +64,9 @@ def send_post_notifications_task(self, post_data: dict):
             logger.info(f"Sent follower notifications for post {post_data['id']}")
 
     except Exception as e:
-        logger.error(f"Failed to send post notifications for {post_data.get('id')}: {e}")
+        logger.error(
+            f"Failed to send post notifications for {post_data.get('id')}: {e}"
+        )
         raise self.retry(exc=e, countdown=30)
 
 

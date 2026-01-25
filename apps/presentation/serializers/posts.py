@@ -127,6 +127,7 @@ class PostCreateSerializer(serializers.Serializer):
             for video_file in video_files:
                 if video_file.content_type not in allowed_video_types:
                     from loguru import logger
+
                     logger.critical(
                         f"Unsupported video file type: {video_file.content_type}, Allowed types are: {allowed_video_types}"
                     )
@@ -138,7 +139,8 @@ class PostCreateSerializer(serializers.Serializer):
         background_color = attrs.get("background_color")
         if background_color:
             import re
-            if not re.match(r'^#[0-9A-Fa-f]{6}$', background_color):
+
+            if not re.match(r"^#[0-9A-Fa-f]{6}$", background_color):
                 raise serializers.ValidationError(
                     "background_color must be a valid hex color (e.g., #FF5733)"
                 )

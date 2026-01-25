@@ -189,6 +189,7 @@ def update_user_profile(request: Request) -> Response:
         data=asdict(updated_profile), message="User profile updated successfully."
     )
 
+
 @extend_schema(
     request=UserProfileListSerializer,
     responses={
@@ -239,6 +240,7 @@ def send_follow_request(request: Request, user_id: str) -> Response:
 
     # Send follow notification asynchronously
     from apps.core.celery import send_follow_notification_task
+
     send_follow_notification_task.delay(
         target_user_id=user_id,
         follower_id=request.user.id,

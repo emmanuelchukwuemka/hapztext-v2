@@ -30,4 +30,5 @@ dependencies = [
     "cloudinary>=1.44.1",
     "psycopg2-pool>=1.2",
     "django-cleanup>=9.0.0",
+    "envcipher>=0.1.2",
 ]

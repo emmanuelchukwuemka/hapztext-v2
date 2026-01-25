@@ -96,6 +96,7 @@ def get_user_stats(user_id: str) -> Dict[str, int]:
         "following_count": following_count,
     }
 
+
 def from_domain_user_following_data(
     domain_user_following: DomainUserFollowing,
 ) -> Dict[str, Any]:
@@ -305,7 +306,6 @@ class DjangoUserProfileRepository(UserProfileRepositoryInterface):
         except UserProfile.DoesNotExist:
             return None
 
-
     def find_by_user_with_stats(self, user_id: str) -> Dict[str, Any] | None:
         try:
             django_user_profile = UserProfile.objects.get(user_id=user_id)
@@ -318,7 +318,6 @@ class DjangoUserProfileRepository(UserProfileRepositoryInterface):
             }
         except UserProfile.DoesNotExist:
             return None
-
 
     def profiles_list(
         self, page: int, page_size: int

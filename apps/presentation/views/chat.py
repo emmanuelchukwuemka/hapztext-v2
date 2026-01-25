@@ -228,7 +228,7 @@ def upload_media(request: Request) -> Response:
         from loguru import logger
 
         logger.error(f"Failed to upload media: {e}")
-        return StandardResponse.success(
+        return StandardResponse.error(
             data={"error": "Failed to upload media file"},
             message="Media upload failed.",
             status_code=500,

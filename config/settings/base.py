@@ -92,17 +92,15 @@ db_config = dj_database_url.config(
     conn_health_checks=True,
 )
 
-db_config['OPTIONS'] = {
-    'connect_timeout': 10,
-    'keepalives': 1,
-    'keepalives_idle': 30,
-    'keepalives_interval': 10,
-    'keepalives_count': 5,
+db_config["OPTIONS"] = {
+    "connect_timeout": 10,
+    "keepalives": 1,
+    "keepalives_idle": 30,
+    "keepalives_interval": 10,
+    "keepalives_count": 5,
 }
 
-DATABASES = {
-    "default": db_config
-}
+DATABASES = {"default": db_config}
 
 AUTH_PASSWORD_VALIDATORS = [
     {

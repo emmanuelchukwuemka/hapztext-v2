@@ -122,7 +122,6 @@ class DiscoverRepository:
 
             for user_data_byte in user_data_results:
                 if user_data_byte:
-
                     user_data = {
                         key.decode("utf-8"): value.decode("utf-8")
                         for key, value in user_data_byte.items()

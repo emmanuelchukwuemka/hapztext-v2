@@ -18,7 +18,13 @@ from apps.domain.posts.entities import PostMedia as DomainPostMedia
 from apps.domain.posts.entities import PostReaction as DomainPostReaction
 from apps.domain.posts.entities import PostShare as DomainPostShare
 from apps.domain.posts.entities import PostTag as DomainPostTag
-from apps.infrastructure.posts.models import Post, PostMedia, PostReaction, PostShare, PostTag
+from apps.infrastructure.posts.models import (
+    Post,
+    PostMedia,
+    PostReaction,
+    PostShare,
+    PostTag,
+)
 
 
 def is_absolute_url(url) -> bool:
@@ -430,7 +436,9 @@ class DjangoPostTagRepository(PostTagRepositoryInterface):
 
 
 class DjangoPostMediaRepository:
-    def create_media_files(self, post_id: str, media_files: List[Dict[str, Any]]) -> List[DomainPostMedia]:
+    def create_media_files(
+        self, post_id: str, media_files: List[Dict[str, Any]]
+    ) -> List[DomainPostMedia]:
         django_media = [
             PostMedia(
                 post_id=post_id,
@@ -449,7 +457,9 @@ class DjangoPostMediaRepository:
         return [to_domain_post_media_data(media) for media in media_files]
 
     def get_posts_media(self, post_ids: List[str]) -> Dict[str, List[DomainPostMedia]]:
-        media_files = PostMedia.objects.filter(post_id__in=post_ids).order_by("post_id", "created_at")
+        media_files = PostMedia.objects.filter(post_id__in=post_ids).order_by(
+            "post_id", "created_at"
+        )
         result = {}
         for media in media_files:
             post_id = media.post_id

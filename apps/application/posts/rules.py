@@ -67,6 +67,7 @@ class PostListRule:
         # Get media files for all posts
         from apps.infrastructure.posts.repositories import DjangoPostMediaRepository
         from .dtos import PostMediaDTO
+
         media_repository = DjangoPostMediaRepository()
         posts_media = media_repository.get_posts_media(post_ids)
 
@@ -129,7 +130,9 @@ class CreatePostRule:
         self.post_tag_repository = post_tag_repository
         self.user_mention_count_model = user_mention_count_model
 
-    def __call__(self, dto: PostDetailDTO, media_files: List[Dict[str, Any]] = None) -> PostResponseDTO:
+    def __call__(
+        self, dto: PostDetailDTO, media_files: List[Dict[str, Any]] = None
+    ) -> PostResponseDTO:
         post = Post(
             sender_id=dto.sender_id,
             post_format=dto.post_format,
@@ -151,8 +154,11 @@ class CreatePostRule:
         created_media_files = []
         if media_files:
             from apps.infrastructure.posts.repositories import DjangoPostMediaRepository
+
             media_repository = DjangoPostMediaRepository()
-            created_media_files = media_repository.create_media_files(created_post.id, media_files)
+            created_media_files = media_repository.create_media_files(
+                created_post.id, media_files
+            )
 
         if dto.tagged_user_ids:
             tags = [
@@ -179,19 +185,22 @@ class CreatePostRule:
             for key, value in asdict(created_post).items()
             if key in PostResponseDTO.__dataclass_fields__
         }
-        
+
         # Add media files to response
         if created_media_files:
             from apps.application.posts.dtos import PostMediaDTO
+
             response_data["media_files"] = [
-                PostMediaDTO(**{
-                    key: value
-                    for key, value in asdict(media).items()
-                    if key in PostMediaDTO.__dataclass_fields__
-                })
+                PostMediaDTO(
+                    **{
+                        key: value
+                        for key, value in asdict(media).items()
+                        if key in PostMediaDTO.__dataclass_fields__
+                    }
+                )
                 for media in created_media_files
             ]
-        
+
         return PostResponseDTO(**response_data)
 
 
@@ -223,6 +232,7 @@ class UserPostsRule:
         # Get media files for all posts
         from apps.infrastructure.posts.repositories import DjangoPostMediaRepository
         from .dtos import PostMediaDTO
+
         media_repository = DjangoPostMediaRepository()
         posts_media = media_repository.get_posts_media(post_ids)
 
@@ -319,6 +329,7 @@ class FetchRepliesRule:
         # Get media files for all replies
         from apps.infrastructure.posts.repositories import DjangoPostMediaRepository
         from .dtos import PostMediaDTO
+
         media_repository = DjangoPostMediaRepository()
         posts_media = media_repository.get_posts_media(reply_ids)
 

@@ -172,6 +172,7 @@ class FetchUserProfileRule:
 
         return UserProfileResponseDTO(**response_data)
 
+
 class UpdateUserProfileRule:
     def __init__(self, user_profile_repository: UserProfileRepositoryInterface) -> None:
         self.user_profile_repository = user_profile_repository
@@ -187,7 +188,7 @@ class UpdateUserProfileRule:
         for field_name in dto.__dataclass_fields__:
             if field_name == "user_id":
                 continue
-                
+
             value = getattr(dto, field_name)
             if value is not None:
                 update_fields[field_name] = value

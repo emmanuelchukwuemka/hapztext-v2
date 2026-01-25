@@ -22,7 +22,7 @@ class TestCreateModels:
         """
         Test for call record creation
         """
-        email = f"{str(uuid.uuid4()).replace("-", "")}@test.com"
+        email = f"{str(uuid.uuid4()).replace('-', '')}@test.com"
         title = str(uuid.uuid4())
         username = str(uuid.uuid4())
 
@@ -49,8 +49,8 @@ class TestCreateModels:
         """
         Test call participants creation
         """
-        email1 = f"{str(uuid.uuid4()).replace("-", "")}@test.com"
-        email2 = f"{str(uuid.uuid4()).replace("-", "")}@test.com"
+        email1 = f"{str(uuid.uuid4()).replace('-', '')}@test.com"
+        email2 = f"{str(uuid.uuid4()).replace('-', '')}@test.com"
         title = str(uuid.uuid4())
         username1 = str(uuid.uuid4())
         username2 = str(uuid.uuid4())

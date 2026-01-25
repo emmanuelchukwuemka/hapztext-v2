@@ -141,9 +141,7 @@ class PostMedia(models.Model):
         default=partial(generate, size=21),
     )
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="media_files")
-    media_type = models.CharField(
-        max_length=5, choices=PostFormat.choices
-    )
+    media_type = models.CharField(max_length=5, choices=PostFormat.choices)
     image_file = models.ImageField(upload_to="posts/images/", blank=True, null=True)
     audio_file = models.FileField(upload_to="posts/audios/", blank=True, null=True)
     video_file = models.FileField(upload_to="posts/videos/", blank=True, null=True)

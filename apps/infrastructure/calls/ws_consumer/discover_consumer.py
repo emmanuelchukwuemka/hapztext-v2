@@ -210,7 +210,6 @@ class DiscoverConsumer(AsyncJsonWebsocketConsumer):
         """
         try:
             if await self.repo.is_in_discover(user_id=str(self.user and self.user.id)):  # type: ignore
-
                 await self.repo.leave_discover(user_id=str(self.user and self.user.id))  # type: ignore
 
                 # Notify others

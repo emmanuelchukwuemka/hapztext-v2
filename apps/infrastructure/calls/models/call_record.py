@@ -11,9 +11,7 @@ from nanoid import generate
 
 USER = settings.AUTH_USER_MODEL
 
-CUSTOM_ALPHABET = (
-    "0123456789" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "_"
-)
+CUSTOM_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
 
 
 class CallRecordModel(models.Model):

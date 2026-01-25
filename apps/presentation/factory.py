@@ -124,7 +124,6 @@ def update_user_profile_rule() -> UpdateUserProfileRule:
     return UpdateUserProfileRule(user_profile_repository=get_user_profile_repository())
 
 
-
 def update_user_rule() -> UpdateUserRule:
     return UpdateUserRule(user_repository=get_user_repository())
 
@@ -398,6 +397,7 @@ def get_create_conversation_rule() -> CreateConversationRule:
     return CreateConversationRule(
         conversation_repository=get_conversation_repository(),
         participant_repository=get_conversation_participant_repository(),
+        message_repository=get_message_repository(),
     )
 
 

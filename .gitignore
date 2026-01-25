@@ -64,3 +64,4 @@ management/
 MIGRATION*
 dump.rdb
 uv.lock
+.envcipher.json

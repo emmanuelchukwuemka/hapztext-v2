@@ -67,15 +67,16 @@ class CreateConversationRule:
         ]
         self.participant_repository.add_participants(participants)
 
-        last_message = self.message_repository.get_last_message(conversation.id)
+        last_message = self.message_repository.get_last_message(created_conversation.id)
 
         return ConversationResponseDTO(
+            id=created_conversation.id,
+            conversation_type=created_conversation.conversation_type,
+            participant_ids=dto.participant_ids,
+            created_at=created_conversation.created_at,
+            updated_at=created_conversation.updated_at,
+            last_message_at=created_conversation.last_message_at,
             last_message=last_message,
-            **{
-                key: value
-                for key, value in asdict(created_conversation).items()
-                if key in ConversationResponseDTO.__dataclass_fields__
-            },
         )
 
 

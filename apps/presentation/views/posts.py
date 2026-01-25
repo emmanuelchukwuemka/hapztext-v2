@@ -82,34 +82,44 @@ def create_post(request: Request) -> Response:
     # Prepare media files for PostMedia table
     media_files = []
     for img in image_files:
-        media_files.append({
-            "media_type": "image",
-            "image_file": img,
-            "audio_file": None,
-            "video_file": None,
-        })
+        media_files.append(
+            {
+                "media_type": "image",
+                "image_file": img,
+                "audio_file": None,
+                "video_file": None,
+            }
+        )
     for audio in audio_files:
-        media_files.append({
-            "media_type": "audio",
-            "image_file": None,
-            "audio_file": audio,
-            "video_file": None,
-        })
+        media_files.append(
+            {
+                "media_type": "audio",
+                "image_file": None,
+                "audio_file": audio,
+                "video_file": None,
+            }
+        )
     for video in video_files:
-        media_files.append({
-            "media_type": "video",
-            "image_file": None,
-            "audio_file": None,
-            "video_file": video,
-        })
+        media_files.append(
+            {
+                "media_type": "video",
+                "image_file": None,
+                "audio_file": None,
+                "video_file": video,
+            }
+        )
 
     post_creation_rule = create_post_rule()
-    post = post_creation_rule(PostDetailDTO(**validated_data), media_files=media_files if media_files else None)
+    post = post_creation_rule(
+        PostDetailDTO(**validated_data),
+        media_files=media_files if media_files else None,
+    )
     post_data = asdict(post)
 
     if post_data.get("is_published", True):
         # Send notifications asynchronously without blocking response
         from apps.core.celery import send_post_notifications_task
+
         send_post_notifications_task.delay(post_data)
 
         return StandardResponse.created(

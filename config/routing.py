@@ -8,7 +8,7 @@ from apps.infrastructure.calls.routing import (
 
 websocket_urlpatterns = [
     path(
-        f"{"ws" if str(settings.BACKEND_DOMAIN).startswith("http://") else "wss"}/chat/<str:conversation_id>/",
+        f"{'ws' if str(settings.BACKEND_DOMAIN).startswith('http://') else 'wss'}/chat/<str:conversation_id>/",
         ChatConsumer.as_asgi(),
     ),
 ] + websocket_urlpatterns2
