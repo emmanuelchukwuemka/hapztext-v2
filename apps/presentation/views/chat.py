@@ -34,7 +34,7 @@ from apps.presentation.serializers.examples import (
     SuccessResponseExampleSerializer,
 )
 
-from apps.presentation.factory import (
+from apps.presentation.rule_registry import (
     get_conversation_messages_rule,
     get_create_conversation_rule,
     get_mark_messages_read_rule,

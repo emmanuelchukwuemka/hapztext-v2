@@ -14,7 +14,7 @@ from apps.application.notifications.dtos import (
     NotificationListDTO,
     UpdateNotificationPreferencesDTO,
 )
-from apps.presentation.factory import (
+from apps.presentation.rule_registry import (
     get_mark_notifications_read_rule,
     get_notification_preferences_rule,
     get_update_notification_preferences_rule,

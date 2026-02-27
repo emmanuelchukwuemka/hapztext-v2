@@ -25,7 +25,7 @@ from apps.application.users.dtos import (
     UserProfileListDTO,
     UserSearchDTO,
 )
-from apps.presentation.factory import (
+from apps.presentation.rule_registry import (
     create_user_profile_rule,
     fetch_user_profile_rule,
     fetch_user_rule,
@@ -244,6 +244,7 @@ def send_follow_request(request: Request, user_id: str) -> Response:
     send_follow_notification_task.delay(
         target_user_id=user_id,
         follower_id=request.user.id,
+        follow_request_id=follow_request_data["id"],
     )
 
     return StandardResponse.created(

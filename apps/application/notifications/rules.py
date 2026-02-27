@@ -250,13 +250,13 @@ class UpdateNotificationPreferencesRule:
         preferences = self.preferences_repository.get_or_create_for_user(dto.user_id)
 
         update_fields = {}
-        if dto.post_notifications_enabled:
+        if dto.post_notifications_enabled is not None:
             update_fields["post_notifications_enabled"] = dto.post_notifications_enabled
-        if dto.follow_notifications_enabled:
+        if dto.follow_notifications_enabled is not None:
             update_fields["follow_notifications_enabled"] = (
                 dto.follow_notifications_enabled
             )
-        if dto.reply_notifications_enabled:
+        if dto.reply_notifications_enabled is not None:
             update_fields["reply_notifications_enabled"] = (
                 dto.reply_notifications_enabled
             )

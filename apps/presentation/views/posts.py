@@ -25,7 +25,7 @@ from apps.application.posts.dtos import (
 )
 from apps.infrastructure.posts.models import Post
 from apps.infrastructure.posts.repositories import to_domain_post_data
-from apps.presentation.factory import (
+from apps.presentation.rule_registry import (
     create_post_rule,
     delete_post_rule,
     fetch_replies_rule,

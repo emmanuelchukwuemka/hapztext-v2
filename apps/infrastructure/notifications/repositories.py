@@ -159,13 +159,23 @@ class DjangoNotificationPreferencesRepository(
         except NotificationPreferences.DoesNotExist:
             return None
 
-    def update(self, preferences: Any, **kwargs) -> DomainNotificationPreferences:
-        for key, value in kwargs.items():
-            if hasattr(preferences, key):
-                setattr(preferences, key, value)
+    def update(self, preferences: DomainNotificationPreferences, **kwargs) -> DomainNotificationPreferences:
+        try:
+            django_preferences = NotificationPreferences.objects.get(id=preferences.id)
+            for key, value in kwargs.items():
+                if hasattr(django_preferences, key):
+                    setattr(django_preferences, key, value)
 
-        preferences.save()
-        return to_domain_preferences_data(preferences)
+            django_preferences.save()
+            return to_domain_preferences_data(django_preferences)
+        except NotificationPreferences.DoesNotExist:
+            # If for some reason it doesn't exist by ID, fall back to user search then update
+            django_preferences = NotificationPreferences.objects.get(user_id=preferences.user_id)
+            for key, value in kwargs.items():
+                if hasattr(django_preferences, key):
+                    setattr(django_preferences, key, value)
+            django_preferences.save()
+            return to_domain_preferences_data(django_preferences)
 
     def get_or_create_for_user(self, user_id: str) -> DomainNotificationPreferences:
         try:

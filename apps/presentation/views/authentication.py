@@ -15,7 +15,7 @@ from apps.application.authentication.dtos import (
     VerifyEmailDTO,
 )
 from apps.application.users.dtos import CreateUserDTO
-from apps.presentation.factory import (
+from apps.presentation.rule_registry import (
     get_email_otp_request_rule,
     get_login_rule,
     get_logout_rule,

@@ -34,7 +34,7 @@ def send_post_notifications_task(self, post_data: dict):
     try:
         from apps.infrastructure.posts.models import Post
         from apps.infrastructure.posts.repositories import to_domain_post_data
-        from apps.presentation.factory import (
+        from apps.presentation.rule_registry import (
             get_notify_followers_of_post_rule,
             get_notify_post_creator_of_reply_rule,
         )
@@ -71,15 +71,18 @@ def send_post_notifications_task(self, post_data: dict):
 
 
 @shared_task(bind=True, max_retries=3)
-def send_follow_notification_task(self, target_user_id: str, follower_id: str):
+def send_follow_notification_task(
+    self, target_user_id: str, follower_id: str, follow_request_id: str
+):
     """Send notification for new follower asynchronously"""
     try:
-        from apps.presentation.factory import get_notify_user_of_follow_rule
+        from apps.presentation.rule_registry import get_notify_user_of_follow_rule
 
         notify_follow_rule = get_notify_user_of_follow_rule()
         notify_follow_rule(
             target_user_id=target_user_id,
             follower_id=follower_id,
+            follow_request_id=follow_request_id,
         )
         logger.info(f"Sent follow notification to user {target_user_id}")
 
