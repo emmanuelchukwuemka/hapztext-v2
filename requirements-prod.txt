@@ -1,0 +1,13 @@
+# Production dependencies for Vercel deployment
+# Include gunicorn/uvicorn for WSGI/ASGI serving
+
+-r requirements.txt
+
+# WSGI server
+gunicorn==23.0.0
+
+# ASGI server (for Channels/WebSocket support)
+uvicorn==0.34.0
+
+# Additional production utilities
+python-dotenv==1.0.1
