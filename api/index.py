@@ -1,6 +1,8 @@
 """
 Vercel serverless function handler for Django application.
 This file serves as the entry point for all HTTP requests on Vercel.
+
+Routes all requests through Django's WSGI application.
 """
 
 import os
@@ -21,5 +23,8 @@ django.setup()
 # Import the WSGI application
 from config.wsgi import application
 
-# Export for Vercel
-__all__ = ["application"]
+# Vercel expects the application to be exported as 'app'
+app = application
+
+# Export for compatibility
+__all__ = ["app", "application"]

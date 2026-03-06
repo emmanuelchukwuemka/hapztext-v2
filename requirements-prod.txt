@@ -1,13 +1,17 @@
 # Production dependencies for Vercel deployment
-# Include gunicorn/uvicorn for WSGI/ASGI serving
+# This file is used for production builds
+# Includes all functionality from requirements.txt plus production servers
 
 -r requirements.txt
 
-# WSGI server
+# WSGI server for serverless functions
 gunicorn==23.0.0
 
-# ASGI server (for Channels/WebSocket support)
+# ASGI server for WebSocket support (Channels)
 uvicorn==0.34.0
 
-# Additional production utilities
+# Environment management
 python-dotenv==1.0.1
+
+# Additional production utilities
+# (All core dependencies are in requirements.txt)

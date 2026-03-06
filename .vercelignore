@@ -1,15 +1,33 @@
 # Vercel deployment ignore file
 # Files and directories that should not be included in the Vercel deployment
 
+# Version control
 .git
 .gitignore
+
+# Environment files (keep .env.vercel.example as reference only)
+.env
 .env.local
 .env.*.local
+.env.production.local
+.env.test.local
+.python-version
+
+# Python virtual environments
 .venv
 env/
 venv/
 __pycache__
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Python cache and tools
 .pytest_cache
 .coverage
 htmlcov/
@@ -19,35 +37,55 @@ coverage.xml
 .hypothesis/
 .ruff_cache
 .mypy_cache
+.tox/
+
+# Database files (will be managed by migrations)
 db.sqlite3
+*.db
+
+# Logs
 *.log
 /logs
+
+# Local media files (use Cloudinary in production)
 /media
+
+# Static files (will be collected at build time)
 /staticfiles
+
+# Docker (not needed for Vercel)
 docker-compose.yml
 Dockerfile
 .dockerignore
+
+# Node.js artifacts
 node_modules/
 .next/
 out/
-dist/
-build/
+
+# IDE and editor files
 .DS_Store
 *.swp
 *.swo
 *~
 .idea/
 .vscode/
-*.egg-info/
-.pytest_cache/
-.env
-.env.*.local
-.env.production.local
-.env.test.local
+*.vim
+
+# Test files and outputs
+test_output.txt
+test_calls_output.txt
+.qoder/
 
 # Large files
 *.zip
 *.tar.gz
+
+# Miscellaneous
+nnn.py
+app.py
+Makefile
+VERCEL_QUICK_DEPLOY.sh
 *.rar
 
 # Development only

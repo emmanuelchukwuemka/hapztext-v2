@@ -12,7 +12,8 @@
   },
   "functions": {
     "api/**": {
-      "maxDuration": 30
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "routes": [
@@ -25,7 +26,8 @@
     },
     {
       "src": "/(.*)",
-      "dest": "api/index.py"
+      "dest": "api/index.py",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
     }
   ]
 }
