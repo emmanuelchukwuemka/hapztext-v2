@@ -1,7 +1,6 @@
 {
   "buildCommand": "bash build.sh",
-  "outputDirectory": "staticfiles",
-  "framework": "django",
+  "framework": null,
   "python": {
     "version": "3.12"
   },
@@ -25,9 +24,24 @@
       }
     },
     {
-      "src": "/(.*)",
-      "dest": "api/index.py",
-      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+      "src": "/api/v1/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/docs/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/schema/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/",
+      "dest": "api/index.py"
     }
   ]
 }
