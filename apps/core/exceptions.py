@@ -66,7 +66,14 @@ def custom_exception_handler(
             detail="An unexpected internal server error occurred. Please try again later."
         )
     elif not isinstance(exc, APIException):
-        logger.exception(f"Unhandled server error: {type(exc).__name__}: {exc}.")
+        from django.db import OperationalError
+        if isinstance(exc, OperationalError):
+            from django.conf import settings
+            db_conn = settings.DATABASES.get('default', {})
+            logger.error(f"Database OperationalError: {exc}. Connection: {db_conn}")
+        else:
+            logger.exception(f"Unhandled server error: {type(exc).__name__}: {exc}.")
+        
         exc = BaseAPIException(
             detail="An unexpected internal server error occurred. Please try again later."
         )

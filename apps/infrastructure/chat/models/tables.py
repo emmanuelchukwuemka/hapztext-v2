@@ -1,7 +1,7 @@
 from functools import partial
 
 from django.db import models
-from nanoid import generate
+from apps.core.utils import generate_nanoid
 
 from apps.domain.chat.enums import ConversationType, MessageStatus, MessageType
 
@@ -11,7 +11,7 @@ class Conversation(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     conversation_type = models.CharField(
         max_length=20,
@@ -41,7 +41,7 @@ class ConversationParticipant(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     conversation = models.ForeignKey(
         Conversation, on_delete=models.CASCADE, related_name="participants"
@@ -71,7 +71,7 @@ class Message(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     conversation = models.ForeignKey(
         Conversation, on_delete=models.CASCADE, related_name="messages"

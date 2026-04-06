@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import dj_database_url
@@ -55,8 +56,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -86,8 +87,19 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+# Database
+# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+
+DATABASE_URL = env.str("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
+
+# Ensure SQLite path is absolute if it's relative
+if DATABASE_URL.startswith("sqlite:///"):
+    db_path = DATABASE_URL.replace("sqlite:///", "")
+    if not os.path.isabs(db_path):
+        DATABASE_URL = f"sqlite:///{BASE_DIR / db_path}"
+
 db_config = dj_database_url.config(
-    default=env.str("DATABASE_URL"),
+    default=DATABASE_URL,
     conn_max_age=300,
     conn_health_checks=True,
 )
@@ -132,7 +144,7 @@ STATIC_ROOT.mkdir(exist_ok=True)
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-MEDIA_ROOT.mkdir(exist_ok=True)
+MEDIA_ROOT.mkdir(exist_ok=True, parents=True)
 
 # Cloudinary configuration
 CLOUDINARY_STORAGE = {
@@ -141,14 +153,29 @@ CLOUDINARY_STORAGE = {
     "API_SECRET": env.str("CLOUDINARY_API_SECRET"),
 }
 
-STORAGES = {
-    "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
+# Use Cloudinary if credentials are not 'test', otherwise use FileSystemStorage
+USE_CLOUDINARY = env.str("CLOUDINARY_CLOUD_NAME") != "test"
+
+if USE_CLOUDINARY:
+    # Production: Use Cloudinary
+    STORAGES = {
+        "default": {
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # Development/Testing: Use local file storage
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

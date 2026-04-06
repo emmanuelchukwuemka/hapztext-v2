@@ -42,6 +42,21 @@ class RelationshipStatus(StrEnum):
         return [tag.value for tag in cls]
 
 
+class Gender(StrEnum):
+    MALE = "male"
+    FEMALE = "female"
+    OTHER = "other"
+    PREFER_NOT_SAY = "prefer_not_say"
+
+    @classmethod
+    def choices(cls) -> List[Tuple[str]]:
+        return [(tag.value, tag.name) for tag in cls]
+
+    @classmethod
+    def values(cls) -> List[str]:
+        return [tag.value for tag in cls]
+
+
 class FollowRequestStatus(StrEnum):
     PENDING = "pending"
     ACCEPTED = "accepted"

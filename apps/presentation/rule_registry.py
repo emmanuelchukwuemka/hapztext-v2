@@ -190,6 +190,7 @@ def get_authentication_service() -> KnoxAuthenticationServiceAdapter:
 def get_register_rule() -> RegisterRule:
     return RegisterRule(
         user_repository=get_user_repository(),
+        user_profile_repository=get_user_profile_repository(),
         validate_password=validate_password,
         hash_password=hash_password,
     )

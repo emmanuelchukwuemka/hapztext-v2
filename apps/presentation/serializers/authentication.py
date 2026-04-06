@@ -8,6 +8,14 @@ class CreateUserSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
     password_confirm = serializers.CharField(required=True)
+    first_name = serializers.CharField(required=False, allow_null=True)
+    last_name = serializers.CharField(required=False, allow_null=True)
+    gender = serializers.CharField(required=False, allow_null=True)
+    birth_date = serializers.DateField(required=False, allow_null=True)
+    location = serializers.CharField(required=False, allow_null=True)
+    relationship_status = serializers.CharField(required=False, allow_null=True)
+    occupation = serializers.CharField(required=False, allow_null=True)
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
 
     def validate_password(self, value) -> str:
         if " " in value:

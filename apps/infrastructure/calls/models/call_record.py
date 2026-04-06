@@ -2,16 +2,18 @@
 Call Record Model
 """
 
-from functools import partial
 from typing import Any, Dict
 
 from django.db import models
 from django.conf import settings
-from nanoid import generate
+from apps.core.utils import generate_nanoid
 
 USER = settings.AUTH_USER_MODEL
 
 CUSTOM_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
+
+def generate_call_id():
+    return generate_nanoid(size=21, alphabet=CUSTOM_ALPHABET)
 
 
 class CallRecordModel(models.Model):
@@ -42,7 +44,7 @@ class CallRecordModel(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21, alphabet=CUSTOM_ALPHABET),
+        default=generate_call_id,
     )
 
     initiator = models.ForeignKey(
@@ -158,7 +160,7 @@ class CallParticipantModel(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     call = models.ForeignKey(
         "CallRecordModel",

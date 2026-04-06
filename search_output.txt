@@ -1,0 +1,4 @@
+Searching for users with query: 'test'
+Found 2 users.
+- ID: liOuhhJrIAP3-gPBexbED, Username: test_reproduce, Email: test_reproduce@example.com
+- ID: kGvUsTB82z2gRB7pdscHJ, Username: test_profile_fix, Email: test_profile_fix@example.com

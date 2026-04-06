@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Tuple
 
+from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Q, Count, OuterRef, Subquery
 from django.urls import reverse
@@ -49,12 +50,14 @@ def from_domain_user_profile_data(
         "first_name": domain_user_profile.first_name,
         "last_name": domain_user_profile.last_name,
         "profile_picture": domain_user_profile.profile_picture,
+        "cover_picture": domain_user_profile.cover_picture,
         "bio": domain_user_profile.bio,
         "birth_date": domain_user_profile.birth_date,
         "occupation": domain_user_profile.occupation,
         "height": domain_user_profile.height,
         "weight": domain_user_profile.weight,
         "ethnicity": domain_user_profile.ethnicity,
+        "gender": domain_user_profile.gender,
         "relationship_status": domain_user_profile.relationship_status,
     }
 
@@ -63,11 +66,17 @@ def to_domain_user_profile_data(django_user_profile: UserProfile) -> DomainUserP
     return DomainUserProfile(
         id=django_user_profile.id,
         user_id=django_user_profile.user_id,
+        username=django_user_profile.user.username,
         first_name=django_user_profile.first_name,
         last_name=django_user_profile.last_name,
         profile_picture=(
-            django_user_profile.profile_picture.url
+            f"{settings.BACKEND_DOMAIN}{django_user_profile.profile_picture.url}"
             if django_user_profile.profile_picture
+            else None
+        ),
+        cover_picture=(
+            f"{settings.BACKEND_DOMAIN}{django_user_profile.cover_picture.url}"
+            if django_user_profile.cover_picture
             else None
         ),
         bio=django_user_profile.bio,
@@ -76,6 +85,7 @@ def to_domain_user_profile_data(django_user_profile: UserProfile) -> DomainUserP
         height=django_user_profile.height,
         weight=django_user_profile.weight,
         ethnicity=django_user_profile.ethnicity,
+        gender=django_user_profile.gender,
         relationship_status=django_user_profile.relationship_status,
         created_at=django_user_profile.created_at,
         updated_at=django_user_profile.updated_at,
@@ -216,9 +226,9 @@ class DjangoUserRepository(UserRepositoryInterface):
 
         queryset = (
             User.objects.filter(
-                Q(username__istartswith=query)
-                | Q(user_profile__first_name__istartswith=query)
-                | Q(user_profile__last_name__istartswith=query),
+                Q(username__icontains=query)
+                | Q(user_profile__first_name__icontains=query)
+                | Q(user_profile__last_name__icontains=query),
                 is_email_verified=True,
                 is_active=True,
             )

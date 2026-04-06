@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from .enums import Ethnicity as EthnicityEnum
 from .enums import FollowRequestStatus as FollowRequestStatusEnum
 from .enums import RelationshipStatus as RelationshipStatusEnum
+from .enums import Gender as GenderEnum
 
 
 @dataclass(frozen=True)
@@ -45,3 +46,17 @@ class FollowRequestStatus:
 
     def _is_valid(self) -> bool:
         return self.value in FollowRequestStatusEnum.values()
+
+
+@dataclass(frozen=True)
+class Gender:
+    value: str
+
+    def __post_init__(self):
+        if not self._is_valid():
+            raise ValueError(
+                f"Invalid Gender. Select a value from {GenderEnum.values()}."
+            )
+
+    def _is_valid(self) -> bool:
+        return self.value in GenderEnum.values()

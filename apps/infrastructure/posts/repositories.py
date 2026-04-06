@@ -180,7 +180,7 @@ class DjangoPostRepository(PostRepositoryInterface):
         self, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
         queryset = (
-            Post.objects.filter(is_published=True)
+            Post.objects.filter(is_published=True, is_reply=False)
             .select_related("sender")
             .prefetch_related("reactions", "shares")
             .order_by("-created_at")
@@ -190,7 +190,7 @@ class DjangoPostRepository(PostRepositoryInterface):
         offset = (page - 1) * page_size
         end = offset + page_size
 
-        profiles = [to_domain_post_data(qs) for qs in list(queryset[offset:end])]
+        posts = [to_domain_post_data(qs) for qs in list(queryset[offset:end])]
 
         previous_link = None
         if page > 1:
@@ -204,14 +204,48 @@ class DjangoPostRepository(PostRepositoryInterface):
                 "fetch-posts-list", kwargs={"page": page + 1, "page_size": page_size}
             )
 
-        return profiles, previous_link, next_link
+        return posts, previous_link, next_link
+
+    def search_posts(
+        self, query: str, page: int, page_size: int
+    ) -> Tuple[List[Any], str | None, str | None]:
+        queryset = (
+            Post.objects.filter(
+                text_content__icontains=query, is_published=True, is_reply=False
+            )
+            .select_related("sender")
+            .prefetch_related("reactions", "shares")
+            .order_by("-created_at")
+        )
+        total_posts = queryset.count()
+
+        offset = (page - 1) * page_size
+        end = offset + page_size
+
+        posts = [to_domain_post_data(qs) for qs in list(queryset[offset:end])]
+
+        previous_link = None
+        if page > 1:
+            # We don't have a specific search-posts named route, so we use fetch-posts-list
+            # and the query param will be handled by the view.
+            previous_link = reverse(
+                "fetch-posts-list", kwargs={"page": page - 1, "page_size": page_size}
+            )
+
+        next_link = None
+        if end < total_posts:
+            next_link = reverse(
+                "fetch-posts-list", kwargs={"page": page + 1, "page_size": page_size}
+            )
+
+        return posts, previous_link, next_link
 
     def user_posts_list(
         self, user_id: str, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
-        queryset = Post.objects.filter(sender_id=user_id, is_published=True).order_by(
-            "-created_at"
-        )
+        queryset = Post.objects.filter(
+            sender_id=user_id, is_published=True, is_reply=False
+        ).order_by("-created_at")
         total_posts = queryset.count()
 
         offset = (page - 1) * page_size
@@ -241,7 +275,7 @@ class DjangoPostRepository(PostRepositoryInterface):
         yesterday = timezone.now() - timedelta(days=1)
 
         queryset = (
-            Post.objects.filter(is_published=True)
+            Post.objects.filter(is_published=True, is_reply=False)
             .annotate(
                 recent_reaction_count=models.Count(
                     "reactions", filter=models.Q(reactions__created_at__gte=yesterday)
@@ -274,7 +308,7 @@ class DjangoPostRepository(PostRepositoryInterface):
         self, page: int, page_size: int
     ) -> Tuple[List[Any], str | None, str | None]:
         queryset = (
-            Post.objects.filter(is_published=True)
+            Post.objects.filter(is_published=True, is_reply=False)
             .annotate(
                 total_reactions=models.Count("reactions"),
                 total_shares=models.Count("shares"),

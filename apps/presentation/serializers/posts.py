@@ -174,6 +174,7 @@ class PostListSerializer(serializers.Serializer):
         ],
         default="timeline",
     )
+    query = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 class FetchRepliesSerializer(serializers.Serializer):

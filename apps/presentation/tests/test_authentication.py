@@ -14,12 +14,17 @@ class TestAuthenticationAPI:
             "password": "Password123!",
             "password_confirm": "Password123!",
             "first_name": "New",
-            "last_name": "User"
+            "last_name": "User",
+            "gender": "male",
+            "occupation": "Engineer",
+            "birth_date": "1990-01-01",
+            "location": "Lagos",
+            "relationship_status": "single"
         }
         response = api_client.post(url, data)
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data['success'] is True
-        assert response.data['message'] == "Registration successful. An OTP code has been sent to your email for verification."
+        assert response.data['message'] == "Registration successful."
         
     def test_login_user_success(self, api_client):
         user = UserFactory(password='Password123!', is_email_verified=True)

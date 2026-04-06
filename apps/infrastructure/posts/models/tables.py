@@ -1,7 +1,7 @@
 from functools import partial
 
 from django.db import models
-from nanoid import generate
+from apps.core.utils import generate_nanoid
 
 from apps.domain.posts.enums import PostFormat
 
@@ -11,7 +11,7 @@ class Post(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     post_format = models.CharField(
         max_length=5, choices=PostFormat.choices, default=PostFormat.TEXT
@@ -52,7 +52,7 @@ class PostReaction(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     user = models.ForeignKey(
         "users.User", on_delete=models.CASCADE, related_name="post_reactions"
@@ -80,7 +80,7 @@ class PostShare(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     user = models.ForeignKey(
         "users.User", on_delete=models.CASCADE, related_name="post_shares"
@@ -108,7 +108,7 @@ class PostTag(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="tags")
     tagged_user = models.ForeignKey(
@@ -138,7 +138,7 @@ class PostMedia(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="media_files")
     media_type = models.CharField(max_length=5, choices=PostFormat.choices)

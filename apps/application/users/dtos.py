@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Dict, List
+from typing import Dict, List, Any
 
 
 @dataclass
@@ -9,6 +9,14 @@ class CreateUserDTO:
     username: str
     password: str
     password_confirm: str
+    first_name: str | None = None
+    last_name: str | None = None
+    gender: str | None = None
+    birth_date: date | None = None
+    location: str | None = None
+    relationship_status: str | None = None
+    occupation: str | None = None
+    profile_picture: Any | None = None
 
 
 @dataclass
@@ -32,14 +40,17 @@ class UserResponseDTO(UserDetailDTO):
 @dataclass
 class UserProfileDetailDTO:
     user_id: str
+    username: str | None = None
     birth_date: date | None = None
     ethnicity: str | None = None
     relationship_status: str | None = None
+    gender: str | None = None
     first_name: str | None = None
     last_name: str | None = None
     bio: str | None = None
     occupation: str | None = None
     profile_picture: str | None = None
+    cover_picture: str | None = None
     location: str | None = None
     height: float | None = None
     weight: float | None = None
@@ -48,6 +59,7 @@ class UserProfileDetailDTO:
 @dataclass
 class UserProfileResponseDTO(UserProfileDetailDTO):
     id: str | None = None
+    username: str | None = None
     post_count: int = 0
     follower_count: int = 0
     following_count: int = 0

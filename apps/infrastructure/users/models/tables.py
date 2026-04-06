@@ -2,9 +2,9 @@ from functools import partial
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from nanoid import generate
+from apps.core.utils import generate_nanoid
 
-from apps.domain.users.enums import Ethnicity, FollowRequestStatus, RelationshipStatus
+from apps.domain.users.enums import Ethnicity, FollowRequestStatus, RelationshipStatus, Gender
 
 from ..managers import UserManager
 
@@ -14,7 +14,7 @@ class User(AbstractUser):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     email = models.EmailField(max_length=50, unique=True, blank=False, db_index=True)
     username = models.CharField(max_length=50, unique=True, blank=False)
@@ -42,7 +42,7 @@ class UserProfile(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)
@@ -50,12 +50,18 @@ class UserProfile(models.Model):
     profile_picture = models.ImageField(
         upload_to="profile_images/", blank=True, null=True, db_index=True
     )
+    cover_picture = models.ImageField(
+        upload_to="cover_pictures/", blank=True, null=True, db_index=True
+    )
     occupation = models.CharField(max_length=100, blank=True, null=True)
     birth_date = models.DateField(blank=True, null=True)
     height = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     weight = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     ethnicity = models.CharField(
         max_length=16, choices=Ethnicity.choices, default=Ethnicity.OTHER
+    )
+    gender = models.CharField(
+        max_length=16, choices=Gender.choices, default=Gender.PREFER_NOT_SAY
     )
     location = models.CharField(
         max_length=255,
@@ -99,7 +105,7 @@ class UserFollowing(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     follower = models.ForeignKey(
         "UserProfile", on_delete=models.CASCADE, related_name="following_set"

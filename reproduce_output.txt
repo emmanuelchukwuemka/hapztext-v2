@@ -1,0 +1,218 @@
+33 objects imported automatically (use -v 2 for details).
+
+Python 3.14.2 (tags/v3.14.2:df79316, Dec  5 2025, 17:18:21) [MSC v.1944 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+(InteractiveConsole)
+>>> 2026-03-08 21:19:14 | ERROR | exceptions.py:69 - Unhandled server error: OperationalError: no such table: otp_code.
+Traceback (most recent call last):
+
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           |    |      |       |    -> ('0wgvhecpMG0auIjAxoxkO',)
+           |    |      |       -> 'SELECT "otp_code"."id", "otp_code"."user_id", "otp_code"."code", "otp_code"."purpose", "otp_code"."created_at", "otp_code"."...
+           |    |      -> <function SQLiteCursorWrapper.execute at 0x0000021BD9BCB060>
+           |    -> <django.db.backends.sqlite3.base.SQLiteCursorWrapper object at 0x0000021BDA6A1AE0>
+           -> <django.db.backends.utils.CursorDebugWrapper object at 0x0000021BDA661590>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\backends\sqlite3\base.py", line 359, in execute
+    return super().execute(query, params)
+                           |      -> ('0wgvhecpMG0auIjAxoxkO',)
+                           -> 'SELECT "otp_code"."id", "otp_code"."user_id", "otp_code"."code", "otp_code"."purpose", "otp_code"."created_at", "otp_code"."...
+
+sqlite3.OperationalError: no such table: otp_code
+
+
+The above exception was the direct cause of the following exception:
+
+
+Traceback (most recent call last):
+
+  File "C:\Users\user\Desktop\backend\manage.py", line 23, in <module>
+    main()
+    -> <function main at 0x0000021BD33A7AB0>
+
+  File "C:\Users\user\Desktop\backend\manage.py", line 19, in main
+    execute_from_command_line(sys.argv)
+    |                         |   -> ['manage.py', 'shell']
+    |                         -> <module 'sys' (built-in)>
+    -> <function execute_from_command_line at 0x0000021BD5B5AF00>
+
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\core\management\__init__.py", line 443, in execute_from_command_line
+    utility.execute()
+    |       -> <function ManagementUtility.execute at 0x0000021BD5B5B270>
+    -> <django.core.management.ManagementUtility object at 0x0000021BD3A06F90>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\core\management\__init__.py", line 437, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+    |    |             |                         |    -> ['manage.py', 'shell']
+    |    |             |                         -> <django.core.management.ManagementUtility object at 0x0000021BD3A06F90>
+    |    |             -> 'shell'
+    |    -> <function ManagementUtility.fetch_command at 0x0000021BD5B5B110>
+    -> <django.core.management.ManagementUtility object at 0x0000021BD3A06F90>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\core\management\base.py", line 420, in run_from_argv
+    self.execute(*args, **cmd_options)
+    |    |        |       -> {'verbosity': 1, 'settings': None, 'pythonpath': None, 'traceback': False, 'no_color': False, 'force_color': False, 'no_start...
+    |    |        -> ()
+    |    -> <function BaseCommand.execute at 0x0000021BD5B5A4B0>
+    -> <django.core.management.commands.shell.Command object at 0x0000021BDA05CEC0>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\core\management\base.py", line 464, in execute
+    output = self.handle(*args, **options)
+             |    |       |       -> {'verbosity': 1, 'settings': None, 'pythonpath': None, 'traceback': False, 'no_color': False, 'force_color': False, 'no_start...
+             |    |       -> ()
+             |    -> <function Command.handle at 0x0000021BDA256560>
+             -> <django.core.management.commands.shell.Command object at 0x0000021BDA05CEC0>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\core\management\commands\shell.py", line 280, in handle
+    return getattr(self, shell)(options)
+                   |     |      -> {'verbosity': 1, 'settings': None, 'pythonpath': None, 'traceback': False, 'no_color': False, 'force_color': False, 'no_start...
+                   |     -> 'python'
+                   -> <django.core.management.commands.shell.Command object at 0x0000021BDA05CEC0>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\core\management\commands\shell.py", line 122, in python
+    code.interact(local=imported_objects)
+    |    |              -> {'settings': <LazySettings "config.settings">, 'connection': <django.utils.connection.ConnectionProxy object at 0x0000021BD59...
+    |    -> <function interact at 0x0000021BDA257AB0>
+    -> <module 'code' from 'C:\\Program Files\\Python314\\Lib\\code.py'>
+  File "C:\Program Files\Python314\Lib\code.py", line 382, in interact
+    console.interact(banner, exitmsg)
+    |       |        |       -> None
+    |       |        -> None
+    |       -> <function InteractiveConsole.interact at 0x0000021BDA278300>
+    -> <code.InteractiveConsole object at 0x0000021BDA259FD0>
+  File "C:\Program Files\Python314\Lib\code.py", line 276, in interact
+    more = self.push(line)
+           |    |    -> "from apps.presentation.views.authentication import register_user; from rest_framework.test import APIRequestFactory; factory...
+           |    -> <function InteractiveConsole.push at 0x0000021BDA2783B0>
+           -> <code.InteractiveConsole object at 0x0000021BDA259FD0>
+  File "C:\Program Files\Python314\Lib\code.py", line 324, in push
+    more = self.runsource(source, filename, symbol=_symbol)
+           |    |         |       |                -> 'single'
+           |    |         |       -> '<console>'
+           |    |         -> "from apps.presentation.views.authentication import register_user; from rest_framework.test import APIRequestFactory; factory...
+           |    -> <function InteractiveInterpreter.runsource at 0x0000021BDA257C10>
+           -> <code.InteractiveConsole object at 0x0000021BDA259FD0>
+  File "C:\Program Files\Python314\Lib\code.py", line 75, in runsource
+    self.runcode(code)
+    |    |       -> <code object <module> at 0x0000021BDA0821F0, file "<console>", line 1>
+    |    -> <function InteractiveInterpreter.runcode at 0x0000021BDA257CC0>
+    -> <code.InteractiveConsole object at 0x0000021BDA259FD0>
+  File "C:\Program Files\Python314\Lib\code.py", line 91, in runcode
+    exec(code, self.locals)
+         |     |    -> {'settings': <LazySettings "config.settings">, 'connection': <django.utils.connection.ConnectionProxy object at 0x0000021BD59...
+         |     -> <code.InteractiveConsole object at 0x0000021BDA259FD0>
+         -> <code object <module> at 0x0000021BDA0821F0, file "<console>", line 1>
+  File "<console>", line 1, in <module>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           |         |         |       -> {}
+           |         |         -> ()
+           |         -> <WSGIRequest: POST '/api/v1/authentication/register/'>
+           -> <function View.as_view.<locals>.view at 0x0000021BDA5F4CA0>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\views\generic\base.py", line 106, in view
+    return self.dispatch(request, *args, **kwargs)
+           |    |        |         |       -> {}
+           |    |        |         -> ()
+           |    |        -> <WSGIRequest: POST '/api/v1/authentication/register/'>
+           |    -> <function APIView.dispatch at 0x0000021BD9F997A0>
+           -> <apps.presentation.views.authentication.WrappedAPIView object at 0x0000021BDA6597F0>
+> File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               |       |         |       -> {}
+               |       |         -> ()
+               |       -> <rest_framework.request.Request: POST '/api/v1/authentication/register/'>
+               -> <bound method api_view.<locals>.decorator.<locals>.handler of <apps.presentation.views.authentication.WrappedAPIView object a...
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\rest_framework\decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+           |     |       -> {}
+           |     -> (<rest_framework.request.Request: POST '/api/v1/authentication/register/'>,)
+           -> <function register_user at 0x0000021BDA5F4A90>
+  File "C:\Program Files\Python314\Lib\contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+           |     |       -> {}
+           |     -> (<rest_framework.request.Request: POST '/api/v1/authentication/register/'>,)
+           -> <function register_user at 0x0000021BDA5F49E0>
+
+  File "C:\Users\user\Desktop\backend\apps\presentation\views\authentication.py", line 64, in register_user
+    verification_request_rule(
+    -> <apps.application.authentication.rules.EmailOTPRequestRule object at 0x0000021BDA65B620>
+
+  File "C:\Users\user\Desktop\backend\apps\application\authentication\rules.py", line 78, in __call__
+    if self.otp_code_repository.has_valid_code(user.id, dto.purpose):
+       |    |                   |              |    |   |   -> 'email_verification'
+       |    |                   |              |    |   -> EmailOTPRequestDTO(email='test_reproduce@example.com', purpose='email_verification', user=UserResponseDTO(id='0wgvhecpMG0auIj...
+       |    |                   |              |    -> '0wgvhecpMG0auIjAxoxkO'
+       |    |                   |              -> UserResponseDTO(id='0wgvhecpMG0auIjAxoxkO', username='test_reproduce', email='test_reproduce@example.com', is_email_verified=...
+       |    |                   -> <function DjangoOTPCodeRepository.has_valid_code at 0x0000021BDA55DE80>
+       |    -> <apps.infrastructure.authentication.repositories.DjangoOTPCodeRepository object at 0x0000021BDA65ABA0>
+       -> <apps.application.authentication.rules.EmailOTPRequestRule object at 0x0000021BDA65B620>
+
+  File "C:\Users\user\Desktop\backend\apps\infrastructure\authentication\repositories.py", line 43, in has_valid_code
+    existing_otp_code = OTPCode.objects.filter(user_id=user_id).first()
+                        |       |                      -> '0wgvhecpMG0auIjAxoxkO'
+                        |       -> <django.db.models.manager.ManagerDescriptor object at 0x0000021BD9FBB490>
+                        -> <class 'apps.infrastructure.authentication.models.tables.OTPCode'>
+
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\models\query.py", line 1145, in first
+    for obj in queryset[:1]:
+               -> <unprintable QuerySet object>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\models\query.py", line 390, in __iter__
+    self._fetch_all()
+    |    -> <function QuerySet._fetch_all at 0x0000021BD6A5B480>
+    -> <unprintable QuerySet object>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+    |    |                    |    |               -> <unprintable QuerySet object>
+    |    |                    |    -> <class 'django.db.models.query.ModelIterable'>
+    |    |                    -> <unprintable QuerySet object>
+    |    -> None
+    -> <unprintable QuerySet object>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+              |        -> <function SQLCompiler.execute_sql at 0x0000021BDA6B2CF0>
+              -> <SQLCompiler model=OTPCode connection=<DatabaseWrapper vendor='sqlite' alias='default'> using='default'>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1624, in execute_sql
+    cursor.execute(sql, params)
+    |      |       |    -> ('0wgvhecpMG0auIjAxoxkO',)
+    |      |       -> 'SELECT "otp_code"."id", "otp_code"."user_id", "otp_code"."code", "otp_code"."purpose", "otp_code"."created_at", "otp_code"."...
+    |      -> <function CursorDebugWrapper.execute at 0x0000021BD69A45C0>
+    -> <django.db.backends.utils.CursorDebugWrapper object at 0x0000021BDA661590>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+                           |    -> ('0wgvhecpMG0auIjAxoxkO',)
+                           -> 'SELECT "otp_code"."id", "otp_code"."user_id", "otp_code"."code", "otp_code"."purpose", "otp_code"."created_at", "otp_code"."...
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           |    -> <function CursorWrapper._execute_with_wrappers at 0x0000021BD69A43B0>
+           -> <django.db.backends.utils.CursorDebugWrapper object at 0x0000021BDA661590>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           |        |    |       |     -> {'connection': <DatabaseWrapper vendor='sqlite' alias='default'>, 'cursor': <django.db.backends.utils.CursorDebugWrapper obje...
+           |        |    |       -> False
+           |        |    -> ('0wgvhecpMG0auIjAxoxkO',)
+           |        -> 'SELECT "otp_code"."id", "otp_code"."user_id", "otp_code"."code", "otp_code"."purpose", "otp_code"."created_at", "otp_code"."...
+           -> <bound method CursorWrapper._execute of <django.db.backends.utils.CursorDebugWrapper object at 0x0000021BDA661590>>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         |    |  -> <django.db.utils.DatabaseErrorWrapper object at 0x0000021BDA65A3C0>
+         |    -> <DatabaseWrapper vendor='sqlite' alias='default'>
+         -> <django.db.backends.utils.CursorDebugWrapper object at 0x0000021BDA661590>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+          |            |              |               -> OperationalError('no such table: otp_code')
+          |            |              -> <traceback object at 0x0000021BDA6E1D80>
+          |            -> <method 'with_traceback' of 'BaseException' objects>
+          -> OperationalError('no such table: otp_code')
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           |    |      |       |    -> ('0wgvhecpMG0auIjAxoxkO',)
+           |    |      |       -> 'SELECT "otp_code"."id", "otp_code"."user_id", "otp_code"."code", "otp_code"."purpose", "otp_code"."created_at", "otp_code"."...
+           |    |      -> <function SQLiteCursorWrapper.execute at 0x0000021BD9BCB060>
+           |    -> <django.db.backends.sqlite3.base.SQLiteCursorWrapper object at 0x0000021BDA6A1AE0>
+           -> <django.db.backends.utils.CursorDebugWrapper object at 0x0000021BDA661590>
+  File "C:\Users\user\Desktop\backend\.venv\Lib\site-packages\django\db\backends\sqlite3\base.py", line 359, in execute
+    return super().execute(query, params)
+                           |      -> ('0wgvhecpMG0auIjAxoxkO',)
+                           -> 'SELECT "otp_code"."id", "otp_code"."user_id", "otp_code"."code", "otp_code"."purpose", "otp_code"."created_at", "otp_code"."...
+
+django.db.utils.OperationalError: no such table: otp_code
+STATUS_CODE: 500
+RESPONSE_DATA: {'success': False, 'message': 'An error occurred.', 'errors': {'detail': 'An unexpected internal server error occurred. Please try again later.'}, 'status_code': 500}
+
+now exiting InteractiveConsole...
+>>> 

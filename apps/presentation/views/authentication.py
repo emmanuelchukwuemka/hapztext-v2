@@ -21,6 +21,7 @@ from apps.presentation.rule_registry import (
     get_logout_rule,
     get_register_rule,
     get_reset_password_rule,
+    get_user_repository,
     get_verify_email_rule,
 )
 from apps.presentation.responses import StandardResponse
@@ -60,14 +61,16 @@ def register_user(request: Request) -> StandardResponse:
     register_rule = get_register_rule()
     user = register_rule(CreateUserDTO(**serializer.validated_data))
 
-    verification_request_rule = get_email_otp_request_rule()
-    verification_request_rule(
-        EmailOTPRequestDTO(user.email, "email_verification", user)
-    )
+    user_repo = get_user_repository()
+    raw_user = user_repo.find_by_id(user.id, raw=True)
+
+    auth_tokens = get_login_rule().authentication_service.generate_auth_tokens(raw_user)
+    response_data = asdict(user)
+    response_data["tokens"] = auth_tokens
 
     return StandardResponse.created(
-        data=asdict(user),
-        message="Registration successful. An OTP code has been sent to your email for verification.",
+        data=response_data,
+        message="Registration successful.",
     )
 
 

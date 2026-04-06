@@ -1,7 +1,7 @@
 from functools import partial
 
 from django.db import models
-from nanoid import generate
+from apps.core.utils import generate_nanoid
 
 from apps.domain.notifications.enums import NotificationType
 
@@ -11,7 +11,7 @@ class Notification(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     recipient = models.ForeignKey(
         "users.User", on_delete=models.CASCADE, related_name="received_notifications"
@@ -50,7 +50,7 @@ class NotificationPreferences(models.Model):
         max_length=21,
         primary_key=True,
         editable=False,
-        default=partial(generate, size=21),
+        default=generate_nanoid,
     )
     user = models.OneToOneField(
         "users.User", on_delete=models.CASCADE, related_name="notification_preferences"

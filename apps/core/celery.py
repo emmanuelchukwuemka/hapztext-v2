@@ -72,7 +72,7 @@ def send_post_notifications_task(self, post_data: dict):
 
 @shared_task(bind=True, max_retries=3)
 def send_follow_notification_task(
-    self, target_user_id: str, follower_id: str, follow_request_id: str
+    self, target_user_id: str, follower_id: str, follow_request_id: str = None
 ):
     """Send notification for new follower asynchronously"""
     try:

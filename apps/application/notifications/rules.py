@@ -169,7 +169,7 @@ class NotifyUserOfFollowRule:
         self.create_notification_rule = create_notification_rule
 
     def __call__(
-        self, target_user_id: str, follower_id: str, follow_request_id: str
+        self, target_user_id: str, follower_id: str, follow_request_id: str = None
     ) -> NotificationResponseDTO | None:
         follower = self.user_repository.find_by_id(follower_id)
         try:

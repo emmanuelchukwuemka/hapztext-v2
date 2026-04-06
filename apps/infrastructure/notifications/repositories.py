@@ -161,21 +161,33 @@ class DjangoNotificationPreferencesRepository(
 
     def update(self, preferences: DomainNotificationPreferences, **kwargs) -> DomainNotificationPreferences:
         try:
-            django_preferences = NotificationPreferences.objects.get(id=preferences.id)
+            # First try finding by ID (most reliable if ID is set correctly)
+            if preferences.id:
+                try:
+                    django_preferences = NotificationPreferences.objects.get(id=preferences.id)
+                except NotificationPreferences.DoesNotExist:
+                    # If not found by ID, fall back to user_id
+                    django_preferences = NotificationPreferences.objects.get(user_id=preferences.user_id)
+            else:
+                # No ID in domain object, find by user_id
+                django_preferences = NotificationPreferences.objects.get(user_id=preferences.user_id)
+
             for key, value in kwargs.items():
                 if hasattr(django_preferences, key):
                     setattr(django_preferences, key, value)
 
             django_preferences.save()
             return to_domain_preferences_data(django_preferences)
+            
         except NotificationPreferences.DoesNotExist:
-            # If for some reason it doesn't exist by ID, fall back to user search then update
-            django_preferences = NotificationPreferences.objects.get(user_id=preferences.user_id)
-            for key, value in kwargs.items():
-                if hasattr(django_preferences, key):
-                    setattr(django_preferences, key, value)
-            django_preferences.save()
-            return to_domain_preferences_data(django_preferences)
+            # This should theoretically not happen if get_or_create was used, but handle anyway
+            from apps.domain.notifications.entities import NotificationPreferences as DomainPrefs
+            new_domain_prefs = DomainPrefs(user_id=preferences.user_id, **kwargs)
+            return self.create(new_domain_prefs)
+        except Exception as e:
+            from loguru import logger
+            logger.error(f"Error updating notification preferences for user {preferences.user_id}: {e}")
+            raise
 
     def get_or_create_for_user(self, user_id: str) -> DomainNotificationPreferences:
         try:

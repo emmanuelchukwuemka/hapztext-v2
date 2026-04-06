@@ -118,17 +118,21 @@ def create_post(request: Request) -> Response:
 
     if post_data.get("is_published", True):
         # Send notifications asynchronously without blocking response
-        from apps.core.celery import send_post_notifications_task
-
-        send_post_notifications_task.delay(post_data)
+        try:
+            from apps.core.celery import send_post_notifications_task
+            send_post_notifications_task.delay(post_data)
+        except Exception as e:
+            logger.error(f"Failed to queue post notification task: {e}")
 
         return StandardResponse.created(
-            data=asdict(post), message="Post created successfully."
+            data=post_data, message="Post created successfully."
         )
 
-    from apps.core.celery import publish_scheduled_posts_task
-
-    publish_scheduled_posts_task.apply_async(args=[post.id], eta=post.scheduled_at)
+    try:
+        from apps.core.celery import publish_scheduled_posts_task
+        publish_scheduled_posts_task.apply_async(args=[post.id], eta=post.scheduled_at)
+    except Exception as e:
+        logger.error(f"Failed to queue scheduled post publication task: {e}")
 
     return StandardResponse.success(
         data=asdict(post), message="Post scheduled for creation successfully."
@@ -154,6 +158,7 @@ def fetch_posts_list(request: Request, page: int, page_size: int) -> Response:
             "page": page,
             "page_size": page_size,
             "feed_type": request.query_params.get("feed_type", "timeline"),
+            "query": request.query_params.get("query"),
         }
     )
     serializer.is_valid(raise_exception=True)

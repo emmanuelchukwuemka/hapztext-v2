@@ -1,10 +1,11 @@
 from typing import Any, Callable
 
 from apps.application.users.dtos import CreateUserDTO, UserResponseDTO
-from apps.application.users.ports import UserRepositoryInterface
+from apps.application.users.ports import UserRepositoryInterface, UserProfileRepositoryInterface
 from apps.domain.authentication.entities import OTPCode
 from apps.domain.authentication.value_objects import Purpose
-from apps.domain.users.entities import User
+from apps.domain.users.entities import User, UserProfile
+from datetime import date
 
 from .dtos import (
     EmailOTPRequestDTO,
@@ -25,10 +26,12 @@ class RegisterRule:
     def __init__(
         self,
         user_repository: UserRepositoryInterface,
+        user_profile_repository: UserProfileRepositoryInterface,
         validate_password: Callable[[Any], str],
         hash_password: Callable[[Any], str],
     ) -> None:
         self.user_repository = user_repository
+        self.user_profile_repository = user_profile_repository
         self.validate_password = validate_password
         self.hash_password = hash_password
 
@@ -37,10 +40,28 @@ class RegisterRule:
         hashed_password = self.hash_password(dto.password)
 
         user = User(
-            email=dto.email, username=dto.username, hashed_password=hashed_password
+            email=dto.email,
+            username=dto.username,
+            hashed_password=hashed_password,
+            is_email_verified=True,
         )
 
         created_user = self.user_repository.create(user)
+
+        user_profile = UserProfile(
+            user_id=created_user.id,
+            username=created_user.username,
+            first_name=dto.first_name if dto.first_name else "",
+            last_name=dto.last_name if dto.last_name else "",
+            gender=dto.gender if dto.gender else "prefer_not_say",
+            birth_date=dto.birth_date if dto.birth_date else date(1900, 1, 1),
+            location=dto.location,
+            relationship_status=dto.relationship_status if dto.relationship_status else "prefer_not_say",
+            occupation=dto.occupation if dto.occupation else "",
+            profile_picture=dto.profile_picture,
+        )
+        self.user_profile_repository.create(user_profile)
+
         return UserResponseDTO(
             id=created_user.id,
             email=created_user.email,

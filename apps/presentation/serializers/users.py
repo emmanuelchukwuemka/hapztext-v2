@@ -26,6 +26,7 @@ class UserProfileDetailSerializer(serializers.Serializer):
     bio = serializers.CharField(required=False)
     occupation = serializers.CharField(required=False)
     profile_picture = serializers.ImageField(required=False)
+    cover_picture = serializers.ImageField(required=False)
     location = serializers.CharField(
         required=False,
         help_text="User's location, e.g., 'MorningGrove, Lagos, Nigeria'",
@@ -36,6 +37,16 @@ class UserProfileDetailSerializer(serializers.Serializer):
     weight = serializers.DecimalField(
         max_digits=5, min_value=0, decimal_places=2, required=False
     )
+
+    def validate_height(self, value):
+        if value == "" or value is None:
+            return 0.0
+        return value
+
+    def validate_weight(self, value):
+        if value == "" or value is None:
+            return 0.0
+        return value
 
     def validate(self, attrs):
         if self.context.get("user_id"):

@@ -16,7 +16,7 @@ USERNAME = "root"
 PASSWORD = "Mathscrusader123."
 REMOTE_PATH = "/root/hapz_backend"
 PORT = 8005
-EXCLUDE_DIRS = [".git", ".venv", "__pycache__", ".pytest_cache", "staticfiles", "media"]
+EXCLUDE_DIRS = [".git", ".venv", "__pycache__", ".pytest_cache", "staticfiles", "media", "android", "ios", "build", "linux", "macos", "windows", "web", ".dart_tool", "db.sqlite3", "db.sqlite3-journal"]
 
 # --- Helper Functions ---
 
@@ -129,7 +129,12 @@ def main():
         f"grep -q 'DJANGO_ALLOWED_HOSTS' {REMOTE_PATH}/.env && sed -i 's/^DJANGO_ALLOWED_HOSTS=.*/DJANGO_ALLOWED_HOSTS={HOST},localhost,127.0.0.1/' {REMOTE_PATH}/.env || echo 'DJANGO_ALLOWED_HOSTS={HOST},localhost,127.0.0.1' >> {REMOTE_PATH}/.env",
         f"grep -q 'DJANGO_DEBUG' {REMOTE_PATH}/.env && sed -i 's/^DJANGO_DEBUG=.*/DJANGO_DEBUG=False/' {REMOTE_PATH}/.env || echo 'DJANGO_DEBUG=False' >> {REMOTE_PATH}/.env",
         f"grep -q 'DJANGO_SECRET_KEY' {REMOTE_PATH}/.env || echo 'DJANGO_SECRET_KEY=production-secret-change-me-later' >> {REMOTE_PATH}/.env",
-        f"grep -q 'DJANGO_SECURE_SSL_REDIRECT' {REMOTE_PATH}/.env && sed -i 's/^DJANGO_SECURE_SSL_REDIRECT=.*/DJANGO_SECURE_SSL_REDIRECT=False/' {REMOTE_PATH}/.env || echo 'DJANGO_SECURE_SSL_REDIRECT=False' >> {REMOTE_PATH}/.env"
+        f"grep -q 'DJANGO_SECURE_SSL_REDIRECT' {REMOTE_PATH}/.env && sed -i 's/^DJANGO_SECURE_SSL_REDIRECT=.*/DJANGO_SECURE_SSL_REDIRECT=False/' {REMOTE_PATH}/.env || echo 'DJANGO_SECURE_SSL_REDIRECT=False' >> {REMOTE_PATH}/.env",
+        f"grep -q 'BACKEND_DOMAIN' {REMOTE_PATH}/.env && sed -i 's|^BACKEND_DOMAIN=.*|BACKEND_DOMAIN=http://{HOST}:{PORT}|' {REMOTE_PATH}/.env || echo 'BACKEND_DOMAIN=http://{HOST}:{PORT}' >> {REMOTE_PATH}/.env",
+        f"grep -q 'CLOUDINARY_CLOUD_NAME' {REMOTE_PATH}/.env || echo 'CLOUDINARY_CLOUD_NAME=test' >> {REMOTE_PATH}/.env",
+        f"grep -q 'CLOUDINARY_API_KEY' {REMOTE_PATH}/.env || echo 'CLOUDINARY_API_KEY=test' >> {REMOTE_PATH}/.env",
+        f"grep -q 'CLOUDINARY_API_SECRET' {REMOTE_PATH}/.env || echo 'CLOUDINARY_API_SECRET=test' >> {REMOTE_PATH}/.env",
+        f"grep -q 'DATABASE_URL' {REMOTE_PATH}/.env || echo 'DATABASE_URL=postgresql://hapztext:hapztext_pass_2024@localhost:5432/hapztext_db' >> {REMOTE_PATH}/.env"
     ]
     run_remote_command(ssh, " && ".join(patch_cmds), "Configuring environment variables")
 
@@ -138,14 +143,24 @@ def main():
     log_file = f"{REMOTE_PATH}/logs/deploy.log"
     
     setup_cmds = [
-        f"mkdir -p {REMOTE_PATH}/logs",
+        f"mkdir -p {REMOTE_PATH}/logs {REMOTE_PATH}/media",
+        f"chmod -R 777 {REMOTE_PATH}/media || true",
         f"cd {REMOTE_PATH}",
+        # Install PostgreSQL if not already installed
+        "which psql || (apt-get update && apt-get install -y postgresql postgresql-contrib)",
+        # Start PostgreSQL service
+        "service postgresql start || true",
+        # Create database and user
+        "sudo -u postgres psql -c \"CREATE USER hapztext WITH PASSWORD 'hapztext_pass_2024';\" || true",
+        "sudo -u postgres psql -c \"CREATE DATABASE hapztext_db OWNER hapztext;\" || true",
+        "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE hapztext_db TO hapztext;\" || true",
+        # Python environment and dependencies
         "python3 -m venv .venv || true",
-        f"source .venv/bin/activate && {base_env} && pip install -r requirements.txt daphne --quiet",
+        f"source .venv/bin/activate && {base_env} && pip install -r requirements.txt daphne psycopg2-binary --quiet",
         f"source .venv/bin/activate && {base_env} && python3 manage.py migrate --noinput",
         f"source .venv/bin/activate && {base_env} && python3 manage.py collectstatic --noinput --clear --verbosity=0"
     ]
-    run_remote_command(ssh, " && ".join(setup_cmds), "Running migrations and collecting static files")
+    run_remote_command(ssh, " && ".join(setup_cmds), "Setting up PostgreSQL and running migrations")
 
     # 5. Start Server in Background
     start_cmd = (

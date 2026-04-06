@@ -44,7 +44,11 @@ class PostListRule:
     def __call__(
         self, dto: PostListDTO, current_user_id: str = None
     ) -> PaginatedPostsResponseDTO:
-        if dto.feed_type == "trending":
+        if dto.query:
+            posts, previous_link, next_link = self.post_repository.search_posts(
+                query=dto.query, page=dto.page, page_size=dto.page_size
+            )
+        elif dto.feed_type == "trending":
             posts, previous_link, next_link = self.post_repository.trending_posts_list(
                 page=dto.page, page_size=dto.page_size
             )

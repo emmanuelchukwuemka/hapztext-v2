@@ -58,6 +58,7 @@ class PostListDTO:
     page: int = 1
     page_size: int = 20
     feed_type: str = "timeline"  # timeline, trending, popular
+    query: str | None = None
 
 
 @dataclass

@@ -41,8 +41,16 @@ SESSION_COOKIE_AGE = 86400  # 24 hours
 STATIC_URL = "/static/"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# Media files configuration for production
+MEDIA_URL = "/media/"
+MEDIA_ROOT = "/root/hapz_backend/media"
+
 # CORS settings
 CORS_ALLOW_CREDENTIALS = True
+
+# Serve media files in production through Django
+# This ensures media files are accessible even when using Cloudinary
+SERVE_MEDIA_IN_PRODUCTION = True
 
 # Optimize database connection for Vercel
 # Pool connections to reduce overhead
