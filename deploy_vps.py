@@ -16,7 +16,8 @@ USERNAME = "root"
 PASSWORD = "Mathscrusader123."
 REMOTE_PATH = "/root/hapz_backend"
 PORT = 8005
-EXCLUDE_DIRS = [".git", ".venv", "__pycache__", ".pytest_cache", "staticfiles", "media", "android", "ios", "build", "linux", "macos", "windows", "web", ".dart_tool", "db.sqlite3", "db.sqlite3-journal"]
+REPO_URL = "https://github.com/emmanuelchukwuemka/hapztext-v2"
+BRANCH = "main"  # The branch to deploy
 
 # --- Helper Functions ---
 
@@ -62,43 +63,45 @@ def mkdir_p_remote(sftp, remote_directory):
         except IOError:
             pass
 
-def sync_codebase(ssh):
-    """Upload project files using SFTP."""
-    print(f"[INFO] Synchronizing codebase to {REMOTE_PATH}...")
-    sftp = ssh.open_sftp()
-    
-    # Ensure remote directory exists
-    mkdir_p_remote(sftp, REMOTE_PATH)
-
-    local_root = os.getcwd()
-    for root, dirs, files in os.walk(local_root):
-        # Filter excluded directories
-        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS and not d.startswith(".")]
+def push_to_github():
+    """Push local changes to GitHub."""
+    print("[INFO] Pushing changes to GitHub...")
+    try:
+        # Check for local changes to commit
+        status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout
+        if status:
+            print("[INFO] Local changes detected, committing...")
+            subprocess.run(["git", "add", "."], check=True)
+            subprocess.run(["git", "commit", "-m", "Deployment update: code synchronization"], check=True)
         
-        # Calculate remote path using forward slashes
-        rel_path = os.path.relpath(root, local_root)
-        if rel_path == ".":
-            rem_dir = REMOTE_PATH
-        else:
-            # Ensure we only use forward slashes for remote
-            rem_dir = f"{REMOTE_PATH}/{rel_path.replace(os.sep, '/')}"
-            mkdir_p_remote(sftp, rem_dir)
+        # Push to origin
+        print(f"[INFO] Pushing to origin {BRANCH}...")
+        subprocess.run(["git", "push", "origin", f"main:{BRANCH}" if BRANCH != "main" else "main"], check=True)
+        print("[SUCCESS] Pushed to GitHub.")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] Failed to push to GitHub: {e}")
+        return False
 
-        for f in files:
-            # Skip hidden files EXCEPT .env, and the deployment script itself
-            if (f.startswith(".") and f != ".env") or f == "deploy_vps.py" or f.endswith(".pyc") or f == "test_calls_output.txt":
-                continue
-                
-            local_file = os.path.join(root, f)
-            remote_file = f"{rem_dir}/{f}"
-            
-            try:
-                sftp.put(local_file, remote_file)
-            except Exception as e:
-                print(f"[WARNING] Failed to upload {f}: {e}")
+def sync_codebase_via_git(ssh):
+    """Clone or pull the codebase from GitHub on the remote server for a clean start."""
+    print(f"[INFO] Synchronizing codebase from GitHub to {REMOTE_PATH}...")
     
-    sftp.close()
-    print("[SUCCESS] Codebase synchronized.")
+    # 1. Ensure git is installed on the server
+    run_remote_command(ssh, "which git || (apt-get update && apt-get install -y git)", "Checking for git on server")
+
+    # 2. Clear existing directory for a fresh start (per user request: "clear everything")
+    # We remove the directory to ensure no stale files remain. 
+    # NOTE: This will remove any local logs/media inside the folder.
+    run_remote_command(ssh, f"rm -rf {REMOTE_PATH}", f"Clearing remote directory {REMOTE_PATH}")
+    
+    # 3. Clone the repository fresh
+    clone_cmd = f"git clone -b {BRANCH} {REPO_URL} {REMOTE_PATH}"
+    success, _ = run_remote_command(ssh, clone_cmd, f"Cloning repository from {REPO_URL}")
+    
+    if success:
+        print("[SUCCESS] Codebase synchronized via Git.")
+    return success
 
 # --- Main Deployment Loop ---
 
@@ -112,7 +115,7 @@ def main():
     
     try:
         print(f"[INFO] Connecting to {HOST}...")
-        ssh.connect(HOST, username=USERNAME, password=PASSWORD)
+        ssh.connect(HOST, username=USERNAME, password=PASSWORD, timeout=30)
     except Exception as e:
         print(f"[ERROR] Failed to connect: {e}")
         sys.exit(1)
@@ -120,8 +123,14 @@ def main():
     # 1. Clear existing process on the target port
     run_remote_command(ssh, f"fuser -k {PORT}/tcp || true", f"Clearing existing process on port {PORT}")
 
-    # 2. Upload Code
-    sync_codebase(ssh)
+    # 2. Push local changes to GitHub
+    if not push_to_github():
+        print("[WARNING] Proceeding without local push. (Is the branch already up to date?)")
+
+    # 3. Remote Synchronization (Clear and Clone)
+    if not sync_codebase_via_git(ssh):
+        print("[ERROR] Failed to synchronize codebase. Check repository accessibility.")
+        sys.exit(1)
 
     # 3. Patch remote .env
     patch_cmds = [
