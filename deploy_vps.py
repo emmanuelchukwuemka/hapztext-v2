@@ -132,20 +132,37 @@ def main():
         print("[ERROR] Failed to synchronize codebase. Check repository accessibility.")
         sys.exit(1)
 
-    # 3. Patch remote .env
-    patch_cmds = [
-        f"touch {REMOTE_PATH}/.env",
-        f"grep -q 'DJANGO_ALLOWED_HOSTS' {REMOTE_PATH}/.env && sed -i 's/^DJANGO_ALLOWED_HOSTS=.*/DJANGO_ALLOWED_HOSTS={HOST},localhost,127.0.0.1/' {REMOTE_PATH}/.env || echo 'DJANGO_ALLOWED_HOSTS={HOST},localhost,127.0.0.1' >> {REMOTE_PATH}/.env",
-        f"grep -q 'DJANGO_DEBUG' {REMOTE_PATH}/.env && sed -i 's/^DJANGO_DEBUG=.*/DJANGO_DEBUG=False/' {REMOTE_PATH}/.env || echo 'DJANGO_DEBUG=False' >> {REMOTE_PATH}/.env",
-        f"grep -q 'DJANGO_SECRET_KEY' {REMOTE_PATH}/.env || echo 'DJANGO_SECRET_KEY=production-secret-change-me-later' >> {REMOTE_PATH}/.env",
-        f"grep -q 'DJANGO_SECURE_SSL_REDIRECT' {REMOTE_PATH}/.env && sed -i 's/^DJANGO_SECURE_SSL_REDIRECT=.*/DJANGO_SECURE_SSL_REDIRECT=False/' {REMOTE_PATH}/.env || echo 'DJANGO_SECURE_SSL_REDIRECT=False' >> {REMOTE_PATH}/.env",
-        f"grep -q 'BACKEND_DOMAIN' {REMOTE_PATH}/.env && sed -i 's|^BACKEND_DOMAIN=.*|BACKEND_DOMAIN=http://{HOST}:{PORT}|' {REMOTE_PATH}/.env || echo 'BACKEND_DOMAIN=http://{HOST}:{PORT}' >> {REMOTE_PATH}/.env",
-        f"grep -q 'CLOUDINARY_CLOUD_NAME' {REMOTE_PATH}/.env || echo 'CLOUDINARY_CLOUD_NAME=test' >> {REMOTE_PATH}/.env",
-        f"grep -q 'CLOUDINARY_API_KEY' {REMOTE_PATH}/.env || echo 'CLOUDINARY_API_KEY=test' >> {REMOTE_PATH}/.env",
-        f"grep -q 'CLOUDINARY_API_SECRET' {REMOTE_PATH}/.env || echo 'CLOUDINARY_API_SECRET=test' >> {REMOTE_PATH}/.env",
-        f"grep -q 'DATABASE_URL' {REMOTE_PATH}/.env || echo 'DATABASE_URL=postgresql://hapztext:hapztext_pass_2024@localhost:5432/hapztext_db' >> {REMOTE_PATH}/.env"
-    ]
-    run_remote_command(ssh, " && ".join(patch_cmds), "Configuring environment variables")
+    # 3. Generate and Upload .env file
+    print("[INFO] Generating production .env file...")
+    env_content = f"""DJANGO_ENVIRONMENT=production
+DJANGO_SECRET_KEY=production-secret-{time.time()}
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS={HOST},localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://{HOST}:{PORT},http://localhost:3000
+BACKEND_DOMAIN=http://{HOST}:{PORT}
+DATABASE_URL=postgresql://hapztext:hapztext_pass_2024@localhost:5432/hapztext_db
+CLOUDINARY_CLOUD_NAME=test
+CLOUDINARY_API_KEY=test
+CLOUDINARY_API_SECRET=test
+REDIS_URL=redis://localhost:6379/0
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_PASSWORD=
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+EMAIL_HOST=localhost
+EMAIL_PORT=1025
+EMAIL_USE_TLS=False
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+DEFAULT_FROM_EMAIL=noreply@hapztext.com
+OTP_EXPIRY_MINUTES=10
+"""
+    sftp = ssh.open_sftp()
+    with sftp.file(f"{REMOTE_PATH}/.env", "w") as f:
+        f.write(env_content)
+    sftp.close()
+    print("[SUCCESS] Environment variables configured.")
 
     # 4. Setup Project Environment
     base_env = f"export DJANGO_SETTINGS_MODULE=config.settings.production"
