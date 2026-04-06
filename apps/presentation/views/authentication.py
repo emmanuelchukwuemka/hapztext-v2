@@ -66,6 +66,7 @@ def register_user(request: Request) -> StandardResponse:
 
     auth_tokens = get_login_rule().authentication_service.generate_auth_tokens(raw_user)
     response_data = asdict(user)
+    response_data["id"] = str(user.id)
     response_data["tokens"] = auth_tokens
 
     return StandardResponse.created(
