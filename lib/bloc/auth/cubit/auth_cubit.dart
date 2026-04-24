@@ -49,7 +49,7 @@ class AuthCubit extends Cubit<AuthState> {
 
       final response = await Response.fromStream(streamedResponse);
       final body = jsonDecode(response.body);
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         log("message${body['data']}");
         useInfo = UserInfoModel.fromJson(body["data"]);
         bearerToken = useInfo.tokens?.auth ?? '';
@@ -62,6 +62,7 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthErrorState());
       }
     } catch (e) {
+      ToastMessage.showErrorToast(message: "Registration failed: $e");
       emit(AuthErrorState());
       log("register $e");
     }

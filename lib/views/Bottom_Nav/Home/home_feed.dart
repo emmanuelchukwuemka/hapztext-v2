@@ -553,17 +553,19 @@ class _VideoPostState extends State<VideoPost> {
 
   void _initializeController() async {
     try {
-      _controller = VideoPlayerController.networkUrl(
-          Uri.parse(widget.post.videoContent ?? ''))
-        ..initialize().then((_) {
-          if (mounted) {
-            setState(() {
-              _isInitialized = true;
-              _controller.play();
-              _controller.setLooping(true);
-            });
-          }
-        });
+      final url = widget.post.videoContent;
+      if (url != null && url.isNotEmpty && url.startsWith('http')) {
+        _controller = VideoPlayerController.networkUrl(Uri.parse(url))
+          ..initialize().then((_) {
+            if (mounted) {
+              setState(() {
+                _isInitialized = true;
+                _controller.play();
+                _controller.setLooping(true);
+              });
+            }
+          });
+      }
     } catch (e) {
       d.log("video init failed: $e");
     }
@@ -571,7 +573,9 @@ class _VideoPostState extends State<VideoPost> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_isInitialized) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
@@ -687,8 +691,19 @@ class AudioPostState extends State<AudioPost>
 
   void initAudio() async {
     try {
-      if (widget.post.audioContent != null) {
-        await player.setUrl(widget.post.audioContent!);
+      String? url = widget.post.audioContent;
+
+      if ((url == null || url.isEmpty) && widget.post.mediaFiles != null) {
+        for (final media in widget.post.mediaFiles!) {
+          if (media.audioFile != null && media.audioFile!.isNotEmpty) {
+            url = media.audioFile;
+            break;
+          }
+        }
+      }
+
+      if (url != null && url.isNotEmpty) {
+        await player.setUrl(url);
       }
     } catch (e) {
       d.log("audio init error: $e");

@@ -10,8 +10,8 @@ class ApiConstants {
   static const String authBaseUrl = "$baseUrl/authentication";
   static const String login = "$authBaseUrl/login/";
   static const String register = "$authBaseUrl/register/";
-  static const String requestPasswordReset = "$authBaseUrl/password-reset/";
-  static const String verifyPasswordReset = "${requestPasswordReset}confirm/";
+  static const String requestPasswordReset = "$authBaseUrl/password-reset/request/";
+  static const String verifyPasswordReset = "$authBaseUrl/password-reset/";
   static const String verifyEmailUrl = "$authBaseUrl/verify-email/";
   static const String verifyEmailRequestUrl =
       "$authBaseUrl/verify-email/request/";
@@ -26,10 +26,10 @@ class ApiConstants {
   static String pendingFollowRequestUrl({page}) =>
       "$userProfileBaseUrl/follow-requests/pending/$page/20/";
   static String getFriendsUrl({page}) =>
-      '${ApiConstants.baseUrl}v1/users/friends/$page/10/';
+      '$baseUrl/users/friends/$page/10/';
 
   static String getProfilesListUrl({page, pageSize = 10}) =>
-      '${ApiConstants.baseUrl}v1/users/profiles/$page/$pageSize/';
+      '$baseUrl/users/profiles/$page/$pageSize/';
 
   static String getUserByIdUrl({userId}) =>
       "$userProfileBaseUrl/profile/$userId/";

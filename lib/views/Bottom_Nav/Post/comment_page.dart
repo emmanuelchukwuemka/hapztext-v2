@@ -39,14 +39,17 @@ class _CommentScreenState extends State<CommentScreen>
 
   void _initMedia() async {
     if (widget.post.postFormat == 'video' && widget.post.videoContent != null) {
-      _videoController = VideoPlayerController.networkUrl(Uri.parse(widget.post.videoContent!))
-        ..initialize().then((_) {
-          if (mounted) {
-            setState(() {
-              _isVideoInitialized = true;
-            });
-          }
-        });
+      final url = widget.post.videoContent!;
+      if (url.isNotEmpty && url.startsWith('http')) {
+        _videoController = VideoPlayerController.networkUrl(Uri.parse(url))
+          ..initialize().then((_) {
+            if (mounted) {
+              setState(() {
+                _isVideoInitialized = true;
+              });
+            }
+          });
+      }
     } else if (widget.post.postFormat == 'audio' && widget.post.audioContent != null) {
       await _audioPlayer.setUrl(widget.post.audioContent!);
     }
@@ -399,27 +402,28 @@ class _CommentScreenState extends State<CommentScreen>
               const SizedBox(height: 8),
               // actions: reactions preview, reply, bookmark, open emoji picker
               Row(children: [
-                // if (c.reactions.isNotEmpty)
-                //   GestureDetector(
-                //     // onTap: () => _showWhoReacted(c),
-                //     child: Container(
-                //       padding: const EdgeInsets.symmetric(
-                //           horizontal: 8, vertical: 6),
-                //       decoration: BoxDecoration(
-                //           color: Colors.white10,
-                //           borderRadius: BorderRadius.circular(24)),
-                //       child: Row(children: [
-                //         ...c.reactions.entries.take(3).map((e) => const Padding(
-                //             padding: EdgeInsets.symmetric(horizontal: 3),
-                //             child: AppText(text: "e.key", fontSize: 16))),
-                //         const SizedBox(width: 6),
-                //         const AppText(
-                //             text: 'reactionsCount',
-                //             color: Colors.white70,
-                //             fontSize: 12),
-                //       ]),
-                //     ),
-                //   ),
+                if ((comment.reactionsCount ?? 0) > 0)
+                  GestureDetector(
+                    onTap: () => _showWhoReacted(comment),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(24)),
+                      child: Row(children: [
+                        Text(
+                          comment.currentUserReaction ?? '👍',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 6),
+                        AppText(
+                            text: '${comment.reactionsCount}',
+                            color: Colors.white70,
+                            fontSize: 12),
+                      ]),
+                    ),
+                  ),
                 const SizedBox(width: 8),
                 TextButton(
                     onPressed: () => _startReply(comment),
@@ -445,32 +449,16 @@ class _CommentScreenState extends State<CommentScreen>
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (comment.replies.isNotEmpty)
-            GestureDetector(
-              onTap: () => setState(() {
-                // _expandedReplyParents.add(c.id);
-              }),
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child:
-                    AppText(text: 'View all ${comment.replies.length} replies', color: Colors.white54),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: comment.replies
+                      .map((r) =>
+                          _buildCommentTile(depth: depth + 1, comment: r))
+                      .toList(),
+                ),
               ),
-            ),
-            // shown replies
-            // ...shownReplies
-            //     .map((r) => _buildCommentTile(r, depth: depth + 1))
-            //     .toList(),
-            // if (showAllReplies && replyCount > 2)
-            GestureDetector(
-              onTap: () => setState(() {
-                // _expandedReplyParents.remove(c.id);
-              }),
-              child: Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: AppText(
-                    text: 'Collapse replies',
-                    color: Colors.white54.withValues(alpha: 0.9)),
-              ),
-            ),
           ]),
         ),
       ]),
@@ -823,6 +811,7 @@ class _CommentScreenState extends State<CommentScreen>
                   onTap: () {
                     if (_replyTo != null) {
                       _toggleReaction(_replyTo!, e);
+                      _spawnFloatingEmoji(e);
                       Navigator.pop(context);
                     } else {
                       setState(() =>

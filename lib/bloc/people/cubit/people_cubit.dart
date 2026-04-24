@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:haptext_api/models/searched_user_model.dart';
 import 'package:haptext_api/repository/people_repo/people_repo.dart';
 import 'package:haptext_api/utils/toast_helper.dart';
+import 'package:haptext_api/utils/session_manager.dart';
 import 'package:meta/meta.dart';
 
 part 'people_state.dart';
@@ -11,10 +12,20 @@ part 'people_state.dart';
 class PeopleCubit extends Cubit<PeopleState> {
   PeopleRepo peopleRepo;
   PeopleCubit(this.peopleRepo) : super(PeopleInitial()) {
-    fetchFollowings();
-    fetchFriends();
-    fetchFollowers();
-    fetchProfiles();
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      final currentUser = await SessionManager.getUser();
+      final currentUserId = currentUser?.id;
+      await fetchFollowings(userId: currentUserId);
+      await fetchFriends();
+      await fetchFollowers(userId: currentUserId);
+      await fetchProfiles();
+    } catch (e) {
+      log("People init error $e");
+    }
   }
 
   List<SearchedUserProfile> friends = [];
@@ -25,7 +36,7 @@ class PeopleCubit extends Cubit<PeopleState> {
       final body = jsonDecode(response.body);
       if (response.statusCode == 200) {
         friends.clear();
-        for (var user in body['data']['result']) {
+        for (var user in body['data']['friends']) {
           friends.add(SearchedUserProfile.fromJson(user));
         }
         emit(PeopleLoaded());
@@ -118,7 +129,8 @@ class PeopleCubit extends Cubit<PeopleState> {
   fetchFollowers({userId}) async {
     emit(PeopleLoading());
     try {
-      final response = await peopleRepo.fetchFollowers(page: 1, userId: userId);
+      final response = await peopleRepo.fetchFollowers(
+          page: 1, userId: userId ?? '');
       final body = jsonDecode(response.body);
       if (response.statusCode == 200) {
         followers.clear();
@@ -141,8 +153,8 @@ class PeopleCubit extends Cubit<PeopleState> {
   fetchFollowings({userId}) async {
     emit(PeopleLoading());
     try {
-      final response =
-          await peopleRepo.fetchFollowings(page: 1, userId: userId);
+      final response = await peopleRepo.fetchFollowings(
+          page: 1, userId: userId ?? '');
       final body = jsonDecode(response.body);
       if (response.statusCode == 200) {
         followings.clear();

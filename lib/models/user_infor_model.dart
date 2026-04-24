@@ -11,7 +11,7 @@ class UserInfoModel {
       {this.id, this.profile, this.email, this.username, this.tokens});
 
   UserInfoModel.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
+    id = json['id'].toString();
     email = json['email'];
     username = json['username'];
     tokens = json['tokens'] != null ? Tokens.fromJson(json['tokens']) : null;

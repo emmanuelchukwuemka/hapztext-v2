@@ -22,8 +22,11 @@ class FriendProfilePage extends StatefulWidget {
 }
 
 class _FriendProfilePageState extends State<FriendProfilePage> {
+  late bool _isFollowing;
+
   @override
   void initState() {
+    _isFollowing = widget.user.following;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final posts = await context
           .read<HomeCubit>()
@@ -131,9 +134,14 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                       Row(
                         children: [
                           _buildActionButton(
-                            icon: widget.user.following ? Icons.person_remove : Icons.person_add,
-                            color: widget.user.following ? Colors.white12 : const Color(0xFF8B5CF6),
-                            onTap: () => context.read<PeopleCubit>().followUser(userId: widget.user.id ?? ''),
+                            icon: _isFollowing ? Icons.person_remove : Icons.person_add,
+                            color: _isFollowing ? Colors.white12 : const Color(0xFF8B5CF6),
+                            onTap: () {
+                              context.read<PeopleCubit>().followUser(userId: widget.user.id ?? '');
+                              setState(() {
+                                _isFollowing = true;
+                              });
+                            },
                           ),
                           const SizedBox(width: 12),
                           _buildActionButton(
@@ -141,10 +149,16 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                             color: Colors.white12,
                             onTap: () async {
                               final HapzTextApiService apiService = HapzTextApiService();
-                              final token = context.read<AuthCubit>().useInfo.tokens?.auth;
-                              if (token != null) {
+                              final authCubit = context.read<AuthCubit>();
+                              final token = authCubit.useInfo.tokens?.auth;
+                              final currentUserId = authCubit.useInfo.id;
+                              final otherUserId = widget.user.id;
+                              if (token != null && currentUserId != null && otherUserId != null) {
                                 apiService.setToken(token);
-                                final result = await apiService.createConversation([widget.user.id!]);
+                                final result = await apiService.createConversation([
+                                  currentUserId,
+                                  otherUserId,
+                                ]);
                                 if (result != null && result['data'] != null) {
                                   final conv = result['data'];
                                   final chatItem = ChatItem(

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-
+import 'package:mime/mime.dart';
 class HapzTextApiService {
   static const String baseUrl = 'http://72.62.4.119:8005';
   String? _token;
@@ -167,10 +167,27 @@ class HapzTextApiService {
       request.headers.remove('Content-Type'); // Let multipart request set it
 
       request.fields['message_type'] = messageType;
-      
+
+      final detectedMime = lookupMimeType(file.path);
+      String effectiveMime;
+      if (detectedMime != null) {
+        effectiveMime = detectedMime;
+      } else {
+        if (messageType == 'audio') {
+          effectiveMime = 'audio/mpeg';
+        } else if (messageType == 'image') {
+          effectiveMime = 'image/jpeg';
+        } else if (messageType == 'video') {
+          effectiveMime = 'video/mp4';
+        } else {
+          effectiveMime = 'application/octet-stream';
+        }
+      }
+
       request.files.add(await http.MultipartFile.fromPath(
         'file',
         file.path,
+        contentType: MediaType.parse(effectiveMime),
       ));
 
       final streamedResponse = await request.send();

@@ -1,218 +1,218 @@
-﻿[
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/schema/",
-        "StatusCode":  "N/A",
-        "Status":  "UNREACHABLE",
-        "Error":  "Method invocation failed because [System.Byte] does not contain a method named \u0027Substring\u0027.",
-        "Name":  "Schema (Base Connectivity)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/authentication/login/",
-        "StatusCode":  400,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (400) Bad Request.",
-        "Name":  "Auth Login (authentication path)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/authentication/register/",
-        "StatusCode":  400,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (400) Bad Request.",
-        "Name":  "Auth Register (authentication path)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/authentication/password-reset/",
-        "StatusCode":  400,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (400) Bad Request.",
-        "Name":  "Password Reset (authentication path)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/authentication/verify-email/",
-        "StatusCode":  400,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (400) Bad Request.",
-        "Name":  "Verify Email (authentication path)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/authentication/verify-email/request/",
-        "StatusCode":  400,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (400) Bad Request.",
-        "Name":  "Verify Email Request (authentication path)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/auth/login/",
-        "StatusCode":  404,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (404) Not Found.",
-        "Name":  "Auth Login (auth path)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/auth/register/",
-        "StatusCode":  404,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (404) Not Found.",
-        "Name":  "Auth Register (auth path)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/users/profile/1/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "User Profile (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/users/search?query=test\u0026limit=5\u0026offset=1",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "User Search (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/users/friends/1/30/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "User Friends (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/users/followers/1/1/20/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "User Followers (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/users/followings/1/1/20/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "User Followings (no auth)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/users/profile/create/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Create Profile (no auth)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/users/follow-request/1/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Follow Request (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/users/follow-requests/pending/1/20/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Pending Follow Requests (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/posts/list/1/10/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Post List (no auth)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/posts/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Create Post (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/posts/1/replies/1/30",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Post Comments (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/chat/conversations/1/20/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Chat Conversations (no auth)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/chat/conversations/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Create Conversation (no auth)"
-    },
-    {
-        "Method":  "POST",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/chat/media/upload/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Chat Media Upload (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/api/v1/notifications/1/20/",
-        "StatusCode":  401,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (401) Unauthorized.",
-        "Name":  "Notifications (no auth)"
-    },
-    {
-        "Method":  "GET",
-        "ResponsePreview":  "",
-        "Url":  "http://72.62.4.119:8005/ws/chat/test-conv/?token=dummytoken",
-        "StatusCode":  404,
-        "Status":  "REACHABLE (Client Error)",
-        "Error":  "The remote server returned an error: (404) Not Found.",
-        "Name":  "WebSocket Endpoint (HTTP probe)"
-    }
+[
+  {
+    "Status": "UNREACHABLE",
+    "Url": "http://72.62.4.119:8005/schema/",
+    "Name": "Schema (Base Connectivity)",
+    "StatusCode": "N/A",
+    "ResponsePreview": "",
+    "Method": "GET",
+    "Error": "Method invocation failed because [System.Byte] does not contain a method named 'Substring'."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/authentication/login/",
+    "Name": "Auth Login (authentication path)",
+    "StatusCode": 400,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 400 (Bad Request)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/authentication/register/",
+    "Name": "Auth Register (authentication path)",
+    "StatusCode": 400,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 400 (Bad Request)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/authentication/password-reset/",
+    "Name": "Password Reset (authentication path)",
+    "StatusCode": 400,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 400 (Bad Request)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/authentication/verify-email/",
+    "Name": "Verify Email (authentication path)",
+    "StatusCode": 400,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 400 (Bad Request)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/authentication/verify-email/request/",
+    "Name": "Verify Email Request (authentication path)",
+    "StatusCode": 400,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 400 (Bad Request)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/auth/login/",
+    "Name": "Auth Login (auth path)",
+    "StatusCode": 404,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 404 (Not Found)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/auth/register/",
+    "Name": "Auth Register (auth path)",
+    "StatusCode": 404,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 404 (Not Found)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/users/profile/1/",
+    "Name": "User Profile (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/users/search?query=test&limit=5&offset=1",
+    "Name": "User Search (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/users/friends/1/30/",
+    "Name": "User Friends (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/users/followers/1/1/20/",
+    "Name": "User Followers (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/users/followings/1/1/20/",
+    "Name": "User Followings (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/users/profile/create/",
+    "Name": "Create Profile (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/users/follow-request/1/",
+    "Name": "Follow Request (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/users/follow-requests/pending/1/20/",
+    "Name": "Pending Follow Requests (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/posts/list/1/10/",
+    "Name": "Post List (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/posts/",
+    "Name": "Create Post (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/posts/1/replies/1/30",
+    "Name": "Post Comments (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/chat/conversations/1/20/",
+    "Name": "Chat Conversations (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/chat/conversations/",
+    "Name": "Create Conversation (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/chat/media/upload/",
+    "Name": "Chat Media Upload (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "POST",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/api/v1/notifications/1/20/",
+    "Name": "Notifications (no auth)",
+    "StatusCode": 401,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 401 (Unauthorized)."
+  },
+  {
+    "Status": "REACHABLE (Client Error)",
+    "Url": "http://72.62.4.119:8005/ws/chat/test-conv/?token=dummytoken",
+    "Name": "WebSocket Endpoint (HTTP probe)",
+    "StatusCode": 404,
+    "ResponsePreview": "Could not read response body",
+    "Method": "GET",
+    "Error": "Response status code does not indicate success: 404 (Not Found)."
+  }
 ]
