@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 class HapzTextApiService {
-  static const String baseUrl = 'http://72.62.4.119:8005';
+  static const String baseUrl = '';
   String? _token;
   String? currentUserId;
 
@@ -17,46 +17,47 @@ class HapzTextApiService {
 
   // Get headers with authorization
   Map<String, String> get _headers {
-    Map<String, String> headers = {
-      'Content-Type': 'application/json',
-    };
-    if (_token != null) {
-      headers['Authorization'] = 'Bearer $_token';
-    }
-    return headers;
+    return const {'Content-Type': 'application/json'};
   }
 
   // Test API connectivity
   Future<bool> testConnection() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/schema/'),
-        headers: {'Accept': 'application/json'},
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Error testing API connection: $e');
-      return false;
-    }
+    return true;
   }
 
   // --- Chat API Endpoints ---
 
   // 1. Create Conversation
-  Future<Map<String, dynamic>?> createConversation(List<String> participantIds) async {
+  Future<Map<String, dynamic>?> createConversation(
+      List<String> participantIds) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/chat/conversations/'),
-        headers: _headers,
-        body: json.encode({'participant_ids': participantIds}),
-      );
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return null;
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Failed to create conversation: ${response.statusCode}');
-        return null;
+      final ids = participantIds.map((e) => e.toString()).toSet().toList();
+      if (!ids.contains(user.id)) {
+        ids.add(user.id);
       }
+
+      final conversation = await client
+          .from('conversations')
+          .insert({'created_by': user.id})
+          .select()
+          .single();
+      final conversationId = conversation['id'].toString();
+
+      for (final id in ids) {
+        await client.from('conversation_participants').upsert({
+          'conversation_id': conversationId,
+          'user_id': id,
+        });
+      }
+
+      return {
+        'success': true,
+        'data': {'id': conversationId}
+      };
     } catch (e) {
       print('Error creating conversation: $e');
       return null;
@@ -66,17 +67,65 @@ class HapzTextApiService {
   // 2. Get Conversations List
   Future<Map<String, dynamic>?> getConversations(int page, int pageSize) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/v1/chat/conversations/$page/$pageSize/'),
-        headers: _headers,
-      );
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return null;
 
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Failed to get conversations: ${response.statusCode}');
-        return null;
+      final participantRows = await client
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', user.id);
+
+      final conversationIds = participantRows
+          .map((e) => e['conversation_id']?.toString())
+          .whereType<String>()
+          .toList();
+
+      final result = <Map<String, dynamic>>[];
+      for (final conversationId in conversationIds) {
+        final participantsRows = await client
+            .from('conversation_participants')
+            .select('user_id')
+            .eq('conversation_id', conversationId);
+        final participantIds = participantsRows
+            .map((e) => e['user_id']?.toString())
+            .whereType<String>()
+            .toList();
+
+        final profiles = participantIds.isEmpty
+            ? <dynamic>[]
+            : await client
+                .from('profiles')
+                .select('user_id, username')
+                .inFilter('user_id', participantIds);
+
+        final participants = profiles
+            .map((p) => {
+                  'id': p['user_id']?.toString(),
+                  'username': p['username']?.toString(),
+                })
+            .toList();
+
+        final lastMessages = await client
+            .from('messages')
+            .select(
+                'id, text_content, created_at, sender_id, message_type, media_url, status')
+            .eq('conversation_id', conversationId)
+            .order('created_at', ascending: false)
+            .limit(1);
+
+        final lastMessage = lastMessages.isNotEmpty ? lastMessages.first : null;
+
+        result.add({
+          'id': conversationId,
+          'participants': participants,
+          'last_message': lastMessage,
+        });
       }
+
+      return {
+        'data': {'result': result}
+      };
     } catch (e) {
       print('Error getting conversations: $e');
       return null;
@@ -85,34 +134,31 @@ class HapzTextApiService {
 
   // 3. Send Message
   Future<Map<String, dynamic>?> sendMessage(String conversationId, String text,
-      {String type = 'text', String? mediaUrl, bool isReply = false, String? previousMessageId}) async {
+      {String type = 'text',
+      String? mediaUrl,
+      bool isReply = false,
+      String? previousMessageId}) async {
     try {
-      final Map<String, dynamic> body = {
-        'message_type': type,
-        'text_content': text,
-        'is_reply': isReply,
-      };
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return null;
 
-      if (mediaUrl != null) {
-        body['media_url'] = mediaUrl;
-      }
+      final inserted = await client
+          .from('messages')
+          .insert({
+            'conversation_id': conversationId,
+            'sender_id': user.id,
+            'message_type': type,
+            'text_content': text,
+            'media_url': mediaUrl,
+            'is_reply': isReply,
+            'previous_message_id': previousMessageId,
+            'status': 'sent',
+          })
+          .select()
+          .single();
 
-      if (isReply && previousMessageId != null) {
-        body['previous_message_id'] = previousMessageId;
-      }
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/chat/conversations/$conversationId/messages/'),
-        headers: _headers,
-        body: json.encode(body),
-      );
-
-      if (response.statusCode == 201) {
-        return json.decode(response.body);
-      } else {
-        print('Failed to send message: ${response.statusCode}');
-        return null;
-      }
+      return {'success': true, 'data': inserted};
     } catch (e) {
       print('Error sending message: $e');
       return null;
@@ -120,19 +166,25 @@ class HapzTextApiService {
   }
 
   // 4. Get Conversation Messages
-  Future<Map<String, dynamic>?> getMessages(String conversationId, int page, int pageSize) async {
+  Future<Map<String, dynamic>?> getMessages(
+      String conversationId, int page, int pageSize) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/v1/chat/conversations/$conversationId/messages/$page/$pageSize/'),
-        headers: _headers,
-      );
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return null;
 
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Failed to get messages: ${response.statusCode}');
-        return null;
-      }
+      final from = (page - 1) * pageSize;
+      final to = from + pageSize - 1;
+      final rows = await client
+          .from('messages')
+          .select()
+          .eq('conversation_id', conversationId)
+          .order('created_at', ascending: false)
+          .range(from, to);
+
+      return {
+        'data': {'result': rows}
+      };
     } catch (e) {
       print('Error getting messages: $e');
       return null;
@@ -140,15 +192,19 @@ class HapzTextApiService {
   }
 
   // 5. Mark Messages as Read
-  Future<bool> markMessagesRead(String conversationId, List<String> messageIds) async {
+  Future<bool> markMessagesRead(
+      String conversationId, List<String> messageIds) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/chat/conversations/$conversationId/mark-read/'),
-        headers: _headers,
-        body: json.encode({'message_ids': messageIds}),
-      );
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return false;
 
-      return response.statusCode == 200;
+      await client
+          .from('messages')
+          .update({'status': 'read'})
+          .eq('conversation_id', conversationId)
+          .inFilter('id', messageIds);
+      return true;
     } catch (e) {
       print('Error marking messages read: $e');
       return false;
@@ -156,49 +212,31 @@ class HapzTextApiService {
   }
 
   // 6. Upload Media
-  Future<Map<String, dynamic>?> uploadMedia(File file, String messageType) async {
+  Future<Map<String, dynamic>?> uploadMedia(
+      File file, String messageType) async {
     try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/api/v1/chat/media/upload/'),
-      );
-      
-      request.headers.addAll(_headers);
-      request.headers.remove('Content-Type'); // Let multipart request set it
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return null;
 
-      request.fields['message_type'] = messageType;
+      final mime = lookupMimeType(file.path) ?? 'application/octet-stream';
+      final ext = file.path.contains('.')
+          ? file.path.substring(file.path.lastIndexOf('.'))
+          : '';
+      final path =
+          '${user.id}/chat/${DateTime.now().millisecondsSinceEpoch}$ext';
 
-      final detectedMime = lookupMimeType(file.path);
-      String effectiveMime;
-      if (detectedMime != null) {
-        effectiveMime = detectedMime;
-      } else {
-        if (messageType == 'audio') {
-          effectiveMime = 'audio/mpeg';
-        } else if (messageType == 'image') {
-          effectiveMime = 'image/jpeg';
-        } else if (messageType == 'video') {
-          effectiveMime = 'video/mp4';
-        } else {
-          effectiveMime = 'application/octet-stream';
-        }
-      }
+      await client.storage.from('chat_media').upload(
+            path,
+            file,
+            fileOptions: FileOptions(upsert: true, contentType: mime),
+          );
 
-      request.files.add(await http.MultipartFile.fromPath(
-        'file',
-        file.path,
-        contentType: MediaType.parse(effectiveMime),
-      ));
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 201) {
-        return json.decode(response.body);
-      } else {
-        print('Failed to upload media: ${response.statusCode}');
-        return null;
-      }
+      final url = client.storage.from('chat_media').getPublicUrl(path);
+      return {
+        'success': true,
+        'data': {'media_url': url}
+      };
     } catch (e) {
       print('Error uploading media: $e');
       return null;
@@ -210,19 +248,13 @@ class HapzTextApiService {
   // Get user profile
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/v1/users/$userId/profile/'),
-        headers: _headers,
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        // Assuming we might want to verify current user ID here if it matches
-        return data;
-      } else {
-        print('Failed to load user profile: ${response.statusCode}');
-        return null;
-      }
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (profile == null) return null;
+      return {'data': profile};
     } catch (e) {
       print('Error getting user profile: $e');
       return null;
@@ -236,25 +268,34 @@ class HapzTextApiService {
     required String password,
   }) async {
     try {
-      final userData = {
+      final client = Supabase.instance.client;
+      await client.auth.signUp(
+        email: email,
+        password: password,
+        data: {'username': username},
+      );
+      await client.auth.signInWithPassword(email: email, password: password);
+
+      final session = client.auth.currentSession;
+      final user = client.auth.currentUser;
+      if (session == null || user == null) return null;
+
+      await client.from('profiles').upsert({
+        'user_id': user.id,
         'email': email,
         'username': username,
-        'password': password,
+      });
+
+      _token = session.accessToken;
+      currentUserId = user.id;
+
+      return {
+        'success': true,
+        'data': {
+          'access_token': session.accessToken,
+          'user': {'id': user.id}
+        }
       };
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/authentication/register/'),
-        headers: _headers,
-        body: json.encode(userData),
-      );
-
-      if (response.statusCode == 201) {
-        return json.decode(response.body);
-      } else {
-        print('Failed to register user: ${response.statusCode}');
-        print('Response: ${response.body}');
-        return null;
-      }
     } catch (e) {
       print('Error registering user: $e');
       return null;
@@ -267,33 +308,37 @@ class HapzTextApiService {
     required String password,
   }) async {
     try {
-      final loginData = {
-        'username': username,
-        'password': password,
-      };
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/authentication/login/'),
-        headers: _headers,
-        body: json.encode(loginData),
-      );
-
-      if (response.statusCode == 200) {
-        final result = json.decode(response.body);
-        if (result['data'] != null) {
-             if (result['data']['access_token'] != null) {
-                _token = result['data']['access_token'];
-             }
-             if (result['data']['user'] != null && result['data']['user']['id'] != null) {
-                 currentUserId = result['data']['user']['id'];
-             }
+      final client = Supabase.instance.client;
+      String email = username;
+      if (!email.contains('@')) {
+        final profile = await client
+            .from('profiles')
+            .select('email')
+            .eq('username', username)
+            .maybeSingle();
+        final profileEmail = profile?['email']?.toString();
+        if (profileEmail == null || profileEmail.isEmpty) {
+          return null;
         }
-        return result;
-      } else {
-        print('Failed to login user: ${response.statusCode}');
-        print('Response: ${response.body}');
-        return null;
+        email = profileEmail;
       }
+
+      await client.auth.signInWithPassword(email: email, password: password);
+
+      final session = client.auth.currentSession;
+      final user = client.auth.currentUser;
+      if (session == null || user == null) return null;
+
+      _token = session.accessToken;
+      currentUserId = user.id;
+
+      return {
+        'success': true,
+        'data': {
+          'access_token': session.accessToken,
+          'user': {'id': user.id}
+        }
+      };
     } catch (e) {
       print('Error logging in user: $e');
       return null;

@@ -34,7 +34,8 @@ class _RegisterState extends State<Register> {
   Future<void> _selectDate(BuildContext context, AuthCubit watchAuth) async {
     final DateTime? picked = await showDatePicker(
         context: context,
-        initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)), // Default 18 years ago
+        initialDate: DateTime.now()
+            .subtract(const Duration(days: 365 * 18)), // Default 18 years ago
         firstDate: DateTime(1900, 1),
         lastDate: DateTime.now());
     if (picked != null) {
@@ -149,9 +150,12 @@ class _RegisterState extends State<Register> {
                           ),
                           dropdownColor: const Color(0xFF1E1E1E),
                           items: const [
-                            DropdownMenuItem(value: 'male', child: Text('Male')),
-                            DropdownMenuItem(value: 'female', child: Text('Female')),
-                            DropdownMenuItem(value: 'other', child: Text('Other')),
+                            DropdownMenuItem(
+                                value: 'male', child: Text('Male')),
+                            DropdownMenuItem(
+                                value: 'female', child: Text('Female')),
+                            DropdownMenuItem(
+                                value: 'other', child: Text('Other')),
                             DropdownMenuItem(
                                 value: 'prefer_not_say',
                                 child: Text('Prefer not to say')),
@@ -170,8 +174,8 @@ class _RegisterState extends State<Register> {
                               controller: watchAuth.birthDateController,
                               keyboardType: TextInputType.datetime,
                               hintText: 'Birth Date',
-                              prefix: const Icon(Icons.cake,
-                                  color: Colors.orange),
+                              prefix:
+                                  const Icon(Icons.cake, color: Colors.orange),
                             ),
                           ),
                         ),
@@ -192,17 +196,20 @@ class _RegisterState extends State<Register> {
                             filled: true,
                             fillColor: const Color(0xFF1E1E1E),
                             hintText: 'Relationship Status',
-                            prefixIcon:
-                                const Icon(Icons.favorite, color: Colors.orange),
+                            prefixIcon: const Icon(Icons.favorite,
+                                color: Colors.orange),
                           ),
                           dropdownColor: const Color(0xFF1E1E1E),
                           items: const [
-                            DropdownMenuItem(value: 'single', child: Text('Single')),
+                            DropdownMenuItem(
+                                value: 'single', child: Text('Single')),
                             DropdownMenuItem(
                                 value: 'in_relationship',
                                 child: Text('In a Relationship')),
-                            DropdownMenuItem(value: 'engaged', child: Text('Engaged')),
-                            DropdownMenuItem(value: 'married', child: Text('Married')),
+                            DropdownMenuItem(
+                                value: 'engaged', child: Text('Engaged')),
+                            DropdownMenuItem(
+                                value: 'married', child: Text('Married')),
                             DropdownMenuItem(
                                 value: 'complicated',
                                 child: Text("It's Complicated")),

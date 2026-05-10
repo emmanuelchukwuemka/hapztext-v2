@@ -13,23 +13,20 @@ class _MyImageViewState extends State<MyImageView> {
   Widget build(BuildContext context) {
     return Scaffold(
       // backgroundColor: context.theme.bgColor,
-      body: PageView(
-          scrollDirection: Axis.horizontal,
-          children: const [
-            Center(
-              child: Image(
-                image: AssetImage('assets/images/me.jpg'),
-                fit: BoxFit.contain,
-              ),
-            ),
-            Center(
-              child: Image(
-                image: AssetImage('assets/images/landscape3.jpg'),
-                fit: BoxFit.contain,
-              ),
-            ),
-          ]
-      ),
+      body: PageView(scrollDirection: Axis.horizontal, children: const [
+        Center(
+          child: Image(
+            image: AssetImage('assets/images/me.jpg'),
+            fit: BoxFit.contain,
+          ),
+        ),
+        Center(
+          child: Image(
+            image: AssetImage('assets/images/landscape3.jpg'),
+            fit: BoxFit.contain,
+          ),
+        ),
+      ]),
     );
   }
 }

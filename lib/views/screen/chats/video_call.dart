@@ -72,7 +72,9 @@ class _GroupCallPageState extends State<GroupCallPage>
     if (!success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to initialize call'), backgroundColor: Colors.red),
+          const SnackBar(
+              content: Text('Failed to initialize call'),
+              backgroundColor: Colors.red),
         );
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted) Navigator.of(context).pop();
@@ -100,7 +102,8 @@ class _GroupCallPageState extends State<GroupCallPage>
       if (mounted) {
         setState(() {
           _participants.removeWhere((p) => p.remoteUid == remoteUid);
-          if (focusParticipantId == 'user_$remoteUid') focusParticipantId = null;
+          if (focusParticipantId == 'user_$remoteUid')
+            focusParticipantId = null;
         });
         _showToast('User $remoteUid left');
       }
@@ -192,8 +195,12 @@ class _GroupCallPageState extends State<GroupCallPage>
       builder: (_) => AlertDialog(
         title: const Text('End Call?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('End')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('End')),
         ],
       ),
     );
@@ -242,7 +249,8 @@ class _GroupCallPageState extends State<GroupCallPage>
                       children: [
                         CircularProgressIndicator(color: Colors.cyanAccent),
                         SizedBox(height: 16),
-                        Text('Joining group call...', style: TextStyle(color: Colors.white70)),
+                        Text('Joining group call...',
+                            style: TextStyle(color: Colors.white70)),
                       ],
                     ),
                   ),
@@ -255,14 +263,17 @@ class _GroupCallPageState extends State<GroupCallPage>
               left: 12,
               child: Row(children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                      color: Colors.black54, borderRadius: BorderRadius.circular(20)),
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20)),
                   child: Row(children: [
                     const Icon(Icons.videocam, size: 18, color: Colors.white),
                     const SizedBox(width: 8),
                     Text('${_participants.length} in call · $_callDuration',
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, color: Colors.white)),
                   ]),
                 ),
               ]),
@@ -276,9 +287,11 @@ class _GroupCallPageState extends State<GroupCallPage>
               child: Center(
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                      color: Colors.black54, borderRadius: BorderRadius.circular(40)),
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(40)),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     IconButton(
                       tooltip: 'Mute',
@@ -289,7 +302,8 @@ class _GroupCallPageState extends State<GroupCallPage>
                     const SizedBox(width: 8),
                     IconButton(
                       tooltip: 'Toggle Camera',
-                      icon: Icon(_videoOn ? Icons.videocam : Icons.videocam_off),
+                      icon:
+                          Icon(_videoOn ? Icons.videocam : Icons.videocam_off),
                       color: Colors.white,
                       onPressed: _toggleVideo,
                     ),
@@ -339,10 +353,13 @@ class _GroupCallPageState extends State<GroupCallPage>
                 top: 12,
                 child: Container(
                   decoration: BoxDecoration(
-                      color: Colors.white10, borderRadius: BorderRadius.circular(12)),
+                      color: Colors.white10,
+                      borderRadius: BorderRadius.circular(12)),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-                    child: Text('${focused.name} · ${focused.muted ? 'muted' : 'live'}',
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0, vertical: 6.0),
+                    child: Text(
+                        '${focused.name} · ${focused.muted ? 'muted' : 'live'}',
                         style: const TextStyle(color: Colors.white)),
                   ),
                 ),
@@ -363,7 +380,8 @@ class _GroupCallPageState extends State<GroupCallPage>
                             padding: const EdgeInsets.only(right: 8),
                             child: GestureDetector(
                                 onTap: () => _setFocus(p.id),
-                                child: SizedBox(width: 100, child: _miniTile(p)))))
+                                child:
+                                    SizedBox(width: 100, child: _miniTile(p)))))
                         .toList(),
                   ),
                 ),
@@ -399,10 +417,12 @@ class _GroupCallPageState extends State<GroupCallPage>
               spacing: 12,
               runSpacing: 12,
               children: _participants.map((p) {
-                final w = (width - (12 * (crossAxisCount + 1))) / crossAxisCount;
+                final w =
+                    (width - (12 * (crossAxisCount + 1))) / crossAxisCount;
                 return GestureDetector(
                   onDoubleTap: () => _setFocus(p.id),
-                  child: SizedBox(width: w, height: w * 0.65, child: _videoTile(p)),
+                  child: SizedBox(
+                      width: w, height: w * 0.65, child: _videoTile(p)),
                 );
               }).toList(),
             ),
@@ -413,7 +433,8 @@ class _GroupCallPageState extends State<GroupCallPage>
   }
 
   /// Video tile for a participant — uses AgoraVideoView for real video
-  Widget _videoTile(_GCallParticipant p, {bool big = false, bool mini = false}) {
+  Widget _videoTile(_GCallParticipant p,
+      {bool big = false, bool mini = false}) {
     final border = p.speaking ? 3.5 : 0.5;
     final borderColor = p.speaking ? Colors.greenAccent : Colors.white12;
 
@@ -442,7 +463,8 @@ class _GroupCallPageState extends State<GroupCallPage>
               children: [
                 Expanded(
                     child: Text(p.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white))),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, color: Colors.white))),
                 if (p.muted)
                   const Icon(Icons.mic_off, size: 18, color: Colors.redAccent),
               ],
@@ -464,7 +486,9 @@ class _GroupCallPageState extends State<GroupCallPage>
           ),
         );
       }
-    } else if (p.remoteUid != null && p.videoOn && _agoraService.engine != null) {
+    } else if (p.remoteUid != null &&
+        p.videoOn &&
+        _agoraService.engine != null) {
       // Remote video
       return AgoraVideoView(
         controller: VideoViewController.remote(
@@ -481,19 +505,25 @@ class _GroupCallPageState extends State<GroupCallPage>
     // Fallback: avatar
     return Container(
       decoration: BoxDecoration(
-        color: Colors.primaries[(p.name.hashCode.abs()) % Colors.primaries.length].shade700,
+        color: Colors
+            .primaries[(p.name.hashCode.abs()) % Colors.primaries.length]
+            .shade700,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
         child: p.videoOn
             ? Icon(Icons.videocam, size: big ? 84 : 40, color: Colors.white24)
             : Text(p.name[0],
-                style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white)),
+                style: const TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
       ),
     );
   }
 
-  Widget _miniTile(_GCallParticipant p, {bool highlight = false, double size = 96}) {
+  Widget _miniTile(_GCallParticipant p,
+      {bool highlight = false, double size = 96}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       width: size,
@@ -527,7 +557,9 @@ class _GroupCallPageState extends State<GroupCallPage>
             bottom: 8,
             child: Text(p.name,
                 style: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white))),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white))),
       ]),
     );
   }

@@ -62,7 +62,16 @@ class ProfileCubit extends Cubit<ProfileState> {
       if (response.statusCode == 201 ||
           response.statusCode == 200 ||
           response.statusCode == 202) {
-        emit(ProfileUpdated());
+        SearchedUserProfile? profile;
+        final data = body is Map ? body['data'] : null;
+        if (data is Map<String, dynamic>) {
+          profile = SearchedUserProfile.fromJson(data);
+        }
+        final warnings = body is Map<String, dynamic> ? body['warnings'] : null;
+        emit(ProfileUpdated(
+          profile: profile,
+          warnings: warnings is Map<String, dynamic> ? warnings : null,
+        ));
       } else {
         String errorMessage = "Failed to update profile";
         try {
@@ -89,6 +98,7 @@ class ProfileCubit extends Cubit<ProfileState> {
         emit(ProfileError());
       }
     } catch (e) {
+      ToastMessage.showErrorToast(message: "Failed to update profile: $e");
       emit(ProfileError());
       log("create Profile $e");
     }

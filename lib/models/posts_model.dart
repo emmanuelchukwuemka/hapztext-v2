@@ -88,26 +88,25 @@ class CommentModel {
   String? currentUserReaction;
   List<CommentModel> replies = [];
 
-  CommentModel({
-    this.senderId,
-    this.postFormat,
-    this.textContent,
-    this.imageContent,
-    this.audioContent,
-    this.videoContent,
-    this.isReply,
-    this.senderName,
-    this.previousPostId,
-    this.senderUsername,
-    this.isPublished,
-    this.id,
-    this.createdAt,
-    this.updatedAt,
-    this.reactionsCount,
-    this.shareCount,
-    this.replies = const [],
-    this.currentUserReaction
-  });
+  CommentModel(
+      {this.senderId,
+      this.postFormat,
+      this.textContent,
+      this.imageContent,
+      this.audioContent,
+      this.videoContent,
+      this.isReply,
+      this.senderName,
+      this.previousPostId,
+      this.senderUsername,
+      this.isPublished,
+      this.id,
+      this.createdAt,
+      this.updatedAt,
+      this.reactionsCount,
+      this.shareCount,
+      this.replies = const [],
+      this.currentUserReaction});
 
   CommentModel.fromJson(Map<String, dynamic> json) {
     senderId = json['sender_id'];
@@ -214,7 +213,7 @@ class ResultPostModel {
     // reactionCounts = json['reaction_counts'] != null ? ReactionCounts.fromJson(json['reaction_counts']) : null;
     shareCount = json['share_count'];
     likeCount = json['like_count'] ?? json['reaction_count'];
-    // currentUserReaction = json['current_user_reaction'];
+    currentUserReaction = json['current_user_reaction'];
     if (json['media_files'] != null) {
       mediaFiles = <MediaFiles>[];
       json['media_files'].forEach((v) {

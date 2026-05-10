@@ -7,13 +7,12 @@ class Message {
   bool isLiked;
   bool unread;
 
-  Message({
-    required this.sender,
-    required this.time,
-    required this.text,
-    required this.isLiked,
-    required this.unread
-  });
+  Message(
+      {required this.sender,
+      required this.time,
+      required this.text,
+      required this.isLiked,
+      required this.unread});
 }
 
 List<Message> chats = [

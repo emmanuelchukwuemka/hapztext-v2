@@ -89,7 +89,8 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                       ),
                       child: CircleAvatar(
                         radius: 50,
-                        backgroundImage: NetworkImage(widget.user.profilePicture ?? ''),
+                        backgroundImage:
+                            NetworkImage(widget.user.profilePicture ?? ''),
                         backgroundColor: context.theme.surfaceColor,
                       ),
                     ),
@@ -134,13 +135,28 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                       Row(
                         children: [
                           _buildActionButton(
-                            icon: _isFollowing ? Icons.person_remove : Icons.person_add,
-                            color: _isFollowing ? Colors.white12 : const Color(0xFF8B5CF6),
+                            icon: _isFollowing
+                                ? Icons.person_remove
+                                : Icons.person_add,
+                            color: _isFollowing
+                                ? Colors.white12
+                                : const Color(0xFF8B5CF6),
                             onTap: () {
-                              context.read<PeopleCubit>().followUser(userId: widget.user.id ?? '');
-                              setState(() {
-                                _isFollowing = true;
-                              });
+                              if (_isFollowing) {
+                                context
+                                    .read<PeopleCubit>()
+                                    .unfollowUser(userId: widget.user.id ?? '');
+                                setState(() {
+                                  _isFollowing = false;
+                                });
+                              } else {
+                                context
+                                    .read<PeopleCubit>()
+                                    .followUser(userId: widget.user.id ?? '');
+                                setState(() {
+                                  _isFollowing = true;
+                                });
+                              }
                             },
                           ),
                           const SizedBox(width: 12),
@@ -148,14 +164,18 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                             icon: Icons.chat_bubble_outline,
                             color: Colors.white12,
                             onTap: () async {
-                              final HapzTextApiService apiService = HapzTextApiService();
+                              final HapzTextApiService apiService =
+                                  HapzTextApiService();
                               final authCubit = context.read<AuthCubit>();
                               final token = authCubit.useInfo.tokens?.auth;
                               final currentUserId = authCubit.useInfo.id;
                               final otherUserId = widget.user.id;
-                              if (token != null && currentUserId != null && otherUserId != null) {
+                              if (token != null &&
+                                  currentUserId != null &&
+                                  otherUserId != null) {
                                 apiService.setToken(token);
-                                final result = await apiService.createConversation([
+                                final result =
+                                    await apiService.createConversation([
                                   currentUserId,
                                   otherUserId,
                                 ]);
@@ -190,8 +210,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _buildStat('Posts', '124'),
-                        _buildStat('Followers', '${widget.user.followerCount ?? 0}'),
-                        _buildStat('Following', '${widget.user.followingCount ?? 0}'),
+                        _buildStat(
+                            'Followers', '${widget.user.followerCount ?? 0}'),
+                        _buildStat(
+                            'Following', '${widget.user.followingCount ?? 0}'),
                       ],
                     ),
                   ),
@@ -209,11 +231,19 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                   ),
                   const SizedBox(height: 16),
                   _buildDetailCard([
-                    _buildDetailRow(Icons.person_outline, 'Name', "${widget.user.profile?.firstName ?? ""} ${widget.user.profile?.lastName ?? ""}"),
-                    _buildDetailRow(Icons.work_outline, 'Occupation', widget.user.profile?.occupation ?? "Unspecified"),
-                    _buildDetailRow(Icons.cake_outlined, 'Birthday', widget.user.profile?.birthDate ?? "Unspecified"),
-                    _buildDetailRow(Icons.location_on_outlined, 'Location', widget.user.profile?.location ?? "Unspecified"),
-                    _buildDetailRow(Icons.favorite_border, 'Relationship', widget.user.profile?.relationshipStatus ?? "Unspecified"),
+                    _buildDetailRow(Icons.person_outline, 'Name',
+                        "${widget.user.profile?.firstName ?? ""} ${widget.user.profile?.lastName ?? ""}"),
+                    _buildDetailRow(Icons.work_outline, 'Occupation',
+                        widget.user.profile?.occupation ?? "Unspecified"),
+                    _buildDetailRow(Icons.cake_outlined, 'Birthday',
+                        widget.user.profile?.birthDate ?? "Unspecified"),
+                    _buildDetailRow(Icons.location_on_outlined, 'Location',
+                        widget.user.profile?.location ?? "Unspecified"),
+                    _buildDetailRow(
+                        Icons.favorite_border,
+                        'Relationship',
+                        widget.user.profile?.relationshipStatus ??
+                            "Unspecified"),
                   ]),
 
                   const SizedBox(height: 40),
@@ -226,7 +256,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     );
   }
 
-  Widget _buildActionButton({required IconData icon, required Color color, required VoidCallback onTap}) {
+  Widget _buildActionButton(
+      {required IconData icon,
+      required Color color,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -290,7 +323,8 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           const Spacer(),
           Text(
             value,
-            style: GoogleFonts.roboto(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+            style: GoogleFonts.roboto(
+                color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
           ),
         ],
       ),

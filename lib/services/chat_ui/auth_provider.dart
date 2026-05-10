@@ -55,7 +55,8 @@ class AuthProvider with ChangeNotifier {
       password: password,
     );
 
-    if (result != null && (result['success'] == true || result['status_code'] == 200)) {
+    if (result != null &&
+        (result['success'] == true || result['status_code'] == 200)) {
       _currentUserToken = result['data']['access_token'];
       // Handle different possible response shapes
       if (result['data']['user'] != null) {
@@ -64,11 +65,11 @@ class AuthProvider with ChangeNotifier {
         _currentUserId = result['data']['user_id']?.toString();
       }
       _isAuthenticated = true;
-      
+
       // Set the token and userId in the API service
       _apiService.setToken(_currentUserToken!);
       _apiService.currentUserId = _currentUserId;
-      
+
       notifyListeners();
       return true;
     } else {
@@ -82,7 +83,7 @@ class AuthProvider with ChangeNotifier {
     _currentUserToken = null;
     _currentUserId = null;
     _apiService.setToken(''); // Reset token in API service
-    
+
     notifyListeners();
   }
 

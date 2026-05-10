@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart'; 
+import 'package:flutter/material.dart';
 import 'package:haptext_api/common/theme/custom_theme_extension.dart';
 import '../../../common/custom_dialog_option.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
@@ -25,7 +25,7 @@ class _LiveState extends State<Live> {
     _agoraService = AgoraCallService();
     _wsService = LivestreamWebsocketService(HapzTextApiService());
     _streamId = "live_${DateTime.now().millisecondsSinceEpoch}";
-    
+
     _agoraService.addListener(() {
       if (mounted) setState(() {});
     });
@@ -36,9 +36,12 @@ class _LiveState extends State<Live> {
   Future<void> _initLive() async {
     final success = await _agoraService.initialize();
     if (success) {
-      await _agoraService.joinChannel(_streamId, isBroadcaster: true, enableVideo: true);
+      await _agoraService.joinChannel(_streamId,
+          isBroadcaster: true, enableVideo: true);
       if (mounted) {
-        setState(() { _isLive = true; });
+        setState(() {
+          _isLive = true;
+        });
         _wsService.connectToWebSocket(_streamId);
         _wsService.startStream("My Livestream");
       }
@@ -133,7 +136,14 @@ class _LiveState extends State<Live> {
         preferredSize: const Size.fromHeight(30.0),
         child: AppBar(
           backgroundColor: context.theme.appBarColor,
-          leading: Center(child: Text(' LIVE', style: TextStyle(fontWeight: FontWeight.bold, color: context.theme.titleTextColor,),)),
+          leading: Center(
+              child: Text(
+            ' LIVE',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: context.theme.titleTextColor,
+            ),
+          )),
         ),
       ),
       body: SizedBox(
@@ -141,7 +151,9 @@ class _LiveState extends State<Live> {
         width: double.infinity,
         child: Stack(
           children: [
-            if (_isLive && _agoraService.engine != null && _agoraService.isVideoEnabled)
+            if (_isLive &&
+                _agoraService.engine != null &&
+                _agoraService.isVideoEnabled)
               SizedBox.expand(
                 child: AgoraVideoView(
                   controller: VideoViewController(
@@ -156,7 +168,11 @@ class _LiveState extends State<Live> {
                 Align(
                   alignment: Alignment.topLeft,
                   child: Container(
-                    margin: const EdgeInsets.only(top: 10, left: 10, right: 10,),
+                    margin: const EdgeInsets.only(
+                      top: 10,
+                      left: 10,
+                      right: 10,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -166,33 +182,61 @@ class _LiveState extends State<Live> {
                               onPressed: () {
                                 showDialog(
                                   context: context,
-                                  builder: (context) => CustomDialogWidget(trailingIcon: Container(
-                                    height: 30,
-                                    width: 70,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(7.5),
-                                      color: Colors.orange,
+                                  builder: (context) => CustomDialogWidget(
+                                    trailingIcon: Container(
+                                      height: 30,
+                                      width: 70,
+                                      decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(7.5),
+                                        color: Colors.orange,
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          'Follow',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
                                     ),
-                                    child: const Center(
-                                      child: Text('Follow', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),),
-                                    ),
-                                  ),),
+                                  ),
                                 );
                               },
-                              icon: Icon(Icons.remove_red_eye, size: 25, color: context.theme.primaryColor,),
+                              icon: Icon(
+                                Icons.remove_red_eye,
+                                size: 25,
+                                color: context.theme.primaryColor,
+                              ),
                             ),
                             // SizedBox(width: 1.0,),
-                            Text('31', style: TextStyle(fontSize: 12, color: context.theme.primaryColor,),)
+                            Text(
+                              '31',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.theme.primaryColor,
+                              ),
+                            )
                           ],
                         ),
                         IconButton(
                           onPressed: () {
                             showDialog(
                               context: context,
-                              builder: (context) => CustomDialogWidget(trailingIcon: Icon(Icons.add, color: context.theme.primaryColor,),),
+                              builder: (context) => CustomDialogWidget(
+                                trailingIcon: Icon(
+                                  Icons.add,
+                                  color: context.theme.primaryColor,
+                                ),
+                              ),
                             );
                           },
-                          icon: Icon(Icons.person_add_alt_1_rounded, size: 22.5, color: context.theme.primaryColor,),
+                          icon: Icon(
+                            Icons.person_add_alt_1_rounded,
+                            size: 22.5,
+                            color: context.theme.primaryColor,
+                          ),
                         ),
                       ],
                     ),
@@ -214,11 +258,15 @@ class _LiveState extends State<Live> {
                             height: 50,
                             width: 50,
                             decoration: BoxDecoration(
-                              color: _agoraService.isVideoEnabled ? Colors.green : context.theme.greyColor,
+                              color: _agoraService.isVideoEnabled
+                                  ? Colors.green
+                                  : context.theme.greyColor,
                               borderRadius: BorderRadius.circular(25.0),
                             ),
                             child: Icon(
-                              _agoraService.isVideoEnabled ? Icons.videocam : Icons.videocam_off,
+                              _agoraService.isVideoEnabled
+                                  ? Icons.videocam
+                                  : Icons.videocam_off,
                             ),
                           ),
                         ),
@@ -244,11 +292,15 @@ class _LiveState extends State<Live> {
                             height: 50,
                             width: 50,
                             decoration: BoxDecoration(
-                              color: _agoraService.isSpeakerOn ? Colors.green : context.theme.greyColor,
+                              color: _agoraService.isSpeakerOn
+                                  ? Colors.green
+                                  : context.theme.greyColor,
                               borderRadius: BorderRadius.circular(25.0),
                             ),
                             child: Icon(
-                              _agoraService.isSpeakerOn ? Icons.volume_up : Icons.volume_off,
+                              _agoraService.isSpeakerOn
+                                  ? Icons.volume_up
+                                  : Icons.volume_off,
                             ),
                           ),
                         ),
@@ -259,7 +311,9 @@ class _LiveState extends State<Live> {
                             height: 50,
                             width: 50,
                             decoration: BoxDecoration(
-                              color: _agoraService.isMuted ? Colors.red : context.theme.greyColor,
+                              color: _agoraService.isMuted
+                                  ? Colors.red
+                                  : context.theme.greyColor,
                               borderRadius: BorderRadius.circular(25.0),
                             ),
                             child: Icon(

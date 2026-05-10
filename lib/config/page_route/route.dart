@@ -17,11 +17,52 @@ import 'package:haptext_api/views/screen/authentication/reset_password.dart';
 import 'package:haptext_api/views/screen/authentication/reset_password_otp.dart';
 import 'package:haptext_api/views/screen/authentication/reset_password_success.dart';
 import 'package:haptext_api/views/screen/chats/voice_call.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppRoute {
+  static bool _isAuthenticated() {
+    final client = Supabase.instance.client;
+    final session = client.auth.currentSession;
+    final user = client.auth.currentUser;
+    if (session == null || user == null) return false;
+
+    final expiresAt = session.expiresAt;
+    if (expiresAt != null) {
+      final expiry = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
+      if (DateTime.now().isAfter(expiry)) return false;
+    }
+    return true;
+  }
+
   static final router = GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: '/',
+    redirect: (context, state) {
+      final loggedIn = _isAuthenticated();
+      final location = state.uri.path;
+
+      final isPublicRoute = location == RouteName.splah.path ||
+          location == RouteName.login.path ||
+          location == RouteName.signUp.path ||
+          location == RouteName.otpScreen.path ||
+          location == RouteName.forgetPassword.path ||
+          location == RouteName.resetPasswordPage.path ||
+          location == RouteName.resetPasswordOtpPage.path ||
+          location == RouteName.resetPaswordSuccess.path;
+
+      if (!loggedIn && !isPublicRoute) {
+        return RouteName.login.path;
+      }
+
+      final isAuthScreen = location == RouteName.login.path ||
+          location == RouteName.signUp.path ||
+          location == RouteName.splah.path;
+      if (loggedIn && isAuthScreen) {
+        return RouteName.bottomNav.path;
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
           path: RouteName.splah.path,

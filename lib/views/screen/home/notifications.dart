@@ -9,7 +9,6 @@ class Notifications extends StatefulWidget {
 }
 
 class _NotificationsState extends State<Notifications> {
-
   List<String> not = [
     'followed you back, view their post.',
     'mentioned you.',
@@ -68,50 +67,61 @@ class _NotificationsState extends State<Notifications> {
             bottom: BorderSide(color: context.theme.primaryColor!, width: 0.5),
           ),
         ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: size.height * .042,
-              backgroundImage: AssetImage(im[index]),
-            ),
-            SizedBox(width: 7.5),
-            Expanded(
-              // width: size.width * .6,
-              // height: size.height * .15,
-              // color: Colors.black12,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text('Roman', style: TextStyle(color: context.theme.textColor,),),
-                          SizedBox(width: 3.5),
-                          Text('@remedy_boy1 . 17 Jul', style: TextStyle(color: context.theme.greyColor, fontSize: 12,),),
-                        ]
+        child: Row(children: [
+          CircleAvatar(
+            radius: size.height * .042,
+            backgroundImage: AssetImage(im[index]),
+          ),
+          SizedBox(width: 7.5),
+          Expanded(
+            // width: size.width * .6,
+            // height: size.height * .15,
+            // color: Colors.black12,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(mainAxisAlignment: MainAxisAlignment.start, children: [
+                      Text(
+                        'Roman',
+                        style: TextStyle(
+                          color: context.theme.textColor,
+                        ),
                       ),
-                      Icon(Icons.more_horiz, color: context.theme.greyColor,),
-                    ],
-                  ),
-                  SizedBox(height: 3.5),
-                  Container(
-                    padding: const EdgeInsets.only(right: 7.5),
-                    child: Text(
-                      not[index],
-                      style: TextStyle(color: context.theme.greyColor,),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      SizedBox(width: 3.5),
+                      Text(
+                        '@remedy_boy1 . 17 Jul',
+                        style: TextStyle(
+                          color: context.theme.greyColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ]),
+                    Icon(
+                      Icons.more_horiz,
+                      color: context.theme.greyColor,
                     ),
+                  ],
+                ),
+                SizedBox(height: 3.5),
+                Container(
+                  padding: const EdgeInsets.only(right: 7.5),
+                  child: Text(
+                    not[index],
+                    style: TextStyle(
+                      color: context.theme.greyColor,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ]
-        ),
+          ),
+        ]),
       ),
     );
   }
@@ -126,12 +136,19 @@ class _NotificationsState extends State<Notifications> {
           color: context.theme.primaryColor,
         ),
         backgroundColor: context.theme.appBarColor,
-        title: Text('Notifications', style: TextStyle(color: context.theme.primaryColor, fontWeight: FontWeight.bold)),
+        title: Text('Notifications',
+            style: TextStyle(
+                color: context.theme.primaryColor,
+                fontWeight: FontWeight.bold)),
         actions: [
           PopupMenuButton(
             position: PopupMenuPosition.under,
             color: context.theme.bgColor,
-            icon: Icon(Icons.more_vert, size: 22, color: context.theme.primaryColor,),
+            icon: Icon(
+              Icons.more_vert,
+              size: 22,
+              color: context.theme.primaryColor,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(30),

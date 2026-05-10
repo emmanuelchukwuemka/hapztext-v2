@@ -15,7 +15,9 @@ class UserInfoModel {
     email = json['email'];
     username = json['username'];
     tokens = json['tokens'] != null ? Tokens.fromJson(json['tokens']) : null;
-    profile = json['profile'] != null ? SearchedUserProfile.fromJson(json['profile']) : null;
+    profile = json['profile'] != null
+        ? SearchedUserProfile.fromJson(json['profile'])
+        : null;
   }
 
   Map<String, dynamic> toJson() {

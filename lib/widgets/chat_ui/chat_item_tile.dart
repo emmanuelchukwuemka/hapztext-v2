@@ -78,7 +78,7 @@ class ChatItemTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "now", 
+                        "now",
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.4),
                           fontSize: 12,
@@ -93,11 +93,13 @@ class ChatItemTile extends StatelessWidget {
                         child: Text(
                           chat.lastMessage,
                           style: TextStyle(
-                            color: chat.unread > 0 
-                                ? Colors.white.withValues(alpha: 0.9) 
+                            color: chat.unread > 0
+                                ? Colors.white.withValues(alpha: 0.9)
                                 : Colors.white.withValues(alpha: 0.5),
                             fontSize: 14,
-                            fontWeight: chat.unread > 0 ? FontWeight.w500 : FontWeight.normal,
+                            fontWeight: chat.unread > 0
+                                ? FontWeight.w500
+                                : FontWeight.normal,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -106,12 +108,14 @@ class ChatItemTile extends StatelessWidget {
                       if (chat.pinned)
                         const Padding(
                           padding: EdgeInsets.only(left: 8),
-                          child: Icon(Icons.push_pin, size: 14, color: Colors.grey),
+                          child: Icon(Icons.push_pin,
+                              size: 14, color: Colors.grey),
                         ),
                       if (chat.unread > 0)
                         Container(
                           margin: const EdgeInsets.only(left: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [Colors.teal, Colors.tealAccent],

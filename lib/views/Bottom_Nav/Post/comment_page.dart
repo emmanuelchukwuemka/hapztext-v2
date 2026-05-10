@@ -29,6 +29,7 @@ class _CommentScreenState extends State<CommentScreen>
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isVideoInitialized = false;
   bool _isAudioPlaying = false;
+  String? _videoErrorMessage;
 
   @override
   void initState() {
@@ -48,9 +49,16 @@ class _CommentScreenState extends State<CommentScreen>
                 _isVideoInitialized = true;
               });
             }
+          }).catchError((e) {
+            if (mounted) {
+              setState(() {
+                _videoErrorMessage = e.toString();
+              });
+            }
           });
       }
-    } else if (widget.post.postFormat == 'audio' && widget.post.audioContent != null) {
+    } else if (widget.post.postFormat == 'audio' &&
+        widget.post.audioContent != null) {
       await _audioPlayer.setUrl(widget.post.audioContent!);
     }
   }
@@ -88,14 +96,23 @@ class _CommentScreenState extends State<CommentScreen>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (_isVideoInitialized)
+            if (_videoErrorMessage != null)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  "Error: $_videoErrorMessage",
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else if (_isVideoInitialized)
               AspectRatio(
                 aspectRatio: _videoController!.value.aspectRatio,
                 child: VideoPlayer(_videoController!),
               )
             else
               const CircularProgressIndicator(color: Colors.cyanAccent),
-            if (_isVideoInitialized)
+            if (_isVideoInitialized && _videoErrorMessage == null)
               GestureDetector(
                 onTap: () {
                   setState(() {
@@ -105,7 +122,9 @@ class _CommentScreenState extends State<CommentScreen>
                   });
                 },
                 child: Icon(
-                  _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                  _videoController!.value.isPlaying
+                      ? Icons.pause
+                      : Icons.play_arrow,
                   size: 50,
                   color: Colors.white.withValues(alpha: 0.5),
                 ),
@@ -127,7 +146,9 @@ class _CommentScreenState extends State<CommentScreen>
             const SizedBox(height: 12),
             IconButton(
               icon: Icon(
-                _isAudioPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                _isAudioPlaying
+                    ? Icons.pause_circle_filled
+                    : Icons.play_circle_filled,
                 size: 48,
                 color: Colors.cyanAccent,
               ),
@@ -172,13 +193,12 @@ class _CommentScreenState extends State<CommentScreen>
   Duration _recordDuration = Duration.zero;
   Timer? _recordTimer;
 
-
   // Toggle reaction for a comment by current user
   void _toggleReaction(CommentModel comment, String reaction) {
     context.read<HomeCubit>().reactToPost(
-      postId: comment.id,
-      reaction: reaction,
-    );
+          postId: comment.id,
+          reaction: reaction,
+        );
   }
 
   void _toggleBookmark(CommentModel c) {
@@ -209,16 +229,13 @@ class _CommentScreenState extends State<CommentScreen>
                   separatorBuilder: (BuildContext context, _) =>
                       const Divider(color: Colors.white10),
                   itemBuilder: (ctx, i) {
-                        return ListTile(
-                          leading: CircleAvatar(
-                              backgroundColor: _avatarColorFor("${i}"),
-                              child: AppText(
-                                  text: "U", color: Colors.white)),
-                          title: const AppText(
-                              text: "User", color: Colors.white),
-                          trailing:
-                              const AppText(text: "👍", fontSize: 20),
-                        );
+                    return ListTile(
+                      leading: CircleAvatar(
+                          backgroundColor: _avatarColorFor("${i}"),
+                          child: AppText(text: "U", color: Colors.white)),
+                      title: const AppText(text: "User", color: Colors.white),
+                      trailing: const AppText(text: "👍", fontSize: 20),
+                    );
                   },
                 ),
               )
@@ -267,7 +284,9 @@ class _CommentScreenState extends State<CommentScreen>
       if (status != PermissionStatus.granted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Microphone permission is required to record voice notes')),
+            const SnackBar(
+                content: Text(
+                    'Microphone permission is required to record voice notes')),
           );
         }
         return;
@@ -275,14 +294,15 @@ class _CommentScreenState extends State<CommentScreen>
 
       if (await _audioRecorder.hasPermission()) {
         String? filePath;
-        
+
         final Directory appDir = await getApplicationDocumentsDirectory();
-        filePath = '${appDir.path}/comment_vn_${DateTime.now().millisecondsSinceEpoch}.m4a';
-        
+        filePath =
+            '${appDir.path}/comment_vn_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
         _currentRecordingPath = filePath;
-        
+
         await _audioRecorder.start(const RecordConfig(), path: filePath);
-        
+
         setState(() {
           _isRecording = true;
           _recordDuration = Duration.zero;
@@ -303,7 +323,7 @@ class _CommentScreenState extends State<CommentScreen>
     try {
       _recordTimer?.cancel();
       final String? path = await _audioRecorder.stop();
-      
+
       setState(() {
         _isRecording = false;
         _recordDuration = Duration.zero;
@@ -313,10 +333,10 @@ class _CommentScreenState extends State<CommentScreen>
         // Send the recording
         if (mounted) {
           context.read<HomeCubit>().commentOnPost(
-            postId: _replyTo?.id ?? "",
-            post: _replyTo != null ? null : widget.post,
-            audioFile: File(path),
-          );
+                postId: _replyTo?.id ?? "",
+                post: _replyTo != null ? null : widget.post,
+                audioFile: File(path),
+              );
         }
       }
     } catch (e) {
@@ -328,12 +348,12 @@ class _CommentScreenState extends State<CommentScreen>
     try {
       _recordTimer?.cancel();
       await _audioRecorder.stop();
-      
+
       setState(() {
         _isRecording = false;
         _recordDuration = Duration.zero;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Recording cancelled')),
@@ -542,11 +562,11 @@ class _CommentScreenState extends State<CommentScreen>
       listener: (context, state) {
         if (state is PostCommented) {
           _textController.clear();
-          _replyTo = null;
+          setState(() => _replyTo = null);
           readHome.fetchPostComents(post: widget.post);
         }
         if (state is PostReact) {
-           readHome.fetchPostComents(post: widget.post);
+          readHome.fetchPostComents(post: widget.post);
         }
       },
       child: Scaffold(
@@ -608,7 +628,8 @@ class _CommentScreenState extends State<CommentScreen>
                         const SizedBox(height: 10),
                         Row(children: [
                           AppText(
-                              text: '${widget.post.comments.length} comments', color: Colors.white54),
+                              text: '${widget.post.comments.length} comments',
+                              color: Colors.white54),
                           const SizedBox(width: 12),
                           InkWell(
                               onTap: () => setState(
@@ -708,7 +729,8 @@ class _CommentScreenState extends State<CommentScreen>
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.circle, color: Colors.red, size: 12),
+                              const Icon(Icons.circle,
+                                  color: Colors.red, size: 12),
                               const SizedBox(width: 8),
                               AppText(
                                   text: _formatDuration(_recordDuration),
@@ -718,7 +740,9 @@ class _CommentScreenState extends State<CommentScreen>
                               GestureDetector(
                                 onTap: _cancelRecording,
                                 child: const AppText(
-                                    text: "Cancel", color: Colors.red, fontSize: 14),
+                                    text: "Cancel",
+                                    color: Colors.red,
+                                    fontSize: 14),
                               ),
                             ],
                           ),
@@ -734,7 +758,8 @@ class _CommentScreenState extends State<CommentScreen>
                             decoration: BoxDecoration(
                                 color: const Color(0xFF161616),
                                 borderRadius: BorderRadius.circular(20)),
-                            child: const Icon(Icons.mic, color: Colors.cyanAccent)),
+                            child: const Icon(Icons.mic,
+                                color: Colors.cyanAccent)),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -773,16 +798,26 @@ class _CommentScreenState extends State<CommentScreen>
                     else
                       watchHome.state is PostCommenting
                           ? Padding(
-                              padding: EdgeInsets.only(right: size.width * 0.02),
+                              padding:
+                                  EdgeInsets.only(right: size.width * 0.02),
                               child: LoadingAnimationWidget.inkDrop(
                                   color: Theme.of(context).primaryColor,
                                   size: 20))
                           : IconButton(
                               onPressed: () {
-                                readHome.commentOnPost(
-                                    postId: _replyTo?.id ?? "",
-                                    post: _replyTo != null ? null : widget.post,
-                                    comment: _textController.text);
+                                final text = _textController.text.trim();
+                                if (text.isEmpty) return;
+                                if (_replyTo != null) {
+                                  // Replying to a comment — post as reply to the parent POST
+                                  readHome.commentOnPost(
+                                      postId: widget.post.id ?? '',
+                                      comment: '@${_replyTo!.senderUsername ?? ''} $text');
+                                } else {
+                                  // Top-level comment on the post
+                                  readHome.commentOnPost(
+                                      post: widget.post,
+                                      comment: text);
+                                }
                               },
                               icon: const Icon(Icons.send,
                                   color: Colors.cyanAccent)),

@@ -9,7 +9,8 @@ class AppThemes {
       backgroundColor: Color(0xFF1A1A1A),
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+      titleTextStyle: TextStyle(
+          fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
     ),
     cardColor: const Color(0xFF1E1E1E),
     colorScheme: ColorScheme.fromSwatch(brightness: Brightness.dark).copyWith(

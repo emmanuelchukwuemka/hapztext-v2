@@ -35,7 +35,8 @@ class PerformanceNotification extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Coloors.primaryStart, Coloors.primaryEnd]),
+              gradient: const LinearGradient(
+                  colors: [Coloors.primaryStart, Coloors.primaryEnd]),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.white, size: 24),
@@ -47,7 +48,10 @@ class PerformanceNotification extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
                 ),
                 Text(
                   subtitle,

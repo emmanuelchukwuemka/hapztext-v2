@@ -91,9 +91,7 @@ class _InputFieldState extends State<InputField> {
           readOnly: widget.isReadOnly,
           validator: widget.validator,
           style: GoogleFonts.roboto(
-              fontWeight: FontWeight.w400,
-              color: Colors.white,
-              fontSize: 14),
+              fontWeight: FontWeight.w400, color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
             hintText: widget.hintText,
             fillColor: widget.fillColor ?? Colors.white.withOpacity(0.05),
@@ -102,7 +100,8 @@ class _InputFieldState extends State<InputField> {
                 fontWeight: FontWeight.w400,
                 color: Colors.white24,
                 fontSize: 14),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             errorStyle: GoogleFonts.roboto(
                 fontWeight: FontWeight.w400,
                 color: Colors.redAccent,

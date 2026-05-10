@@ -85,7 +85,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to initialize call engine. Check permissions.'),
+            content:
+                Text('Failed to initialize call engine. Check permissions.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -224,8 +225,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     });
   }
 
-  void _selectParticipant(String id) =>
-      setState(() => _mainParticipantId = id);
+  void _selectParticipant(String id) => setState(() => _mainParticipantId = id);
 
   Future<void> _endCall() async {
     _callStopwatch.stop();
@@ -276,8 +276,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             filter: ColorFilter.mode(
                 Colors.white.withOpacity(0.05), BlendMode.lighten),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
@@ -331,8 +330,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 12),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.black26,
               borderRadius: BorderRadius.circular(12),
@@ -385,8 +383,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                       SizedBox(height: 16),
                       Text(
                         'Connecting...',
-                        style: TextStyle(
-                            color: Colors.white70, fontSize: 16),
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
                       ),
                     ],
                   ),
@@ -408,13 +405,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _participants.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(width: 10),
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
                     itemBuilder: (context, i) {
                       final p = _participants[i];
                       final isMain = p.id == _mainParticipantId;
@@ -445,16 +441,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                                     backgroundColor: p.color,
                                     child: Text(
                                       p.name[0],
-                                      style: const TextStyle(
-                                          color: Colors.white),
+                                      style:
+                                          const TextStyle(color: Colors.white),
                                     ),
                                   ),
                                   if (p.mutedSelf)
                                     const CircleAvatar(
                                       radius: 7,
                                       backgroundColor: Colors.redAccent,
-                                      child:
-                                          Icon(Icons.mic_off, size: 10),
+                                      child: Icon(Icons.mic_off, size: 10),
                                     ),
                                 ],
                               ),
@@ -478,16 +473,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
           // Reactions
           ..._reactions.map((r) {
-            return _FloatingReactionWidget(
-                key: ValueKey(r.id), data: r);
+            return _FloatingReactionWidget(key: ValueKey(r.id), data: r);
           }),
 
           // Bottom controls - Floating Glassy Bar
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              margin: const EdgeInsets.only(
-                  bottom: 30, left: 16, right: 16),
+              margin: const EdgeInsets.only(bottom: 30, left: 16, right: 16),
               height: 100,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(30),
@@ -504,21 +497,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
-                          width: 1),
+                          color: Colors.white.withOpacity(0.1), width: 1),
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               _ControlButton(
                                 icon: _isMuted
@@ -532,8 +522,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                                 icon: _videoEnabled
                                     ? Icons.videocam_rounded
                                     : Icons.videocam_off_rounded,
-                                label:
-                                    _videoEnabled ? 'Video' : 'Off',
+                                label: _videoEnabled ? 'Video' : 'Off',
                                 onPressed: _toggleVideo,
                                 active: _videoEnabled,
                               ),
@@ -550,15 +539,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         ),
                         // End Call Button
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Material(
-                            color:
-                                Colors.redAccent.withOpacity(0.9),
+                            color: Colors.redAccent.withOpacity(0.9),
                             shape: const CircleBorder(),
                             elevation: 8,
-                            shadowColor:
-                                Colors.redAccent.withOpacity(0.5),
+                            shadowColor: Colors.redAccent.withOpacity(0.5),
                             child: InkWell(
                               customBorder: const CircleBorder(),
                               onTap: _endCall,
@@ -575,14 +561,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         ),
                         Expanded(
                           child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               _ControlButton(
                                 icon: Icons.emoji_emotions_rounded,
                                 label: 'React',
-                                onPressed: () =>
-                                    _showReactionPicker(context),
+                                onPressed: () => _showReactionPicker(context),
                               ),
                               if (widget.isVideoCall)
                                 _ControlButton(
@@ -614,8 +598,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   /// Build the video call main content area with Agora video views
-  Widget _buildVideoCallContent(
-      _CallParticipant main, String shortName) {
+  Widget _buildVideoCallContent(_CallParticipant main, String shortName) {
     final remoteUids = _agoraService.remoteUsers;
     final hasRemote = remoteUids.isNotEmpty;
 
@@ -658,19 +641,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                            color: main.color.withOpacity(0.3),
-                            width: 4),
+                            color: main.color.withOpacity(0.3), width: 4),
                       ),
                       child: CircleAvatar(
                         radius: 60,
-                        backgroundColor:
-                            main.color.withOpacity(0.2),
+                        backgroundColor: main.color.withOpacity(0.2),
                         child: Text(
                           shortName[0],
                           style: TextStyle(
                               fontSize: 48,
-                              color:
-                                  Colors.white.withOpacity(0.9),
+                              color: Colors.white.withOpacity(0.9),
                               fontWeight: FontWeight.w300),
                         ),
                       ),
@@ -699,15 +679,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                             width: 8,
                             height: 8,
                             child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: Colors.cyanAccent),
+                                strokeWidth: 1.5, color: Colors.cyanAccent),
                           ),
                           const SizedBox(width: 10),
                           Text(
                             'Waiting for participant...',
                             style: TextStyle(
-                                color:
-                                    Colors.white.withOpacity(0.4),
+                                color: Colors.white.withOpacity(0.4),
                                 fontSize: 12),
                           ),
                         ],
@@ -823,12 +801,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.videocam_off,
-                          color: Colors.white38, size: 30),
+                      Icon(Icons.videocam_off, color: Colors.white38, size: 30),
                       SizedBox(height: 8),
                       Text('Camera Off',
-                          style: TextStyle(
-                              color: Colors.white54, fontSize: 10)),
+                          style:
+                              TextStyle(color: Colors.white54, fontSize: 10)),
                     ],
                   ),
                 ),
@@ -840,8 +817,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   /// Build voice call content with pulse animations
-  Widget _buildVoiceCallContent(
-      _CallParticipant main, String shortName) {
+  Widget _buildVoiceCallContent(_CallParticipant main, String shortName) {
     return Positioned.fill(
       child: Container(
         decoration: const BoxDecoration(
@@ -868,13 +844,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         builder: (context, child) {
                           final t = _pulseController.value;
                           final phase = (i / 3 + t) % 1.0;
-                          final base = 1.0 +
-                              ((_isMuted ? 0.0 : _audioLevel) *
-                                  0.35);
-                          final scale =
-                              base + phase * (0.9 + i * 0.2);
-                          final opacity =
-                              (1.0 - phase).clamp(0.0, 1.0) * 0.25;
+                          final base =
+                              1.0 + ((_isMuted ? 0.0 : _audioLevel) * 0.35);
+                          final scale = base + phase * (0.9 + i * 0.2);
+                          final opacity = (1.0 - phase).clamp(0.0, 1.0) * 0.25;
                           return Transform.scale(
                             scale: scale,
                             child: Opacity(
@@ -885,8 +858,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color:
-                                        main.color.withOpacity(0.9),
+                                    color: main.color.withOpacity(0.9),
                                     width: 2,
                                   ),
                                 ),
@@ -929,17 +901,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _isMuted
-                              ? Colors.redAccent
-                              : Colors.white12,
+                          color: _isMuted ? Colors.redAccent : Colors.white12,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           children: [
                             Icon(
-                              _isMuted
-                                  ? Icons.mic_off
-                                  : Icons.mic,
+                              _isMuted ? Icons.mic_off : Icons.mic,
                               size: 14,
                               color: Colors.white,
                             ),
@@ -947,8 +915,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                             Text(
                               _isMuted ? 'Muted' : 'On',
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white),
+                                  fontSize: 12, color: Colors.white),
                             ),
                           ],
                         ),
@@ -970,8 +937,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.white10,
                       borderRadius: BorderRadius.circular(12),
@@ -979,9 +946,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                     child: Row(
                       children: [
                         Icon(
-                          _speakerOn
-                              ? Icons.volume_up
-                              : Icons.volume_off,
+                          _speakerOn ? Icons.volume_up : Icons.volume_off,
                           size: 14,
                           color: Colors.white70,
                         ),
@@ -989,8 +954,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         Text(
                           _speakerOn ? 'Speaker' : 'Earpiece',
                           style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70),
+                              fontSize: 12, color: Colors.white70),
                         ),
                       ],
                     ),
@@ -1014,8 +978,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       builder: (_) {
         final emojis = ['👍', '❤️', '😂', '🔥', '👏', '😮'];
         return Padding(
-          padding:
-              const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: emojis.map((e) {
@@ -1079,8 +1042,7 @@ class _ReactionData {
 
 class _FloatingReactionWidget extends StatefulWidget {
   final _ReactionData data;
-  const _FloatingReactionWidget(
-      {required Key key, required this.data})
+  const _FloatingReactionWidget({required Key key, required this.data})
       : super(key: key);
 
   @override
@@ -1088,8 +1050,7 @@ class _FloatingReactionWidget extends StatefulWidget {
       _FloatingReactionWidgetState();
 }
 
-class _FloatingReactionWidgetState
-    extends State<_FloatingReactionWidget>
+class _FloatingReactionWidgetState extends State<_FloatingReactionWidget>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   late final Animation<double> _dy;
@@ -1099,20 +1060,17 @@ class _FloatingReactionWidgetState
   @override
   void initState() {
     super.initState();
-    _startXFraction =
-        widget.data.start.dx + widget.data.dxJitter;
+    _startXFraction = widget.data.start.dx + widget.data.dxJitter;
 
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..forward();
 
-    _dy = Tween<double>(begin: 0, end: -180).animate(
-        CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _dy = Tween<double>(begin: 0, end: -180)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
-        CurvedAnimation(
-            parent: _ctrl,
-            curve: const Interval(0.5, 1.0)));
+        CurvedAnimation(parent: _ctrl, curve: const Interval(0.5, 1.0)));
   }
 
   @override
@@ -1170,15 +1128,14 @@ class _ControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg =
-        active ? Colors.cyanAccent.withOpacity(0.14) : Colors.white10;
+    final bg = active ? Colors.cyanAccent.withOpacity(0.14) : Colors.white10;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Material(
           color: bg,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
             onTap: onPressed,
@@ -1190,8 +1147,7 @@ class _ControlButton extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(label,
-            style: const TextStyle(
-                fontSize: 10, color: Colors.white70)),
+            style: const TextStyle(fontSize: 10, color: Colors.white70)),
       ],
     );
   }

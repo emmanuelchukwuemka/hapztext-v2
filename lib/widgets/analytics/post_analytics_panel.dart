@@ -33,7 +33,10 @@ class PostAnalyticsPanel extends StatelessWidget {
             children: [
               const Text(
                 "📊 Post Analytics",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -45,7 +48,11 @@ class PostAnalyticsPanel extends StatelessWidget {
                   children: [
                     const Icon(Icons.circle, color: Coloors.error, size: 8),
                     const SizedBox(width: 4),
-                    const Text("15 LIVE", style: TextStyle(color: Coloors.error, fontSize: 10, fontWeight: FontWeight.bold)),
+                    const Text("15 LIVE",
+                        style: TextStyle(
+                            color: Coloors.error,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -56,14 +63,19 @@ class PostAnalyticsPanel extends StatelessWidget {
           // Performance Score
           const Align(
             alignment: Alignment.centerLeft,
-            child: Text("Performance Score: 87%", style: TextStyle(color: Colors.white70, fontSize: 14)),
+            child: Text("Performance Score: 87%",
+                style: TextStyle(color: Colors.white70, fontSize: 14)),
           ),
           const SizedBox(height: 8),
           _buildProgressBar(0.87),
           const SizedBox(height: 4),
           const Align(
             alignment: Alignment.centerLeft,
-            child: Text("🔥 Viral content!", style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text("🔥 Viral content!",
+                style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 24),
 
@@ -75,12 +87,27 @@ class PostAnalyticsPanel extends StatelessWidget {
             crossAxisSpacing: 20,
             childAspectRatio: 1.5,
             children: const [
-              _MetricCard(icon: Icons.remove_red_eye_outlined, count: "0", label: "Views", trend: ""),
-              _MetricCard(icon: Icons.favorite_border, count: "0", label: "Likes", trend: ""),
-              _MetricCard(icon: Icons.repeat, count: "0", label: "Shares", trend: ""),
-              _MetricCard(icon: Icons.chat_bubble_outline, count: "0", label: "Comments", trend: ""),
-              _MetricCard(icon: Icons.mic_none, count: "0", label: "Voice", trend: ""),
-              _MetricCard(icon: Icons.tag, count: "-", label: "Top Tag", trend: ""),
+              _MetricCard(
+                  icon: Icons.remove_red_eye_outlined,
+                  count: "0",
+                  label: "Views",
+                  trend: ""),
+              _MetricCard(
+                  icon: Icons.favorite_border,
+                  count: "0",
+                  label: "Likes",
+                  trend: ""),
+              _MetricCard(
+                  icon: Icons.repeat, count: "0", label: "Shares", trend: ""),
+              _MetricCard(
+                  icon: Icons.chat_bubble_outline,
+                  count: "0",
+                  label: "Comments",
+                  trend: ""),
+              _MetricCard(
+                  icon: Icons.mic_none, count: "0", label: "Voice", trend: ""),
+              _MetricCard(
+                  icon: Icons.tag, count: "-", label: "Top Tag", trend: ""),
             ],
           ),
           const SizedBox(height: 24),
@@ -88,7 +115,11 @@ class PostAnalyticsPanel extends StatelessWidget {
           // Live Activity
           const Align(
             alignment: Alignment.centerLeft,
-            child: Text("⚡ Live Activity:", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            child: Text("⚡ Live Activity:",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 12),
           _buildActivityItem("Someone liked", "now"),
@@ -113,7 +144,8 @@ class PostAnalyticsPanel extends StatelessWidget {
         widthFactor: value,
         child: Container(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Coloors.primaryStart, Coloors.primaryEnd]),
+            gradient: const LinearGradient(
+                colors: [Coloors.primaryStart, Coloors.primaryEnd]),
             borderRadius: BorderRadius.circular(4),
           ),
         ),
@@ -128,9 +160,11 @@ class PostAnalyticsPanel extends StatelessWidget {
         children: [
           const CircleAvatar(radius: 3, backgroundColor: Coloors.primaryStart),
           const SizedBox(width: 8),
-          Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(text,
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
           const Spacer(),
-          Text(time, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+          Text(time,
+              style: const TextStyle(color: Colors.white38, fontSize: 12)),
         ],
       ),
     );
@@ -143,7 +177,11 @@ class _MetricCard extends StatelessWidget {
   final String label;
   final String trend;
 
-  const _MetricCard({required this.icon, required this.count, required this.label, required this.trend});
+  const _MetricCard(
+      {required this.icon,
+      required this.count,
+      required this.label,
+      required this.trend});
 
   @override
   Widget build(BuildContext context) {
@@ -154,11 +192,20 @@ class _MetricCard extends StatelessWidget {
           children: [
             Icon(icon, color: Colors.white38, size: 16),
             const SizedBox(width: 4),
-            Text(count, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(count,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
-        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
-        Text(trend, style: const TextStyle(color: Coloors.success, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(label,
+            style: const TextStyle(color: Colors.white38, fontSize: 10)),
+        Text(trend,
+            style: const TextStyle(
+                color: Coloors.success,
+                fontSize: 10,
+                fontWeight: FontWeight.bold)),
       ],
     );
   }

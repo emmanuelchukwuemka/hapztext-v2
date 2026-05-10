@@ -11,9 +11,8 @@ class _PhonesState extends State<Phones> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Text('No Calls Yet'),
-      )
-    );
+        body: Center(
+      child: Text('No Calls Yet'),
+    ));
   }
 }

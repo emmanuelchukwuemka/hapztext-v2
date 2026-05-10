@@ -49,7 +49,9 @@ class _InputAreaState extends State<InputArea> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.vertical(
-              top: widget.replyMessage == null ? const Radius.circular(24) : Radius.zero,
+              top: widget.replyMessage == null
+                  ? const Radius.circular(24)
+                  : Radius.zero,
             ),
             boxShadow: [
               BoxShadow(
@@ -64,7 +66,9 @@ class _InputAreaState extends State<InputArea> {
               children: [
                 IconButton(
                   icon: Icon(
-                    _showEmojiPicker ? Icons.keyboard : Icons.emoji_emotions_outlined,
+                    _showEmojiPicker
+                        ? Icons.keyboard
+                        : Icons.emoji_emotions_outlined,
                     color: Colors.tealAccent,
                   ),
                   onPressed: () {
@@ -102,14 +106,16 @@ class _InputAreaState extends State<InputArea> {
                               ),
                               border: InputBorder.none,
                             ),
-                            style: const TextStyle(color: Colors.white, fontSize: 15),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 15),
                           ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 if (widget.chatMode != ChatMode.voiceOnly)
                   IconButton(
-                    icon: const Icon(Icons.send_rounded, color: Colors.tealAccent),
+                    icon: const Icon(Icons.send_rounded,
+                        color: Colors.tealAccent),
                     onPressed: () {
                       if (_controller.text.isNotEmpty) {
                         widget.onSendText(_controller.text);
@@ -132,14 +138,15 @@ class _InputAreaState extends State<InputArea> {
                       padding: EdgeInsets.all(_isRecording ? 12 : 10),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: _isRecording 
-                            ? [Colors.redAccent, Colors.red.shade900]
-                            : [Colors.tealAccent, Colors.teal.shade700],
+                          colors: _isRecording
+                              ? [Colors.redAccent, Colors.red.shade900]
+                              : [Colors.tealAccent, Colors.teal.shade700],
                         ),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: (_isRecording ? Colors.red : Colors.teal).withValues(alpha: 0.4),
+                            color: (_isRecording ? Colors.red : Colors.teal)
+                                .withValues(alpha: 0.4),
                             blurRadius: _isRecording ? 12 : 8,
                             spreadRadius: _isRecording ? 2 : 0,
                           ),
@@ -209,7 +216,8 @@ class _InputAreaState extends State<InputArea> {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: const Text(
         "Hold mic to record voice note",
-        style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic, fontSize: 14),
+        style: TextStyle(
+            color: Colors.white54, fontStyle: FontStyle.italic, fontSize: 14),
         textAlign: TextAlign.center,
       ),
     );
@@ -251,7 +259,9 @@ class _InputAreaState extends State<InputArea> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.replyMessage!.me ? "Replying to yourself" : "Replying to someone",
+                  widget.replyMessage!.me
+                      ? "Replying to yourself"
+                      : "Replying to someone",
                   style: const TextStyle(
                     color: Colors.tealAccent,
                     fontWeight: FontWeight.bold,
@@ -260,7 +270,9 @@ class _InputAreaState extends State<InputArea> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  widget.replyMessage!.isVoice ? "Voice Note" : widget.replyMessage!.text,
+                  widget.replyMessage!.isVoice
+                      ? "Voice Note"
+                      : widget.replyMessage!.text,
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 12,

@@ -30,14 +30,16 @@ class _TrendingState extends State<Trending> {
         builder: (context, state) {
           final rawPosts = context.read<HomeCubit>().posts.result ?? [];
           final posts = rawPosts
-              .where((post) => post.mediaFiles != null && post.mediaFiles!.isNotEmpty)
+              .where((post) =>
+                  post.mediaFiles != null && post.mediaFiles!.isNotEmpty)
               .toList();
-          
+
           if (posts.isEmpty && state is HomeLoading) {
             return const Center(child: CircularProgressIndicator());
           }
           if (posts.isEmpty) {
-            return const Center(child: AppText(text: 'No trending posts found'));
+            return const Center(
+                child: AppText(text: 'No trending posts found'));
           }
           return GridView.builder(
             padding: const EdgeInsets.all(12),
@@ -47,8 +49,8 @@ class _TrendingState extends State<Trending> {
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8),
             itemCount: posts.length,
-            itemBuilder: (context, index) =>
-                SocialPostCard(height: 240, isTrending: index < 2, post: posts[index]),
+            itemBuilder: (context, index) => SocialPostCard(
+                height: 240, isTrending: index < 2, post: posts[index]),
           );
         },
       ),

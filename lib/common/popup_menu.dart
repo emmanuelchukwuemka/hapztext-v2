@@ -5,7 +5,10 @@ class Popup extends StatefulWidget {
   Popup({
     super.key,
     required List<PopupMenuItem> PMItem,
-    this.icn = const Icon(Icons.more_vert, size: 22,),
+    this.icn = const Icon(
+      Icons.more_vert,
+      size: 22,
+    ),
   });
 
   final Icon icn;
@@ -23,7 +26,11 @@ class _PopupState extends State<Popup> {
       position: PopupMenuPosition.under,
       padding: const EdgeInsets.symmetric(horizontal: 5.0),
       color: context.theme.bgColor,
-      icon: Icon(Icons.more_vert, size: 22, color: context.theme.primaryColor,),
+      icon: Icon(
+        Icons.more_vert,
+        size: 22,
+        color: context.theme.primaryColor,
+      ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30),

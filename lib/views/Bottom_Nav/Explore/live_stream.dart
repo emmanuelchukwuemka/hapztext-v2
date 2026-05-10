@@ -29,12 +29,13 @@ class LiveStreamPage extends StatefulWidget {
 
 class _LiveStreamPageState extends State<LiveStreamPage>
     with SingleTickerProviderStateMixin {
-  final bool _isStreamer = false; 
+  final bool _isStreamer = false;
   late final AgoraCallService _agoraService;
   late final LivestreamWebsocketService _wsService;
   int _viewerCount = 0;
   bool _isLive = false;
-  final String _streamId = "live_stream_${DateTime.now().millisecondsSinceEpoch}";
+  final String _streamId =
+      "live_stream_${DateTime.now().millisecondsSinceEpoch}";
   final List<Map<String, dynamic>> _comments = [];
   final TextEditingController _commentController = TextEditingController();
 
@@ -48,7 +49,7 @@ class _LiveStreamPageState extends State<LiveStreamPage>
     super.initState();
     _agoraService = AgoraCallService();
     _wsService = LivestreamWebsocketService(HapzTextApiService());
-    
+
     _agoraService.addListener(() {
       if (mounted) setState(() {});
     });
@@ -62,7 +63,9 @@ class _LiveStreamPageState extends State<LiveStreamPage>
             'text': event['text'] ?? '',
             'type': event['comment_type'] ?? 'text',
           });
-        } else if (event['type'] == 'viewer_joined' || event['type'] == 'viewer_left' || event['type'] == 'viewer_count_update') {
+        } else if (event['type'] == 'viewer_joined' ||
+            event['type'] == 'viewer_left' ||
+            event['type'] == 'viewer_count_update') {
           _viewerCount = event['viewer_count'] ?? _viewerCount;
         }
       });
@@ -74,9 +77,12 @@ class _LiveStreamPageState extends State<LiveStreamPage>
   Future<void> _initLive() async {
     final success = await _agoraService.initialize();
     if (success) {
-      await _agoraService.joinChannel(_streamId, isBroadcaster: false, enableVideo: false);
+      await _agoraService.joinChannel(_streamId,
+          isBroadcaster: false, enableVideo: false);
       if (mounted) {
-        setState(() { _isLive = true; });
+        setState(() {
+          _isLive = true;
+        });
         _wsService.connectToWebSocket(_streamId);
       }
     }
@@ -97,7 +103,9 @@ class _LiveStreamPageState extends State<LiveStreamPage>
       body: Stack(
         children: [
           // 1. Main Video Stream Placeholder
-          if (_isLive && _agoraService.engine != null && _agoraService.remoteUsers.isNotEmpty)
+          if (_isLive &&
+              _agoraService.engine != null &&
+              _agoraService.remoteUsers.isNotEmpty)
             SizedBox.expand(
               child: AgoraVideoView(
                 controller: VideoViewController.remote(
@@ -112,7 +120,8 @@ class _LiveStreamPageState extends State<LiveStreamPage>
               child: Container(
                 color: Colors.black,
                 child: const Center(
-                  child: Icon(Icons.videocam_off, color: Colors.white10, size: 100),
+                  child: Icon(Icons.videocam_off,
+                      color: Colors.white10, size: 100),
                 ),
               ),
             ),
@@ -124,7 +133,8 @@ class _LiveStreamPageState extends State<LiveStreamPage>
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Coloors.error,
                       borderRadius: BorderRadius.circular(4),
@@ -148,7 +158,8 @@ class _LiveStreamPageState extends State<LiveStreamPage>
                     ),
                   ),
                   const Spacer(),
-                  const Icon(Icons.remove_red_eye_outlined, color: Colors.white, size: 18),
+                  const Icon(Icons.remove_red_eye_outlined,
+                      color: Colors.white, size: 18),
                   const SizedBox(width: 4),
                   Text(
                     "$_viewerCount",
@@ -279,11 +290,13 @@ class _LiveStreamPageState extends State<LiveStreamPage>
             child: comment['type'] == 'voice'
                 ? Row(
                     children: [
-                      const Icon(Icons.volume_up, color: Colors.white70, size: 16),
+                      const Icon(Icons.volume_up,
+                          color: Colors.white70, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         "[Voice Note ${comment['duration']}]",
-                        style: const TextStyle(color: Colors.white70, fontSize: 14),
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 14),
                       ),
                     ],
                   )
@@ -320,61 +333,63 @@ class _LiveStreamPageState extends State<LiveStreamPage>
             borderRadius: BorderRadius.circular(24),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  color: Colors.white.withOpacity(0.1),
-                  child: Row(
-                    children: [
-                      if (_isRecording)
-                        Expanded(
-                          child: Row(
-                            children: [
-                              const Icon(Icons.circle, color: Colors.red, size: 12),
-                              const SizedBox(width: 8),
-                              Text(_formatDuration(_recordDuration),
-                                  style: const TextStyle(color: Colors.white)),
-                              const Spacer(),
-                              GestureDetector(
-                                onTap: _cancelRecording,
-                                child: const Text("Cancel",
-                                    style: TextStyle(color: Colors.redAccent)),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Expanded(
-                          child: TextField(
-                            controller: _commentController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
-                              hintText: "Type message...",
-                              hintStyle: TextStyle(color: Colors.white38),
-                              border: InputBorder.none,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                color: Colors.white.withOpacity(0.1),
+                child: Row(
+                  children: [
+                    if (_isRecording)
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.circle,
+                                color: Colors.red, size: 12),
+                            const SizedBox(width: 8),
+                            Text(_formatDuration(_recordDuration),
+                                style: const TextStyle(color: Colors.white)),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: _cancelRecording,
+                              child: const Text("Cancel",
+                                  style: TextStyle(color: Colors.redAccent)),
                             ),
-                          ),
+                          ],
                         ),
-                      IconButton(
-                        onPressed: () {
-                          if (_isRecording) {
-                            _toggleRecording();
-                          } else {
-                            final text = _commentController.text.trim();
-                            if (text.isNotEmpty) {
-                              _wsService.sendComment(text);
-                              _commentController.clear();
-                            }
-                          }
-                        },
-                        icon: Icon(
-                          _isRecording ? Icons.send : Icons.mic,
-                          color: _isRecording ? Colors.cyanAccent : Colors.white70,
-                          size: 20,
+                      )
+                    else
+                      Expanded(
+                        child: TextField(
+                          controller: _commentController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+                            hintText: "Type message...",
+                            hintStyle: TextStyle(color: Colors.white38),
+                            border: InputBorder.none,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                    IconButton(
+                      onPressed: () {
+                        if (_isRecording) {
+                          _toggleRecording();
+                        } else {
+                          final text = _commentController.text.trim();
+                          if (text.isNotEmpty) {
+                            _wsService.sendComment(text);
+                            _commentController.clear();
+                          }
+                        }
+                      },
+                      icon: Icon(
+                        _isRecording ? Icons.send : Icons.mic,
+                        color:
+                            _isRecording ? Colors.cyanAccent : Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
             ),
           ),
         ),
@@ -394,7 +409,8 @@ class _LiveStreamPageState extends State<LiveStreamPage>
           child: Icon(icon, color: color ?? Colors.white),
         ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12)),
       ],
     );
   }

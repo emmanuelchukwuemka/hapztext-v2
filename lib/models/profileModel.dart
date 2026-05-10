@@ -24,15 +24,27 @@ class ProfileModel {
   String? visited;
 
   ProfileModel(
-      {this.id, this.email, this.password,
-        this.userName, this.firstName, this.lastName, this.birthday,
-        this.tagName, this.phone, this.role, this.height,
-        this.weight, this.lookingFor,
-        this.ethnicity, this.relationshipStatus,
-        this.biography, this.location, this.visited}
-  );
+      {this.id,
+      this.email,
+      this.password,
+      this.userName,
+      this.firstName,
+      this.lastName,
+      this.birthday,
+      this.tagName,
+      this.phone,
+      this.role,
+      this.height,
+      this.weight,
+      this.lookingFor,
+      this.ethnicity,
+      this.relationshipStatus,
+      this.biography,
+      this.location,
+      this.visited});
 
-  factory ProfileModel.fromJson(Map<String, dynamic> json) => _$ProfileModelFromJson(json);
+  factory ProfileModel.fromJson(Map<String, dynamic> json) =>
+      _$ProfileModelFromJson(json);
   // factory ProfileModel.fromJson(Map<String, dynamic> json) => ProfileModel(
   //   id: json['id'],
   //   birthday: json['birthday'],

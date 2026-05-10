@@ -80,8 +80,10 @@ class Message {
       videoUrl: videoUrl ?? this.videoUrl,
       isReply: isReply ?? this.isReply,
       previousMessageId: previousMessageId ?? this.previousMessageId,
-      previousMessageContent: previousMessageContent ?? this.previousMessageContent,
-      previousMessageSenderId: previousMessageSenderId ?? this.previousMessageSenderId,
+      previousMessageContent:
+          previousMessageContent ?? this.previousMessageContent,
+      previousMessageSenderId:
+          previousMessageSenderId ?? this.previousMessageSenderId,
     );
   }
 }

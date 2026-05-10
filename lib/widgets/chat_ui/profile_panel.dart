@@ -16,7 +16,8 @@ class ProfilePanel extends StatefulWidget {
   State<ProfilePanel> createState() => _ProfilePanelState();
 }
 
-class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderStateMixin {
+class _ProfilePanelState extends State<ProfilePanel>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late ChatItem _localChat;
 
@@ -97,7 +98,8 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
               children: [
                 Text(
                   _localChat.name,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   "Online",
@@ -112,7 +114,8 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
               color: _localChat.pinned ? Colors.teal : Colors.grey,
             ),
             onPressed: () {
-              setState(() => _localChat = _localChat.copyWith(pinned: !_localChat.pinned));
+              setState(() =>
+                  _localChat = _localChat.copyWith(pinned: !_localChat.pinned));
             },
           ),
         ],
@@ -154,10 +157,12 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
         const Divider(color: Colors.grey),
         SwitchListTile(
           title: const Text("Auto-clear Window"),
-          subtitle: const Text("Automatically delete messages outside specified window"),
+          subtitle: const Text(
+              "Automatically delete messages outside specified window"),
           value: _localChat.autoClearEnabled,
           onChanged: (val) {
-            setState(() => _localChat = _localChat.copyWith(autoClearEnabled: val));
+            setState(
+                () => _localChat = _localChat.copyWith(autoClearEnabled: val));
           },
           secondary: const Icon(Icons.auto_delete, color: Colors.teal),
           activeThumbColor: Colors.teal,
@@ -183,9 +188,9 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
   void _showTimePicker(bool isStart) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: isStart 
-        ? (_localChat.autoClearStart ?? TimeOfDay.now())
-        : (_localChat.autoClearEnd ?? TimeOfDay.now()),
+      initialTime: isStart
+          ? (_localChat.autoClearStart ?? TimeOfDay.now())
+          : (_localChat.autoClearEnd ?? TimeOfDay.now()),
     );
     if (picked != null) {
       setState(() {
@@ -198,7 +203,8 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
     }
   }
 
-  Widget _buildSettingItem(String title, String value, IconData icon, VoidCallback onTap) {
+  Widget _buildSettingItem(
+      String title, String value, IconData icon, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.teal),
       title: Text(title),
@@ -230,13 +236,15 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.teal,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           onPressed: () {
             widget.onUpdate(_localChat);
             Navigator.pop(context);
           },
-          child: const Text("Save Changes", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          child: const Text("Save Changes",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ),
       ),
     );
@@ -247,14 +255,17 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
       context: context,
       builder: (context) => ListView(
         shrinkWrap: true,
-        children: ChatMode.values.map((mode) => ListTile(
-          leading: Icon(mode.icon),
-          title: Text(mode.label),
-          onTap: () {
-            setState(() => _localChat = _localChat.copyWith(chatMode: mode));
-            Navigator.pop(context);
-          },
-        )).toList(),
+        children: ChatMode.values
+            .map((mode) => ListTile(
+                  leading: Icon(mode.icon),
+                  title: Text(mode.label),
+                  onTap: () {
+                    setState(
+                        () => _localChat = _localChat.copyWith(chatMode: mode));
+                    Navigator.pop(context);
+                  },
+                ))
+            .toList(),
       ),
     );
   }
@@ -264,14 +275,17 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
       context: context,
       builder: (context) => ListView(
         shrinkWrap: true,
-        children: List.generate(4, (index) => ListTile(
-          leading: const Icon(Icons.palette),
-          title: Text("Theme ${index + 1}"),
-          onTap: () {
-            setState(() => _localChat = _localChat.copyWith(themeIndex: index));
-            Navigator.pop(context);
-          },
-        )),
+        children: List.generate(
+            4,
+            (index) => ListTile(
+                  leading: const Icon(Icons.palette),
+                  title: Text("Theme ${index + 1}"),
+                  onTap: () {
+                    setState(() =>
+                        _localChat = _localChat.copyWith(themeIndex: index));
+                    Navigator.pop(context);
+                  },
+                )),
       ),
     );
   }
@@ -281,14 +295,17 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
       context: context,
       builder: (context) => ListView(
         shrinkWrap: true,
-        children: DisappearingOption.values.map((opt) => ListTile(
-          leading: const Icon(Icons.timer),
-          title: Text(opt.label),
-          onTap: () {
-            setState(() => _localChat = _localChat.copyWith(disappearing: opt));
-            Navigator.pop(context);
-          },
-        )).toList(),
+        children: DisappearingOption.values
+            .map((opt) => ListTile(
+                  leading: const Icon(Icons.timer),
+                  title: Text(opt.label),
+                  onTap: () {
+                    setState(() =>
+                        _localChat = _localChat.copyWith(disappearing: opt));
+                    Navigator.pop(context);
+                  },
+                ))
+            .toList(),
       ),
     );
   }

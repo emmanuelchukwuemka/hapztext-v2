@@ -150,7 +150,9 @@ class _ChatsHomeState extends State<ChatsHome> {
     if (token != null) {
       _apiService.setToken(token);
       final result = await _apiService.getConversations(1, 20);
-      if (result != null && result['data'] != null && result['data']['result'] != null) {
+      if (result != null &&
+          result['data'] != null &&
+          result['data']['result'] != null) {
         setState(() {
           chats = (result['data']['result'] as List).map((c) {
             // Map API response to ChatItem model
@@ -160,12 +162,15 @@ class _ChatsHomeState extends State<ChatsHome> {
               (p) => p['id'] != context.read<AuthCubit>().useInfo.id,
               orElse: () => participants.first,
             );
-            
+
             return ChatItem(
               id: c['id'].toString(),
               name: otherUser['username'] ?? 'User',
-              lastMessage: c['last_message'] != null ? c['last_message']['text_content'] ?? '' : '',
-              unread: 0, // Backend might not provide unread count in this endpoint
+              lastMessage: c['last_message'] != null
+                  ? c['last_message']['text_content'] ?? ''
+                  : '',
+              unread:
+                  0, // Backend might not provide unread count in this endpoint
               chatMode: ChatMode.mixed,
             );
           }).toList();
@@ -177,7 +182,8 @@ class _ChatsHomeState extends State<ChatsHome> {
 
   void openChat(ChatItem chat) async {
     final result = await Navigator.of(context).push<ChatItem>(
-      MaterialPageRoute(builder: (_) => ChatScreen(chat: chat, apiService: _apiService)),
+      MaterialPageRoute(
+          builder: (_) => ChatScreen(chat: chat, apiService: _apiService)),
     );
     if (result != null) {
       _loadConversations(); // Refresh list on return
@@ -389,7 +395,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadMessages() async {
     setState(() => isLoading = true);
     final result = await widget.apiService.getMessages(chat.id, 1, 50);
-    if (result != null && result['data'] != null && result['data']['result'] != null) {
+    if (result != null &&
+        result['data'] != null &&
+        result['data']['result'] != null) {
       setState(() {
         messages.clear();
         messages.addAll((result['data']['result'] as List).map((m) {
@@ -428,22 +436,25 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendText() async {
     final txt = _controller.text.trim();
     if (txt.isEmpty) return;
-    
+
     final result = await widget.apiService.sendMessage(chat.id, txt);
     if (result != null && result['data'] != null) {
       final m = result['data'];
       setState(() {
-        messages.insert(0, Message(
-          id: m['id'].toString(),
-          text: m['text_content'] ?? '',
-          me: true,
-          timestamp: DateTime.parse(m['created_at']),
-        ));
+        messages.insert(
+            0,
+            Message(
+              id: m['id'].toString(),
+              text: m['text_content'] ?? '',
+              me: true,
+              timestamp: DateTime.parse(m['created_at']),
+            ));
         chat.lastMessage = 'You: $txt';
         _controller.clear();
       });
     } else {
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send message')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send message')));
     }
   }
 
@@ -473,17 +484,19 @@ class _ChatScreenState extends State<ChatScreen> {
     _recordTimer?.cancel();
     // TODO: Implement actual voice note recording and uploading
     final msgText = 'Voice note (${_formatDuration(_recordDuration)})';
-    
+
     setState(() {
       recordingMock = false;
       // We keep the optimistic UI update but without "(demo)" context
-      messages.insert(0, Message(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        text: msgText,
-        me: true,
-        isVoice: true,
-        timestamp: DateTime.now(),
-      ));
+      messages.insert(
+          0,
+          Message(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            text: msgText,
+            me: true,
+            isVoice: true,
+            timestamp: DateTime.now(),
+          ));
       chat.lastMessage = 'You: $msgText';
     });
   }
@@ -525,8 +538,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onTapMessage(Message m) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Open feed link: ${m.text}')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Open feed link: ${m.text}')));
     if (m.viewOnce && !m.viewed) {
       // show content then remove (simulate)
       showDialog(
@@ -820,15 +833,18 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.circle, color: Colors.red, size: 12),
+                                const Icon(Icons.circle,
+                                    color: Colors.red, size: 12),
                                 const SizedBox(width: 8),
                                 Text(_formatDuration(_recordDuration),
-                                    style: const TextStyle(color: Colors.white)),
+                                    style:
+                                        const TextStyle(color: Colors.white)),
                                 const Spacer(),
                                 GestureDetector(
                                   onTap: _cancelRecord,
                                   child: const Text("Cancel",
-                                      style: TextStyle(color: Colors.redAccent)),
+                                      style:
+                                          TextStyle(color: Colors.redAccent)),
                                 ),
                               ],
                             ),
@@ -1149,13 +1165,9 @@ class _ProfilePanelState extends State<ProfilePanel> {
                 children: [],
               ),
 
-              ListView(
-                  padding: const EdgeInsets.all(8),
-                  children: []),
+              ListView(padding: const EdgeInsets.all(8), children: []),
 
-              ListView(
-                  padding: const EdgeInsets.all(8),
-                  children: []),
+              ListView(padding: const EdgeInsets.all(8), children: []),
 
               // Settings (this includes Chat Mode)
               ListView(padding: const EdgeInsets.all(8), children: [
@@ -1206,8 +1218,7 @@ class _ProfilePanelState extends State<ProfilePanel> {
                     leading: const Icon(Icons.block),
                     title: Text('Block ${editing.name}'),
                     onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text('Blocked ${editing.name}')))),
+                        SnackBar(content: Text('Blocked ${editing.name}')))),
                 const SizedBox(height: 12),
                 Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),

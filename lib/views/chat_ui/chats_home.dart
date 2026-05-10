@@ -20,7 +20,7 @@ class _ChatsHomeState extends State<ChatsHome> {
   final HapzTextApiService _apiService = HapzTextApiService();
   late ChatApiService _chatApiService;
   List<ChatItem> _chats = [];
-  
+
   @override
   void initState() {
     super.initState();
@@ -48,12 +48,12 @@ class _ChatsHomeState extends State<ChatsHome> {
           // Merge or replace. For simplicity, we can append specific API chats
           // preventing duplicates if IDs clash
           for (var conv in conversations) {
-             final index = _chats.indexWhere((c) => c.id == conv.id);
-             if (index != -1) {
-               _chats[index] = conv;
-             } else {
-               _chats.add(conv);
-             }
+            final index = _chats.indexWhere((c) => c.id == conv.id);
+            if (index != -1) {
+              _chats[index] = conv;
+            } else {
+              _chats.add(conv);
+            }
           }
         });
       }
@@ -69,7 +69,8 @@ class _ChatsHomeState extends State<ChatsHome> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Messages", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Messages",
+            style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(icon: const Icon(Icons.search), onPressed: () {}),
           IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
@@ -102,7 +103,8 @@ class _ChatsHomeState extends State<ChatsHome> {
     );
   }
 
-  Widget _buildSectionHeader(String title, bool isExpanded, VoidCallback? onToggle) {
+  Widget _buildSectionHeader(
+      String title, bool isExpanded, VoidCallback? onToggle) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
       child: Row(

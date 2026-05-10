@@ -14,7 +14,8 @@ class XploreTab3 extends StatefulWidget {
 
 enum DiscoverState { idle, searching, connected }
 
-class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateMixin {
+class _XploreTab3State extends State<XploreTab3>
+    with SingleTickerProviderStateMixin {
   DiscoverState _state = DiscoverState.idle;
   late AnimationController _pulseController;
   bool _showActions = false;
@@ -24,7 +25,16 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
   final List<String> _messages = [];
   int _currentReaction = -1;
 
-  final List<String> _reactions = ["❤️", "😂", "🔥", "👍", "👏", "😮", "😢", "😡"];
+  final List<String> _reactions = [
+    "❤️",
+    "😂",
+    "🔥",
+    "👍",
+    "👏",
+    "😮",
+    "😢",
+    "😡"
+  ];
 
   @override
   void initState() {
@@ -122,11 +132,13 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.people_alt_outlined, size: 80, color: Colors.white24),
+          const Icon(Icons.people_alt_outlined,
+              size: 80, color: Colors.white24),
           const SizedBox(height: 24),
           const Text(
             "Discover Random People",
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -139,9 +151,12 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
               backgroundColor: const Color(0xFF8B5CF6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30)),
             ),
-            child: const Text("START CHATTING", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            child: const Text("START CHATTING",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ],
       ),
@@ -161,9 +176,11 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
                 height: 120,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF8B5CF6).withOpacity(0.2 * _pulseController.value),
+                  color: const Color(0xFF8B5CF6)
+                      .withOpacity(0.2 * _pulseController.value),
                   border: Border.all(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.5 * _pulseController.value),
+                    color: const Color(0xFF8B5CF6)
+                        .withOpacity(0.5 * _pulseController.value),
                     width: 2,
                   ),
                 ),
@@ -174,7 +191,8 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
           const SizedBox(height: 32),
           const Text(
             "Searching...",
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -184,7 +202,9 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
           const SizedBox(height: 40),
           TextButton(
             onPressed: _cancelSearching,
-            child: const Text("CANCEL", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            child: const Text("CANCEL",
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -202,10 +222,19 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircleAvatar(radius: 60, backgroundColor: Colors.white10, child: Icon(Icons.person_search, size: 60, color: Colors.white24)),
+                  CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.white10,
+                      child: Icon(Icons.person_search,
+                          size: 60, color: Colors.white24)),
                   SizedBox(height: 16),
-                  Text("Looking for someone...", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                  Text("Random discovery is active", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                  Text("Looking for someone...",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold)),
+                  Text("Random discovery is active",
+                      style: TextStyle(color: Colors.white70, fontSize: 16)),
                 ],
               ),
             ),
@@ -233,9 +262,14 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
           right: 20,
           child: Row(
             children: [
-              Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+              Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                      color: Colors.green, shape: BoxShape.circle)),
               const SizedBox(width: 8),
-              const Text("Excellent", style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const Text("Excellent",
+                  style: TextStyle(color: Colors.white70, fontSize: 12)),
             ],
           ),
         ),
@@ -253,7 +287,8 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white10),
             ),
-            child: const Center(child: Icon(Icons.videocam_off, color: Colors.white10)),
+            child: const Center(
+                child: Icon(Icons.videocam_off, color: Colors.white10)),
           ),
         ),
 
@@ -273,7 +308,8 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Column(
                     children: [
@@ -282,7 +318,8 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
                           itemCount: _messages.length,
                           itemBuilder: (context, index) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Text(_messages[index], style: const TextStyle(color: Colors.white)),
+                            child: Text(_messages[index],
+                                style: const TextStyle(color: Colors.white)),
                           ),
                         ),
                       ),
@@ -291,7 +328,8 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
                           Expanded(
                             child: TextField(
                               controller: _msgController,
-                              style: const TextStyle(color: Colors.white, fontSize: 14),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 14),
                               decoration: const InputDecoration(
                                 hintText: "Say hi...",
                                 hintStyle: TextStyle(color: Colors.white24),
@@ -301,7 +339,8 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
                             ),
                           ),
                           IconButton(
-                              icon: const Icon(Icons.send, color: Color(0xFF8B5CF6)),
+                              icon: const Icon(Icons.send,
+                                  color: Color(0xFF8B5CF6)),
                               onPressed: _sendMessage),
                         ],
                       ),
@@ -323,20 +362,30 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
                 // Reactions
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: _reactions.asMap().entries.map((e) => _reactionIcon(e.key, e.value)).toList(),
+                  children: _reactions
+                      .asMap()
+                      .entries
+                      .map((e) => _reactionIcon(e.key, e.value))
+                      .toList(),
                 ),
                 const SizedBox(height: 20),
                 // Main Controls
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _mainControl(Icons.chat_bubble_outline, _showChat ? const Color(0xFF8B5CF6) : Colors.white10, onTap: _toggleChat),
+                    _mainControl(Icons.chat_bubble_outline,
+                        _showChat ? const Color(0xFF8B5CF6) : Colors.white10,
+                        onTap: _toggleChat),
                     const SizedBox(width: 16),
-                    _mainControl(Icons.skip_next, Colors.white10, onTap: _nextConnection),
+                    _mainControl(Icons.skip_next, Colors.white10,
+                        onTap: _nextConnection),
                     const SizedBox(width: 16),
-                    _mainControl(Icons.flag_outlined, Colors.red.withOpacity(0.1), iconColor: Colors.red, onTap: _reportUser),
+                    _mainControl(
+                        Icons.flag_outlined, Colors.red.withOpacity(0.1),
+                        iconColor: Colors.red, onTap: _reportUser),
                     const SizedBox(width: 16),
-                    _mainControl(Icons.call_end, Colors.red, iconColor: Colors.white, onTap: _cancelSearching),
+                    _mainControl(Icons.call_end, Colors.red,
+                        iconColor: Colors.white, onTap: _cancelSearching),
                   ],
                 ),
               ],
@@ -368,7 +417,9 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
         color: color,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+      child: Text(text,
+          style: const TextStyle(
+              color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -379,14 +430,17 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
         onTap: () => setState(() => _currentReaction = index),
         child: CircleAvatar(
           radius: 20,
-          backgroundColor: _currentReaction == index ? const Color(0xFF8B5CF6) : Colors.white.withOpacity(0.1),
+          backgroundColor: _currentReaction == index
+              ? const Color(0xFF8B5CF6)
+              : Colors.white.withOpacity(0.1),
           child: Text(emoji, style: const TextStyle(fontSize: 20)),
         ),
       ),
     );
   }
 
-  Widget _mainControl(IconData icon, Color bgColor, {Color iconColor = Colors.white, VoidCallback? onTap}) {
+  Widget _mainControl(IconData icon, Color bgColor,
+      {Color iconColor = Colors.white, VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: CircleAvatar(
@@ -405,7 +459,8 @@ class _XploreTab3State extends State<XploreTab3> with SingleTickerProviderStateM
           child: Icon(icon, color: Colors.white),
         ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+        Text(label,
+            style: const TextStyle(color: Colors.white70, fontSize: 10)),
       ],
     );
   }

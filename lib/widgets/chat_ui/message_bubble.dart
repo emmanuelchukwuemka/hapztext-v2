@@ -83,10 +83,12 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final bubbleGradient = AppThemes.getBubbleGradient(widget.themeIndex, widget.message.me);
-    
+    final bubbleGradient =
+        AppThemes.getBubbleGradient(widget.themeIndex, widget.message.me);
+
     return Align(
-      alignment: widget.message.me ? Alignment.centerRight : Alignment.centerLeft,
+      alignment:
+          widget.message.me ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
         onTap: widget.onTap,
         onLongPress: () => _showMessageMenu(context),
@@ -97,35 +99,41 @@ class _MessageBubbleState extends State<MessageBubble> {
           ),
           padding: const EdgeInsets.all(AppConstants.messagePadding),
           decoration: BoxDecoration(
-            gradient: widget.message.isEmoji ? null : LinearGradient(
-              colors: bubbleGradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: widget.message.isEmoji
+                ? null
+                : LinearGradient(
+                    colors: bubbleGradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             color: widget.message.isEmoji ? Colors.transparent : null,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(AppConstants.bubbleRadius),
               topRight: const Radius.circular(AppConstants.bubbleRadius),
-              bottomLeft: Radius.circular(widget.message.me ? AppConstants.bubbleRadius : 4),
-              bottomRight: Radius.circular(widget.message.me ? 4 : AppConstants.bubbleRadius),
+              bottomLeft: Radius.circular(
+                  widget.message.me ? AppConstants.bubbleRadius : 4),
+              bottomRight: Radius.circular(
+                  widget.message.me ? 4 : AppConstants.bubbleRadius),
             ),
-            boxShadow: widget.message.isEmoji ? [] : [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            boxShadow: widget.message.isEmoji
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
           ),
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.78,
           ),
           child: Column(
-            crossAxisAlignment:
-                widget.message.me ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment: widget.message.me
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
-              if (widget.message.isReply) 
-                _buildReplySection(),
+              if (widget.message.isReply) _buildReplySection(),
               if (widget.message.isVoice)
                 _buildVoiceMessage()
               else if (widget.message.isImage)
@@ -154,7 +162,8 @@ class _MessageBubbleState extends State<MessageBubble> {
                     if (widget.message.disappearing)
                       const Padding(
                         padding: EdgeInsets.only(left: 6, bottom: 2),
-                        child: Icon(Icons.timer, size: 14, color: Colors.white70),
+                        child:
+                            Icon(Icons.timer, size: 14, color: Colors.white70),
                       ),
                   ],
                 ),
@@ -174,7 +183,9 @@ class _MessageBubbleState extends State<MessageBubble> {
                     Icon(
                       widget.message.viewed ? Icons.done_all : Icons.done,
                       size: 14,
-                      color: widget.message.viewed ? Colors.blueAccent.shade100 : Colors.white54,
+                      color: widget.message.viewed
+                          ? Colors.blueAccent.shade100
+                          : Colors.white54,
                     ),
                   ],
                 ],
@@ -264,14 +275,17 @@ class _MessageBubbleState extends State<MessageBubble> {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white),
+          icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow,
+              color: Colors.white),
           onPressed: _playPauseAudio,
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Slider(
             value: _position.inSeconds.toDouble(),
-            max: _duration.inSeconds.toDouble() > 0 ? _duration.inSeconds.toDouble() : 1.0,
+            max: _duration.inSeconds.toDouble() > 0
+                ? _duration.inSeconds.toDouble()
+                : 1.0,
             onChanged: (value) async {
               final position = Duration(seconds: value.toInt());
               await _audioPlayer.seek(position);
@@ -312,33 +326,33 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   Widget _buildImageMessage() {
-    return widget.message.imageUrl != null 
-      ? ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            widget.message.imageUrl!,
-            width: 200,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Container(
-                width: 200,
-                height: 150,
-                alignment: Alignment.center,
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded / 
-                        loadingProgress.expectedTotalBytes!
-                      : null,
-                  color: Colors.white,
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) => 
-               const Icon(Icons.broken_image, color: Colors.white, size: 50),
-          ),
-        )
-      : const Icon(Icons.image_not_supported, color: Colors.white);
+    return widget.message.imageUrl != null
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              widget.message.imageUrl!,
+              width: 200,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  width: 200,
+                  height: 150,
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                    color: Colors.white,
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.broken_image, color: Colors.white, size: 50),
+            ),
+          )
+        : const Icon(Icons.image_not_supported, color: Colors.white);
   }
 
   Widget _buildViewOnceMessage() {
@@ -392,7 +406,8 @@ class _MessageBubbleState extends State<MessageBubble> {
               SizedBox(width: 8),
               Text(
                 "View on Feed",
-                style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.blueAccent, fontWeight: FontWeight.bold),
               ),
             ],
           ),

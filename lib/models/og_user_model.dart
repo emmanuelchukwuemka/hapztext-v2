@@ -1,5 +1,3 @@
- 
-
 class UserModel {
   int? id;
   String? firstname;
@@ -18,10 +16,22 @@ class UserModel {
   List? followers;
   // List? friends;
 
-  UserModel({this.firstname, this.lastname, this.birthday,
-    this.role, this.height, this.weight, this.ethnicity,
-    this.relationshipStatus, this.user, this.tagname, this.id,
-    this.followers, this.following, this.image, this.bio});
+  UserModel(
+      {this.firstname,
+      this.lastname,
+      this.birthday,
+      this.role,
+      this.height,
+      this.weight,
+      this.ethnicity,
+      this.relationshipStatus,
+      this.user,
+      this.tagname,
+      this.id,
+      this.followers,
+      this.following,
+      this.image,
+      this.bio});
 
   UserModel.fromJson(Map<String, dynamic> json) {
     id = json["id"];

@@ -20,7 +20,8 @@ class ProfileVideoTab extends StatelessWidget {
       itemBuilder: (BuildContext context, int index) => Container(
         color: Colors.black12,
         child: const Center(
-          child: Icon(Icons.play_circle_outline, color: Colors.white54, size: 30),
+          child:
+              Icon(Icons.play_circle_outline, color: Colors.white54, size: 30),
         ),
       ),
     );

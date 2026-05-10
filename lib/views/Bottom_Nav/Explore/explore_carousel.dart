@@ -20,7 +20,7 @@ class _ExploreCarouselState extends State<ExploreCarousel> {
   Widget build(BuildContext context) {
     final watchHome = context.watch<HomeCubit>();
     Iterable<ResultPostModel> rawPosts = [];
-    
+
     if (widget.title == "Trending") {
       rawPosts = watchHome.trendingPosts.result ?? [];
     } else if (widget.title == "Most Liked") {
@@ -77,7 +77,11 @@ class _ExploreCarouselState extends State<ExploreCarousel> {
             itemCount: posts.length > 9 ? 9 : posts.length,
             itemBuilder: (context, index) {
               // Simulate different heights for masonry effect
-              double height = (index % 3 == 0) ? 180 : (index % 3 == 1) ? 240 : 150;
+              double height = (index % 3 == 0)
+                  ? 180
+                  : (index % 3 == 1)
+                      ? 240
+                      : 150;
               return SocialPostCard(
                 height: height,
                 isTrending: index == 0,
@@ -97,7 +101,8 @@ class SocialPostCard extends StatelessWidget {
   final bool isTrending;
   final ResultPostModel? post;
 
-  const SocialPostCard({super.key, required this.height, this.isTrending = false, this.post});
+  const SocialPostCard(
+      {super.key, required this.height, this.isTrending = false, this.post});
 
   @override
   Widget build(BuildContext context) {
@@ -121,20 +126,25 @@ class SocialPostCard extends StatelessWidget {
               Positioned.fill(
                 child: Container(
                   color: Colors.white.withOpacity(0.05),
-                  child: post?.mediaFiles != null && post!.mediaFiles!.isNotEmpty
-                      ? AppNetwokImage(
-                          height: height,
-                          width: double.infinity,
-                          imageUrl: post!.mediaFiles!.first.imageFile ?? post!.mediaFiles!.first.videoFile ?? "",
-                          fit: BoxFit.cover,
-                        )
-                      : Center(
-                          child: Icon(
-                            post?.postFormat == 'video' ? Icons.play_circle_outline : Icons.image_outlined,
-                            color: Colors.white24,
-                            size: 30,
-                          ),
-                        ),
+                  child:
+                      post?.mediaFiles != null && post!.mediaFiles!.isNotEmpty
+                          ? AppNetwokImage(
+                              height: height,
+                              width: double.infinity,
+                              imageUrl: post!.mediaFiles!.first.imageFile ??
+                                  post!.mediaFiles!.first.videoFile ??
+                                  "",
+                              fit: BoxFit.cover,
+                            )
+                          : Center(
+                              child: Icon(
+                                post?.postFormat == 'video'
+                                    ? Icons.play_circle_outline
+                                    : Icons.image_outlined,
+                                color: Colors.white24,
+                                size: 30,
+                              ),
+                            ),
                 ),
               ),
 
@@ -144,7 +154,8 @@ class SocialPostCard extends StatelessWidget {
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(4),
@@ -184,12 +195,18 @@ class SocialPostCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _MetricItem(
-                            icon: post?.currentUserReaction != null ? Icons.favorite : Icons.favorite_border,
-                            count: "${post?.replyCount ?? 0}", // Assuming replyCount or likes? The model doesn't have likeCount directly but has currentUserReaction
-                            color: post?.currentUserReaction != null ? Colors.red : Colors.white,
+                            icon: post?.currentUserReaction != null
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            count:
+                                "${post?.replyCount ?? 0}", // Assuming replyCount or likes? The model doesn't have likeCount directly but has currentUserReaction
+                            color: post?.currentUserReaction != null
+                                ? Colors.red
+                                : Colors.white,
                             onTap: () {
                               if (post?.id != null) {
-                                context.read<HomeCubit>().reactToPost(postId: post!.id, reaction: 'like');
+                                context.read<HomeCubit>().reactToPost(
+                                    postId: post!.id, reaction: 'like');
                               }
                             },
                           ),
@@ -198,7 +215,9 @@ class SocialPostCard extends StatelessWidget {
                             count: "${post?.shareCount ?? 0}",
                             onTap: () {
                               if (post?.id != null) {
-                                context.read<HomeCubit>().sharePost(postId: post!.id);
+                                context
+                                    .read<HomeCubit>()
+                                    .sharePost(postId: post!.id);
                               }
                             },
                           ),
@@ -207,7 +226,8 @@ class SocialPostCard extends StatelessWidget {
                             count: "${post?.replyCount ?? 0}",
                             onTap: () {
                               if (post != null) {
-                                context.push(RouteName.innerPost.path, extra: post);
+                                context.push(RouteName.innerPost.path,
+                                    extra: post);
                               }
                             },
                           ),
@@ -231,7 +251,11 @@ class _MetricItem extends StatelessWidget {
   final Color color;
   final VoidCallback? onTap;
 
-  const _MetricItem({required this.icon, required this.count, this.color = Colors.white, this.onTap});
+  const _MetricItem(
+      {required this.icon,
+      required this.count,
+      this.color = Colors.white,
+      this.onTap});
 
   @override
   Widget build(BuildContext context) {

@@ -39,7 +39,8 @@ class _FollowingPageState extends State<FollowingPage> {
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                  bottom:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                 ),
               ),
               child: TabBar(

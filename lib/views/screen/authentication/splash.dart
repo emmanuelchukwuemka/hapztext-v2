@@ -2,9 +2,11 @@
 
 import 'package:haptext_api/bloc/auth/cubit/auth_cubit.dart';
 import 'package:haptext_api/exports.dart';
+import 'package:haptext_api/models/user_infor_model.dart';
 import 'package:haptext_api/utils/session_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:haptext_api/services/chat_ui/auth_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -18,21 +20,39 @@ class _SplashPageState extends State<SplashPage> {
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future.delayed(const Duration(seconds: 3));
-      final storedUser = await SessionManager.getUser();
-      if (storedUser != null) {
-        context.read<AuthCubit>().fetchLocalUser();
-        final token = await SessionManager().getToken();
+      final client = Supabase.instance.client;
+      final session = client.auth.currentSession;
+      final supabaseUser = client.auth.currentUser;
 
-        // Sync token to chat AuthProvider
-        if (token != null && token.isNotEmpty) {
-          final authProvider = context.read<AuthProvider>();
-          authProvider.setTokenFromSession(token, storedUser.id?.toString());
-        }
+      final expiresAt = session?.expiresAt;
+      final isExpired = expiresAt != null
+          ? DateTime.now().isAfter(
+              DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000),
+            )
+          : false;
 
-        context.go(RouteName.bottomNav.path);
-      } else {
+      if (session == null || supabaseUser == null || isExpired) {
+        await SessionManager.deleteUser();
+        await SessionManager().deleteToken();
+        await context.read<AuthProvider>().logout();
         context.go(RouteName.login.path);
+        return;
       }
+
+      final effectiveUser = UserInfoModel(
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        username: (supabaseUser.userMetadata?['username'] as String?),
+        tokens: Tokens(auth: session.accessToken),
+      );
+
+      await SessionManager.storeUser(effectiveUser);
+      await SessionManager().storeToken(session.accessToken);
+      context.read<AuthCubit>().fetchLocalUser();
+      context
+          .read<AuthProvider>()
+          .setTokenFromSession(session.accessToken, supabaseUser.id);
+      context.go(RouteName.bottomNav.path);
     });
     super.initState();
   }

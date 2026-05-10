@@ -20,7 +20,6 @@ import 'package:haptext_api/services/chat_ui/auth_provider.dart';
 
 // ... (existing imports, no change)
 
-
 class ChatScreen extends StatefulWidget {
   final ChatItem chat;
 
@@ -49,73 +48,76 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _chat = widget.chat;
     _chatApiService = ChatApiService(_apiService);
-    
+
     // Inject auth token
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       if (authProvider.currentUserToken != null) {
         _apiService.setToken(authProvider.currentUserToken!);
         _apiService.currentUserId = authProvider.currentUserId;
-        
+
         // Connect to WebSocket
         _chatApiService.connectToWebSocket(_chat.id);
-        
+
         // Listen for new messages
         if (_chatApiService.messageStream != null) {
-          _msgSubscription = _chatApiService.messageStream!.listen((newMessage) {
+          _msgSubscription =
+              _chatApiService.messageStream!.listen((newMessage) {
             if (mounted) {
-               setState(() {
-                  // Deduplicate: check if ID exists (e.g. from local add)
-                  final existingIndex = _messages.indexWhere((m) => m.id == newMessage.id);
-                  if (existingIndex != -1) {
-                    _messages[existingIndex] = newMessage; // Update with server data
-                  } else {
-                    _messages.add(newMessage);
-                  }
-                  _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-               });
-               _markAsRead([newMessage]);
+              setState(() {
+                // Deduplicate: check if ID exists (e.g. from local add)
+                final existingIndex =
+                    _messages.indexWhere((m) => m.id == newMessage.id);
+                if (existingIndex != -1) {
+                  _messages[existingIndex] =
+                      newMessage; // Update with server data
+                } else {
+                  _messages.add(newMessage);
+                }
+                _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+              });
+              _markAsRead([newMessage]);
             }
           });
         }
-        
+
         // Listen for typing events
         if (_chatApiService.typingStream != null) {
           _typingSubscription = _chatApiService.typingStream!.listen((data) {
-             if (mounted) {
-               final isTyping = data['is_typing'] == true;
-               final username = data['username'] ?? 'Someone';
-               setState(() {
-                 _typingUser = isTyping ? "$username is typing..." : null;
-               });
-             }
+            if (mounted) {
+              final isTyping = data['is_typing'] == true;
+              final username = data['username'] ?? 'Someone';
+              setState(() {
+                _typingUser = isTyping ? "$username is typing..." : null;
+              });
+            }
           });
         }
-        
+
         // Listen for read receipts
         if (_chatApiService.readReceiptStream != null) {
           _readSubscription = _chatApiService.readReceiptStream!.listen((data) {
-             if (mounted) {
-               final messageIds = List<String>.from(data['message_ids'] ?? []);
-               setState(() {
-                 for (var msg in _messages) {
-                   if (msg.me && messageIds.contains(msg.id)) {
-                      // We can't update 'final' fields in Message directly if it's immutable
-                      // Need to replace the message in the list
-                      final index = _messages.indexOf(msg);
-                      _messages[index] = msg.copyWith(viewed: true);
-                   }
-                 }
-               });
-             }
+            if (mounted) {
+              final messageIds = List<String>.from(data['message_ids'] ?? []);
+              setState(() {
+                for (var msg in _messages) {
+                  if (msg.me && messageIds.contains(msg.id)) {
+                    // We can't update 'final' fields in Message directly if it's immutable
+                    // Need to replace the message in the list
+                    final index = _messages.indexOf(msg);
+                    _messages[index] = msg.copyWith(viewed: true);
+                  }
+                }
+              });
+            }
           });
         }
       }
-      
+
       // Load messages from API in the background
       _loadMessagesFromApi();
     });
-    
+
     // Initialize with empty list and load from API
     _messages = [];
   }
@@ -141,7 +143,8 @@ class _ChatScreenState extends State<ChatScreen> {
   // Load messages from the HapzText API
   Future<void> _loadMessagesFromApi() async {
     try {
-      final apiMessages = await _chatApiService.getConversationMessages(_chat.id);
+      final apiMessages =
+          await _chatApiService.getConversationMessages(_chat.id);
       if (mounted) {
         setState(() {
           // Replace dummy messages with API messages
@@ -157,10 +160,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _markAsRead(List<Message> messages) {
-    final unreadFromOthers = messages
-        .where((m) => !m.me && !m.viewed)
-        .map((m) => m.id)
-        .toList();
+    final unreadFromOthers =
+        messages.where((m) => !m.me && !m.viewed).map((m) => m.id).toList();
 
     if (unreadFromOthers.isNotEmpty) {
       _chatApiService.markMessagesAsRead(_chat.id, unreadFromOthers);
@@ -203,7 +204,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       if (message.isVoice && message.audioPath != null) {
         await _chatApiService.sendMessage(
-          _chat.id, 
+          _chat.id,
           message.text, // "Voice Note" usually
           file: File(message.audioPath!),
           messageType: 'audio',
@@ -212,7 +213,7 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       } else {
         await _chatApiService.sendMessage(
-          _chat.id, 
+          _chat.id,
           message.text,
           isReply: message.isReply,
           previousMessageId: message.previousMessageId,
@@ -268,12 +269,12 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.videocam), 
+              icon: const Icon(Icons.videocam),
               onPressed: () => _startVideoCall(),
               tooltip: 'Video Call',
             ),
             IconButton(
-              icon: const Icon(Icons.call), 
+              icon: const Icon(Icons.call),
               onPressed: () => _startVoiceCall(),
               tooltip: 'Voice Call',
             ),
@@ -374,7 +375,8 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               if (_typingUser != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Row(
                     children: [
                       const SizedBox(
@@ -404,7 +406,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   });
                 },
                 onSendText: (text, {isEmoji = false}) {
-                  _chatApiService.sendTyping(false); // Stop typing immediately on send
+                  _chatApiService
+                      .sendTyping(false); // Stop typing immediately on send
                   final bool willViewOnce = _isWithinAutoClearWindow();
                   final bool willDisappear =
                       _chat.disappearing == DisappearingOption.fiveSeconds;
@@ -419,7 +422,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     isReply: _replyMessage != null,
                     previousMessageId: _replyMessage?.id,
                     previousMessageContent: _replyMessage?.text,
-                    previousMessageSenderId: _replyMessage?.me == true ? "You" : "Someone",
+                    previousMessageSenderId:
+                        _replyMessage?.me == true ? "You" : "Someone",
                   ));
                 },
                 onStartVoice: _startVoiceRecording,
@@ -439,7 +443,8 @@ class _ChatScreenState extends State<ChatScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text("View Once Message"),
-          content: const Text("This message will disappear after you close it."),
+          content:
+              const Text("This message will disappear after you close it."),
           actions: [
             TextButton(
               onPressed: () {
@@ -472,7 +477,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-
   void _startVideoCall() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -483,7 +487,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
 
   void _quickChangeMode(String modeString) {
     ChatMode newMode;
@@ -503,11 +506,11 @@ class _ChatScreenState extends State<ChatScreen> {
       default:
         return;
     }
-    
+
     setState(() {
       _chat = _chat.copyWith(chatMode: newMode);
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('🔄 Chat mode changed to ${newMode.label}'),
@@ -522,7 +525,9 @@ class _ChatScreenState extends State<ChatScreen> {
       if (status != PermissionStatus.granted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Microphone permission is required to record voice notes')),
+            const SnackBar(
+                content: Text(
+                    'Microphone permission is required to record voice notes')),
           );
         }
         return;
@@ -530,16 +535,17 @@ class _ChatScreenState extends State<ChatScreen> {
 
       if (await _audioRecorder.hasPermission()) {
         String? filePath;
-        
+
         if (!kIsWeb) {
           final Directory appDir = await getApplicationDocumentsDirectory();
-          filePath = '${appDir.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
+          filePath =
+              '${appDir.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
         }
-        
+
         _currentRecordingPath = filePath;
-        
+
         await _audioRecorder.start(const RecordConfig(), path: filePath ?? '');
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -558,15 +564,16 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _stopVoiceRecording() async {
     try {
       final String? path = await _audioRecorder.stop();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
       }
 
       if (path != null) {
         final bool willViewOnce = _isWithinAutoClearWindow();
-        final bool willDisappear = _chat.disappearing == DisappearingOption.fiveSeconds;
-        
+        final bool willDisappear =
+            _chat.disappearing == DisappearingOption.fiveSeconds;
+
         _addMessage(Message(
           id: DateTime.now().toString(),
           text: "Voice Note",
@@ -578,8 +585,11 @@ class _ChatScreenState extends State<ChatScreen> {
           audioPath: path,
           isReply: _replyMessage != null,
           previousMessageId: _replyMessage?.id,
-          previousMessageContent: _replyMessage?.isVoice == true ? "Voice Note" : _replyMessage?.text,
-          previousMessageSenderId: _replyMessage?.me == true ? "You" : "Someone",
+          previousMessageContent: _replyMessage?.isVoice == true
+              ? "Voice Note"
+              : _replyMessage?.text,
+          previousMessageSenderId:
+              _replyMessage?.me == true ? "You" : "Someone",
         ));
       }
     } catch (e) {

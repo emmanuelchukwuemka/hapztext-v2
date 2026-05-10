@@ -19,7 +19,8 @@ class HomeCubit extends Cubit<HomeState> {
   fetchPosts({String? feedType, String? query}) async {
     emit(HomeLoading());
     try {
-      final response = await homeRepo.fetchPost(page: page, feedType: feedType, query: query);
+      final response = await homeRepo.fetchPost(
+          page: page, feedType: feedType, query: query);
       final body = jsonDecode(response.body);
       if (response.statusCode == 200) {
         final newPosts = PostModel.fromJson(body['data']);
@@ -42,7 +43,8 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  commentOnPost({ResultPostModel? post, postId, comment, File? audioFile}) async {
+  commentOnPost(
+      {ResultPostModel? post, postId, comment, File? audioFile}) async {
     emit(PostCommenting());
     try {
       final response = await homeRepo.commentOnPost(
@@ -131,21 +133,27 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   reactToPost({postId, reaction}) async {
-    emit(HomeLoading());
+    // Optimistic update — find the post and toggle reaction immediately
+    final idx = posts.result?.indexWhere((p) => p.id == postId) ?? -1;
+    if (idx != -1) {
+      final post = posts.result![idx];
+      final wasLiked = post.currentUserReaction == reaction;
+      post.currentUserReaction = wasLiked ? null : reaction;
+      post.likeCount = (post.likeCount ?? 0) + (wasLiked ? -1 : 1);
+      emit(PostReact());
+    }
     try {
       final response = await homeRepo.reactPost(id: postId, reaction: reaction);
       final body = jsonDecode(response.body);
-      if (response.statusCode == 201) {
-        emit(PostReact());
-        fetchPosts();
-      } else {
+      if (response.statusCode != 201) {
+        // Revert optimistic update on failure
         ToastMessage.showErrorToast(
             message: body["errors"]["detail"].toString());
-        emit(HomeError());
+        fetchPosts();
       }
     } catch (e) {
-      emit(HomeError());
       log("react post $e");
+      fetchPosts();
     }
   }
 

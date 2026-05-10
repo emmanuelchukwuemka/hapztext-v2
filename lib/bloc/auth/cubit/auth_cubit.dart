@@ -9,6 +9,7 @@ import 'package:haptext_api/network/api_constants.dart';
 import 'package:haptext_api/repository/auth_repo/auth_repo.dart';
 import 'package:haptext_api/repository/profile_repo/profile_repo.dart';
 import 'package:haptext_api/utils/session_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 part 'auth_state.dart';
 
@@ -22,7 +23,7 @@ class AuthCubit extends Cubit<AuthState> {
   final passwordController = TextEditingController();
   final passwordConfirmController = TextEditingController();
   final otpController = TextEditingController();
-  
+
   final locationController = TextEditingController();
   final occupationController = TextEditingController();
   final birthDateController = TextEditingController();
@@ -30,19 +31,46 @@ class AuthCubit extends Cubit<AuthState> {
   String? selectedRelationshipStatus;
   File? profileImage;
 
+  String _extractErrorMessage(dynamic body, {String fallback = 'Request failed'}) {
+    try {
+      if (body is Map) {
+        final errors = body['errors'];
+        if (errors is Map && errors['detail'] != null) {
+          final detail = errors['detail'].toString().trim();
+          if (detail.isNotEmpty) return detail;
+        }
+        if (body['message'] != null) {
+          final message = body['message'].toString().trim();
+          if (message.isNotEmpty) return message;
+        }
+      }
+    } catch (_) {}
+    return fallback;
+  }
+
   registerUser() async {
     emit(AuthLoadingState());
     try {
       final streamedResponse = await authRepo.registerUser(
           username: usernameController.text,
           email: emailController.text,
-          firstName: firstNameController.text.isNotEmpty ? firstNameController.text : null,
-          lastName: lastNameController.text.isNotEmpty ? lastNameController.text : null,
+          firstName: firstNameController.text.isNotEmpty
+              ? firstNameController.text
+              : null,
+          lastName: lastNameController.text.isNotEmpty
+              ? lastNameController.text
+              : null,
           gender: selectedGender,
-          birthDate: birthDateController.text.isNotEmpty ? birthDateController.text : null,
-          location: locationController.text.isNotEmpty ? locationController.text : null,
+          birthDate: birthDateController.text.isNotEmpty
+              ? birthDateController.text
+              : null,
+          location: locationController.text.isNotEmpty
+              ? locationController.text
+              : null,
           relationshipStatus: selectedRelationshipStatus,
-          occupation: occupationController.text.isNotEmpty ? occupationController.text : null,
+          occupation: occupationController.text.isNotEmpty
+              ? occupationController.text
+              : null,
           profilePicture: profileImage,
           password: passwordController.text,
           passwordConfirm: passwordConfirmController.text);
@@ -58,7 +86,7 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthLoginState());
       } else {
         ToastMessage.showErrorToast(
-            message: body["errors"]["detail"].toString());
+            message: _extractErrorMessage(body, fallback: 'Registration failed'));
         emit(AuthErrorState());
       }
     } catch (e) {
@@ -79,10 +107,11 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthEmailVerifiedState());
       } else {
         ToastMessage.showErrorToast(
-            message: body["errors"]["detail"].toString());
+            message: _extractErrorMessage(body, fallback: 'Verification failed'));
         emit(AuthErrorState());
       }
     } catch (e) {
+      ToastMessage.showErrorToast(message: "Verification failed: $e");
       emit(AuthErrorState());
       log("verify otp $e");
     }
@@ -99,10 +128,11 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthVerifyOtpSentState());
       } else {
         ToastMessage.showErrorToast(
-            message: body["errors"]["detail"].toString());
+            message: _extractErrorMessage(body, fallback: 'Unable to send OTP'));
         emit(AuthErrorState());
       }
     } catch (e) {
+      ToastMessage.showErrorToast(message: "Unable to send OTP: $e");
       emit(AuthErrorState());
       log("request verify otp $e");
     }
@@ -123,15 +153,16 @@ class AuthCubit extends Cubit<AuthState> {
         SessionManager().storeToken(bearerToken);
         emit(AuthLoginState());
       } else {
-        if (body["errors"]["detail"].toString().contains("is not verified")) {
+        final errorDetail = _extractErrorMessage(body, fallback: 'Login failed');
+        if (errorDetail.contains("is not verified")) {
           verifyEmailRequest();
         } else {
-          ToastMessage.showErrorToast(
-              message: body["errors"]["detail"].toString());
+          ToastMessage.showErrorToast(message: errorDetail);
           emit(AuthErrorState());
         }
       }
     } catch (e) {
+      ToastMessage.showErrorToast(message: "Login failed: $e");
       emit(AuthErrorState());
       log("Login $e");
     }
@@ -149,10 +180,12 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthResetPasswordOtpState());
       } else {
         ToastMessage.showErrorToast(
-            message: body["errors"]["detail"].toString());
+            message:
+                _extractErrorMessage(body, fallback: 'Password reset failed'));
         emit(AuthErrorState());
       }
     } catch (e) {
+      ToastMessage.showErrorToast(message: "Password reset failed: $e");
       emit(AuthErrorState());
       log("verify otp $e");
     }
@@ -173,10 +206,12 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthResetPasswordSucess());
       } else {
         ToastMessage.showErrorToast(
-            message: body["errors"]["detail"].toString());
+            message:
+                _extractErrorMessage(body, fallback: 'Password reset failed'));
         emit(AuthErrorState());
       }
     } catch (e) {
+      ToastMessage.showErrorToast(message: "Password reset failed: $e");
       emit(AuthErrorState());
       log("confirm reset Password $e");
     }
@@ -194,10 +229,12 @@ class AuthCubit extends Cubit<AuthState> {
       } else {
         final body = jsonDecode(response.body);
         ToastMessage.showErrorToast(
-            message: body["errors"]["detail"].toString());
+            message:
+                _extractErrorMessage(body, fallback: 'Unable to load profile'));
         emit(AuthErrorState());
       }
     } catch (e) {
+      ToastMessage.showErrorToast(message: "Unable to load profile: $e");
       emit(AuthErrorState());
       log("user Profile $e");
     }
@@ -211,9 +248,11 @@ class AuthCubit extends Cubit<AuthState> {
         useInfo = storedUser;
         emit(AuthLoadedState());
       } else {
+        ToastMessage.showErrorToast(message: 'Not logged in');
         emit(AuthErrorState());
       }
     } catch (e) {
+      ToastMessage.showErrorToast(message: "Unable to restore session: $e");
       emit(AuthErrorState());
       log("local user $e");
     }
@@ -221,6 +260,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   logout() async {
     try {
+      await Supabase.instance.client.auth.signOut();
       await SessionManager.deleteUser();
       await SessionManager().deleteToken();
       bearerToken = '';

@@ -1,5 +1,3 @@
-
-
 class Video {
   final String username;
   final String uid;
@@ -28,18 +26,18 @@ class Video {
   });
 
   Map<String, dynamic> toJson() => {
-    "username": username,
-    "uid": uid,
-    "id": id,
-    "likes": likes,
-    "commentCount": commentCount,
-    "shareCount": shareCount,
-    "title": title,
-    "caption": caption,
-    "videoUrl": videoUrl,
-    "thumbnail": thumbnail,
-    "profilePhoto": profilePhoto,
-  };
+        "username": username,
+        "uid": uid,
+        "id": id,
+        "likes": likes,
+        "commentCount": commentCount,
+        "shareCount": shareCount,
+        "title": title,
+        "caption": caption,
+        "videoUrl": videoUrl,
+        "thumbnail": thumbnail,
+        "profilePhoto": profilePhoto,
+      };
 
   // static Video fromSnap(DocumentSnapshot snap) {
   //   var snapshot = snap.data() as Map<String, dynamic>;
@@ -60,6 +58,4 @@ class Video {
   // }
 }
 
-enum MediaSource {
-  video, image
-}
+enum MediaSource { video, image }

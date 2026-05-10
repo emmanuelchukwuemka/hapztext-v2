@@ -1,77 +1,54 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:haptext_api/services/chat_ui/hapztext_api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LivestreamWebsocketService {
   final HapzTextApiService _apiService;
-  WebSocketChannel? _channel;
-  
-  StreamController<Map<String, dynamic>> _streamEventsController = StreamController<Map<String, dynamic>>.broadcast();
-  Stream<Map<String, dynamic>> get streamEvents => _streamEventsController.stream;
+  RealtimeChannel? _channel;
 
-  Timer? _pingTimer;
+  StreamController<Map<String, dynamic>> _streamEventsController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get streamEvents =>
+      _streamEventsController.stream;
 
   LivestreamWebsocketService(this._apiService);
 
   void connectToWebSocket(String streamId) {
     disconnectWebSocket(); // Close any existing connection
 
-    final token = _apiService.token;
-    if (token == null) {
-      print('No token available for Livestream WebSocket connection');
-      return;
-    }
-
-    final baseUrl = HapzTextApiService.baseUrl;
-    final wsBaseUrl = baseUrl.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://');
-    
-    // Connect to livestream consumer
-    final wsUrl = '$wsBaseUrl/ws/livestream/$streamId/?token=$token';
-    print('Connecting to Livestream WS: $wsUrl');
-    
     try {
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-      
-      _channel!.stream.listen(
-        (event) {
-          try {
-            final data = json.decode(event);
-            _streamEventsController.add(data);
-          } catch (e) {
-            print('Error parsing Livestream WS message: $e');
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) {
+        return;
+      }
+
+      _channel = client.channel('livestream:$streamId');
+      _channel!.onBroadcast(
+        event: 'livestream',
+        callback: (payload) {
+          final raw = payload['payload'];
+          if (raw is Map<String, dynamic>) {
+            _streamEventsController.add(raw);
           }
         },
-        onError: (error) => print('Livestream WS error: $error'),
-        onDone: () => print('Livestream WS disconnected'),
       );
-
-      // Start ping heartbeat
-      _pingTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-        if (_channel != null) {
-          _channel!.sink.add(json.encode({"type": "ping"}));
-        }
-      });
-      
+      _channel!.subscribe();
     } catch (e) {
       print('Error connecting to Livestream WebSocket: $e');
     }
   }
 
   void startStream(String title) {
-    _sendMessage({
-      "type": "start_stream",
-      "title": title
-    });
+    _sendMessage({"type": "start_stream", "title": title});
   }
 
   void endStream() {
-    _sendMessage({
-      "type": "end_stream"
-    });
+    _sendMessage({"type": "end_stream"});
   }
 
-  void sendComment(String text, {String commentType = 'text', String duration = ''}) {
+  void sendComment(String text,
+      {String commentType = 'text', String duration = ''}) {
     _sendMessage({
       "type": "send_comment",
       "text": text,
@@ -81,23 +58,17 @@ class LivestreamWebsocketService {
   }
 
   void sendGift(String giftType) {
-    _sendMessage({
-      "type": "send_gift",
-      "gift_type": giftType
-    });
+    _sendMessage({"type": "send_gift", "gift_type": giftType});
   }
 
   void sendReaction(String emoji) {
-    _sendMessage({
-      "type": "send_reaction",
-      "emoji": emoji
-    });
+    _sendMessage({"type": "send_reaction", "emoji": emoji});
   }
 
   void _sendMessage(Map<String, dynamic> data) {
     if (_channel != null) {
       try {
-        _channel!.sink.add(json.encode(data));
+        _channel!.sendBroadcastMessage(event: 'livestream', payload: data);
       } catch (e) {
         print('Error sending to Livestream WS: $e');
       }
@@ -105,9 +76,8 @@ class LivestreamWebsocketService {
   }
 
   void disconnectWebSocket() {
-    _pingTimer?.cancel();
     if (_channel != null) {
-      _channel!.sink.close();
+      _channel!.unsubscribe();
       _channel = null;
     }
   }

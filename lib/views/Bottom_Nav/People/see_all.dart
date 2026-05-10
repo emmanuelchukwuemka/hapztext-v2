@@ -38,7 +38,8 @@ class _SeeAllState extends State<SeeAll> {
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                  bottom:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                 ),
               ),
               child: TabBar(
@@ -49,8 +50,10 @@ class _SeeAllState extends State<SeeAll> {
                 ),
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white54,
-                labelStyle: GoogleFonts.roboto(fontWeight: FontWeight.bold, fontSize: 13),
-                unselectedLabelStyle: GoogleFonts.roboto(fontWeight: FontWeight.w500, fontSize: 13),
+                labelStyle: GoogleFonts.roboto(
+                    fontWeight: FontWeight.bold, fontSize: 13),
+                unselectedLabelStyle: GoogleFonts.roboto(
+                    fontWeight: FontWeight.w500, fontSize: 13),
                 tabs: const [
                   Tab(text: 'Photos'),
                   Tab(text: 'Videos'),
@@ -136,7 +139,8 @@ Widget buildText(Size size, BuildContext context) {
             children: [
               Text(
                 'Fortune',
-                style: GoogleFonts.roboto(color: Colors.white, fontWeight: FontWeight.bold),
+                style: GoogleFonts.roboto(
+                    color: Colors.white, fontWeight: FontWeight.bold),
               ),
               const SizedBox(width: 8),
               Text(
@@ -148,7 +152,8 @@ Widget buildText(Size size, BuildContext context) {
           const SizedBox(height: 12),
           Text(
             'This is a modern text post with premium styling. It fits perfectly within the new design system of SocialConnect.',
-            style: GoogleFonts.roboto(color: Colors.white70, fontSize: 14, height: 1.5),
+            style: GoogleFonts.roboto(
+                color: Colors.white70, fontSize: 14, height: 1.5),
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),

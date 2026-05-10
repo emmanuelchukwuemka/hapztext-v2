@@ -47,7 +47,8 @@ class AgoraCallService extends ChangeNotifier {
   // Active speaker UID (0 = local user)
   int? _activeSpeakerUid;
   // Connection state
-  ConnectionStateType _connectionState = ConnectionStateType.connectionStateDisconnected;
+  ConnectionStateType _connectionState =
+      ConnectionStateType.connectionStateDisconnected;
 
   // Event callbacks
   OnUserJoined? onUserJoined;
@@ -94,13 +95,15 @@ class AgoraCallService extends ChangeNotifier {
       // Register event handlers
       _engine!.registerEventHandler(RtcEngineEventHandler(
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-          debugPrint('AgoraCallService: Joined channel ${connection.channelId} in ${elapsed}ms');
+          debugPrint(
+              'AgoraCallService: Joined channel ${connection.channelId} in ${elapsed}ms');
           _isInChannel = true;
           onJoinChannelSuccess?.call();
           notifyListeners();
         },
         onLeaveChannel: (RtcConnection connection, RtcStats stats) {
-          debugPrint('AgoraCallService: Left channel. Duration: ${stats.duration}s');
+          debugPrint(
+              'AgoraCallService: Left channel. Duration: ${stats.duration}s');
           _isInChannel = false;
           _remoteUsers.clear();
           onLeaveChannel?.call();
@@ -129,7 +132,9 @@ class AgoraCallService extends ChangeNotifier {
           notifyListeners();
         },
         onAudioVolumeIndication: (RtcConnection connection,
-            List<AudioVolumeInfo> speakers, int totalVolume, int speakerNumber) {
+            List<AudioVolumeInfo> speakers,
+            int totalVolume,
+            int speakerNumber) {
           // Find the loudest speaker
           if (speakers.isNotEmpty) {
             int maxVol = 0;
@@ -174,7 +179,9 @@ class AgoraCallService extends ChangeNotifier {
   /// [enableVideo] - Whether to enable video on join
   /// [isBroadcaster] - True if streaming, false if audience
   Future<void> joinChannel(String channelName,
-      {int uid = 0, bool enableVideo = false, bool isBroadcaster = true}) async {
+      {int uid = 0,
+      bool enableVideo = false,
+      bool isBroadcaster = true}) async {
     if (!_isInitialized || _engine == null) {
       debugPrint('AgoraCallService: Engine not initialized');
       return;
@@ -203,7 +210,9 @@ class AgoraCallService extends ChangeNotifier {
       channelId: channelName,
       uid: uid,
       options: ChannelMediaOptions(
-        clientRoleType: isBroadcaster ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
+        clientRoleType: isBroadcaster
+            ? ClientRoleType.clientRoleBroadcaster
+            : ClientRoleType.clientRoleAudience,
         autoSubscribeAudio: true,
         autoSubscribeVideo: true, // Always subscribe to video
         publishMicrophoneTrack: isBroadcaster,

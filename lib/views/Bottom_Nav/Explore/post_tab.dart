@@ -38,7 +38,8 @@ class _PostTabState extends State<PostTab> {
             return InkWell(
               onTap: () => context.push(RouteName.innerPost.path, extra: post),
               child: Card(
-                margin: const EdgeInsets.only(bottom: 12, left: 8, right: 8, top: 8),
+                margin: const EdgeInsets.only(
+                    bottom: 12, left: 8, right: 8, top: 8),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 child: Padding(
@@ -89,8 +90,7 @@ class _ReactionIcon extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: Colors.grey),
         const SizedBox(width: 4),
-        Text(label,
-            style: const TextStyle(fontSize: 13, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
       ],
     );
   }

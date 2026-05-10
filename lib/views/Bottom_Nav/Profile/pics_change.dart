@@ -38,7 +38,8 @@ class _PicsChangeState extends State<PicsChange> {
             onPressed: () async {
               Navigator.pop(context);
               final ImagePicker picker = ImagePicker();
-              final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+              final XFile? image =
+                  await picker.pickImage(source: ImageSource.gallery);
               if (image != null) {
                 if (isProfile) {
                   widget.onchangeProfile(File(image.path));
@@ -51,7 +52,8 @@ class _PicsChangeState extends State<PicsChange> {
             },
             child: Row(
               children: [
-                const Icon(Icons.photo_library_outlined, color: Color(0xFF8B5CF6)),
+                const Icon(Icons.photo_library_outlined,
+                    color: Color(0xFF8B5CF6)),
                 const SizedBox(width: 12),
                 AppText(
                   text: 'Choose from Gallery',
@@ -98,10 +100,16 @@ class _PicsChangeState extends State<PicsChange> {
                 color: Colors.white.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(16),
                 image: selectedBgImage != null
-                    ? DecorationImage(image: FileImage(File(selectedBgImage!)), fit: BoxFit.cover)
+                    ? DecorationImage(
+                        image: FileImage(File(selectedBgImage!)),
+                        fit: BoxFit.cover)
                     : (widget.currentCoverUrl?.isNotEmpty == true)
-                        ? DecorationImage(image: NetworkImage(widget.currentCoverUrl!), fit: BoxFit.cover)
-                        : const DecorationImage(image: AssetImage("assets/images/hapz_logo.png"), fit: BoxFit.cover),
+                        ? DecorationImage(
+                            image: NetworkImage(widget.currentCoverUrl!),
+                            fit: BoxFit.cover)
+                        : const DecorationImage(
+                            image: AssetImage("assets/images/hapz_logo.png"),
+                            fit: BoxFit.cover),
               ),
               child: Container(
                 decoration: BoxDecoration(
@@ -135,14 +143,19 @@ class _PicsChangeState extends State<PicsChange> {
                     height: 90,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: context.theme.bgColor!, width: 4),
+                      border:
+                          Border.all(color: context.theme.bgColor!, width: 4),
                       boxShadow: [
-                        BoxShadow(color: Colors.black26, blurRadius: 10, offset: const Offset(0, 4))
+                        BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                            offset: const Offset(0, 4))
                       ],
                     ),
                     child: ClipOval(
                       child: selectedProfileImage != null
-                          ? Image.file(File(selectedProfileImage!), fit: BoxFit.cover)
+                          ? Image.file(File(selectedProfileImage!),
+                              fit: BoxFit.cover)
                           : AppNetwokImage(
                               height: 90,
                               width: 90,
@@ -160,7 +173,8 @@ class _PicsChangeState extends State<PicsChange> {
                         color: Color(0xFF8B5CF6),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.add, color: Colors.white, size: 16),
+                      child:
+                          const Icon(Icons.add, color: Colors.white, size: 16),
                     ),
                   ),
                 ],

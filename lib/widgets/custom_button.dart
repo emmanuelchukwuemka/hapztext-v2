@@ -31,7 +31,8 @@ class Appbutton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final primaryGradient = const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]);
+    final primaryGradient =
+        const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]);
 
     return GestureDetector(
       onTap: onTap,
@@ -39,10 +40,13 @@ class Appbutton extends StatelessWidget {
         width: width ?? size.width,
         height: height ?? 54,
         decoration: BoxDecoration(
-          color: gradient ? null : (buttonColor ?? Theme.of(context).primaryColor),
+          color:
+              gradient ? null : (buttonColor ?? Theme.of(context).primaryColor),
           gradient: gradient ? primaryGradient : null,
           borderRadius: BorderRadius.circular(12),
-          border: (border ?? false) ? Border.all(color: borderColor ?? Colors.transparent) : null,
+          border: (border ?? false)
+              ? Border.all(color: borderColor ?? Colors.transparent)
+              : null,
         ),
         alignment: Alignment.center,
         child: isLoading

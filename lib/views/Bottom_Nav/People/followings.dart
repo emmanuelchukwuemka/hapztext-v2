@@ -47,7 +47,8 @@ class _FollowingsState extends State<Followings> {
                 ),
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.person_add_outlined, color: Color(0xFF8B5CF6)),
+                  icon: const Icon(Icons.person_add_outlined,
+                      color: Color(0xFF8B5CF6)),
                 ),
               ],
             ),
@@ -60,7 +61,8 @@ class _FollowingsState extends State<Followings> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.person_outline, size: 64, color: Colors.white24),
+                      Icon(Icons.person_outline,
+                          size: 64, color: Colors.white24),
                       SizedBox(height: 16),
                       AppText(
                         text: 'Not following anyone yet',
@@ -83,7 +85,8 @@ class _FollowingsState extends State<Followings> {
                   padding: const EdgeInsets.symmetric(horizontal: 12.0),
                   child: GridView.builder(
                     padding: const EdgeInsets.only(bottom: 20),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       crossAxisSpacing: 12.0,
                       mainAxisSpacing: 12.0,
@@ -95,14 +98,18 @@ class _FollowingsState extends State<Followings> {
                       // Create a SearchedUserModel from the SearchedUserProfile data
                       final userModel = SearchedUserModel(
                         id: userProfile.id,
-                        username: "${userProfile.firstName ?? ""} ${userProfile.lastName ?? ""}".trim(),
+                        username:
+                            "${userProfile.firstName ?? ""} ${userProfile.lastName ?? ""}"
+                                .trim(),
                         profilePicture: userProfile.profilePicture,
                         profile: userProfile,
                       );
                       return friendCardWidget(
                         context,
-                        "${userProfile.lastName ?? ""} ${userProfile.firstName ?? ""}".trim(),
-                        userProfile.profilePicture ?? 'assets/images/placeholder.jpg',
+                        "${userProfile.lastName ?? ""} ${userProfile.firstName ?? ""}"
+                            .trim(),
+                        userProfile.profilePicture ??
+                            'assets/images/placeholder.jpg',
                         user: userModel,
                       );
                     },

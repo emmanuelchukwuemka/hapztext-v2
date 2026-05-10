@@ -43,7 +43,9 @@ class ProfileTextTab extends StatelessWidget {
                             Icons.favorite_border,
                             // color: context.theme.greyColor,
                           ),
-                          AppText(text: ' ${textPosts[index].likeCount ?? 0}', color: Colors.white),
+                          AppText(
+                              text: ' ${textPosts[index].likeCount ?? 0}',
+                              color: Colors.white),
                         ],
                       ),
                       Row(
@@ -52,7 +54,9 @@ class ProfileTextTab extends StatelessWidget {
                             Icons.chat,
                             // color: context.theme.greyColor,
                           ),
-                          AppText(text: ' ${textPosts[index].replyCount ?? 0}', color: Colors.white),
+                          AppText(
+                              text: ' ${textPosts[index].replyCount ?? 0}',
+                              color: Colors.white),
                         ],
                       ),
                       Row(
@@ -61,7 +65,9 @@ class ProfileTextTab extends StatelessWidget {
                             Icons.share,
                             // color: context.theme.greyColor,
                           ),
-                          AppText(text: ' ${textPosts[index].shareCount ?? 0}', color: Colors.white),
+                          AppText(
+                              text: ' ${textPosts[index].shareCount ?? 0}',
+                              color: Colors.white),
                         ],
                       ),
                       // Row(

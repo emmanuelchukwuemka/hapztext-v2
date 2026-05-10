@@ -5,7 +5,8 @@ import 'package:haptext_api/common/theme/custom_theme_extension.dart';
 import 'package:haptext_api/models/searched_user_model.dart';
 import 'package:haptext_api/views/Bottom_Nav/People/friend_profile_page.dart';
 
-Widget friendCardWidget(BuildContext context, String text, String img, {SearchedUserModel? user}) {
+Widget friendCardWidget(BuildContext context, String text, String img,
+    {SearchedUserModel? user}) {
   return GestureDetector(
     onTap: () {
       if (user != null) {
@@ -64,12 +65,12 @@ Widget friendCardWidget(BuildContext context, String text, String img, {Searched
                 ),
                 const SizedBox(height: 4),
                 Text(
-                   'View Profile',
-                   style: GoogleFonts.roboto(
-                     color: const Color(0xFF8B5CF6),
-                     fontSize: 11,
-                     fontWeight: FontWeight.w500,
-                   ),
+                  'View Profile',
+                  style: GoogleFonts.roboto(
+                    color: const Color(0xFF8B5CF6),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -83,7 +84,8 @@ Widget friendCardWidget(BuildContext context, String text, String img, {Searched
                 decoration: BoxDecoration(
                   color: Colors.greenAccent,
                   shape: BoxShape.circle,
-                  border: Border.all(color: context.theme.surfaceColor!, width: 2),
+                  border:
+                      Border.all(color: context.theme.surfaceColor!, width: 2),
                 ),
               ),
             ),

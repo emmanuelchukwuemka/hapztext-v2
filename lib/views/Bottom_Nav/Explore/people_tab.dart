@@ -47,15 +47,17 @@ class _PeopleTabState extends State<PeopleTab> {
                   final person = displayPeople[index];
                   // Handle both SearchedUserModel (from search) and SearchedUserProfile (from discover)
                   final String username = ((person is SearchedUserModel
-                          ? person.username
-                          : (person is SearchedUserProfile
                               ? person.username
-                              : (person as dynamic).firstName)) as String?)
-                      ?.capitalizeFirstChar() ??
+                              : (person is SearchedUserProfile
+                                  ? person.username
+                                  : (person as dynamic).firstName)) as String?)
+                          ?.capitalizeFirstChar() ??
                       'User';
                   final String profilePic = person.profilePicture ?? "";
-                  final String followers = person.followerCount?.toString() ?? "0";
-                  final String following = person.followingCount?.toString() ?? "0";
+                  final String followers =
+                      person.followerCount?.toString() ?? "0";
+                  final String following =
+                      person.followingCount?.toString() ?? "0";
                   final String mentions = (person is SearchedUserModel
                           ? person.mentionCount?.toString()
                           : "0") ??
@@ -74,7 +76,8 @@ class _PeopleTabState extends State<PeopleTab> {
                         context.push(RouteName.friendsProfilePage.path,
                             extra: SearchedUserModel(
                               id: person.userId,
-                              username: person.firstName, // Assuming firstName as fallback
+                              username: person
+                                  .firstName, // Assuming firstName as fallback
                               profilePicture: person.profilePicture,
                               followerCount: person.followerCount,
                               followingCount: person.followingCount,
@@ -114,7 +117,8 @@ class _PeopleTabState extends State<PeopleTab> {
                                   size: 16, color: Colors.grey),
                               const SizedBox(width: 2),
                               AppText(
-                                  text: "$followers Followers • $following Following",
+                                  text:
+                                      "$followers Followers • $following Following",
                                   color: Colors.white,
                                   fontSize: 10),
                             ])
@@ -127,7 +131,9 @@ class _PeopleTabState extends State<PeopleTab> {
                               Icon(Icons.favorite, size: 16, color: Colors.red),
                               SizedBox(width: 2),
                               AppText(
-                                  text: "3.2k", color: Colors.white, fontSize: 12),
+                                  text: "3.2k",
+                                  color: Colors.white,
+                                  fontSize: 12),
                             ]),
                             const SizedBox(height: 5),
                             Row(children: [

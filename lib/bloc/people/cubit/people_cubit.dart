@@ -129,8 +129,8 @@ class PeopleCubit extends Cubit<PeopleState> {
   fetchFollowers({userId}) async {
     emit(PeopleLoading());
     try {
-      final response = await peopleRepo.fetchFollowers(
-          page: 1, userId: userId ?? '');
+      final response =
+          await peopleRepo.fetchFollowers(page: 1, userId: userId ?? '');
       final body = jsonDecode(response.body);
       if (response.statusCode == 200) {
         followers.clear();
@@ -153,8 +153,8 @@ class PeopleCubit extends Cubit<PeopleState> {
   fetchFollowings({userId}) async {
     emit(PeopleLoading());
     try {
-      final response = await peopleRepo.fetchFollowings(
-          page: 1, userId: userId ?? '');
+      final response =
+          await peopleRepo.fetchFollowings(page: 1, userId: userId ?? '');
       final body = jsonDecode(response.body);
       if (response.statusCode == 200) {
         followings.clear();
@@ -185,7 +185,6 @@ class PeopleCubit extends Cubit<PeopleState> {
             user.following = true;
           }
         }
-
         emit(PeopleLoaded());
       } else {
         ToastMessage.showErrorToast(
@@ -195,6 +194,30 @@ class PeopleCubit extends Cubit<PeopleState> {
     } catch (e) {
       emit(PeopleError());
       log("follow User $e");
+    }
+  }
+
+  unfollowUser({userId}) async {
+    emit(PeopleFollowing());
+    try {
+      final response = await peopleRepo.unfollowUser(userId: userId);
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        ToastMessage.showSuccessToast(message: 'Unfollowed');
+        for (var user in searchedUsers) {
+          if (user.id.toString() == userId) {
+            user.following = false;
+          }
+        }
+        emit(PeopleLoaded());
+      } else {
+        ToastMessage.showErrorToast(
+            message: body["errors"]["detail"].toString());
+        emit(PeopleError());
+      }
+    } catch (e) {
+      emit(PeopleError());
+      log("unfollow User $e");
     }
   }
 }

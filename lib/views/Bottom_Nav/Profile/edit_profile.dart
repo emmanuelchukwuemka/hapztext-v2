@@ -7,6 +7,7 @@ import 'package:haptext_api/bloc/profile/cubit/profile_cubit.dart';
 import 'package:haptext_api/common/theme/custom_theme_extension.dart';
 import 'package:haptext_api/exports.dart';
 import 'package:haptext_api/utils/extensions.dart';
+import 'package:haptext_api/utils/session_manager.dart';
 import 'package:haptext_api/views/Bottom_Nav/exports.dart';
 
 class EditProfile extends StatefulWidget {
@@ -54,7 +55,23 @@ class _EditProfileState extends State<EditProfile> {
     return BlocListener<ProfileCubit, ProfileState>(
       listener: (context, state) {
         if (state is ProfileUpdated) {
-          context.go(RouteName.bottomNav.path);
+          final shouldWarn = state.warnings != null && state.warnings!.isNotEmpty;
+          if (state.profile != null) {
+            final auth = context.read<AuthCubit>();
+            auth.useInfo.profile = state.profile;
+            SessionManager.storeUser(auth.useInfo);
+          }
+          Future.microtask(() {
+            if (!context.mounted) return;
+            context.pop();
+            if (shouldWarn) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ToastMessage.showWarningToast(
+                    message:
+                        'Image upload blocked. Fix Storage policies, then try again.');
+              });
+            }
+          });
         }
       },
       child: Opacity(
@@ -75,8 +92,16 @@ class _EditProfileState extends State<EditProfile> {
                   child: Column(children: [
                     const SizedBox(height: 10),
                     PicsChange(
-                      currentProfileUrl: context.read<AuthCubit>().useInfo.profile?.profilePicture,
-                      currentCoverUrl: context.read<AuthCubit>().useInfo.profile?.coverPicture,
+                      currentProfileUrl: context
+                          .read<AuthCubit>()
+                          .useInfo
+                          .profile
+                          ?.profilePicture,
+                      currentCoverUrl: context
+                          .read<AuthCubit>()
+                          .useInfo
+                          .profile
+                          ?.coverPicture,
                       onchangeProfile: (profile) {
                         log("message$profile");
                         setState(() {
@@ -199,7 +224,7 @@ class _EditProfileState extends State<EditProfile> {
                               hintText: 'lagos , Nigeria',
                               controller: locationController),
                           60.verticalSpace,
-                              Appbutton(
+                          Appbutton(
                               isLoading: watchProfile.state is ProfileLoading,
                               gradient: true,
                               onTap: () {
@@ -250,7 +275,7 @@ class EthicityModalSheet extends StatelessWidget {
         padding: EdgeInsets.all(size.width * 0.06),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start, 
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Container(
@@ -274,7 +299,8 @@ class EthicityModalSheet extends StatelessWidget {
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: items.length,
-                separatorBuilder: (context, index) => Divider(color: Colors.white.withOpacity(0.05)),
+                separatorBuilder: (context, index) =>
+                    Divider(color: Colors.white.withOpacity(0.05)),
                 itemBuilder: (context, index) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: AppText(
@@ -282,7 +308,8 @@ class EthicityModalSheet extends StatelessWidget {
                     fontSize: 16,
                     color: Colors.white70,
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.white24, size: 20),
+                  trailing: const Icon(Icons.chevron_right,
+                      color: Colors.white24, size: 20),
                   onTap: () {
                     ethicity(items[index]);
                     Navigator.pop(context);
@@ -351,7 +378,8 @@ class RelationshipModalSheet extends StatelessWidget {
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: items.length,
-                separatorBuilder: (context, index) => Divider(color: Colors.white.withOpacity(0.05)),
+                separatorBuilder: (context, index) =>
+                    Divider(color: Colors.white.withOpacity(0.05)),
                 itemBuilder: (context, index) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: AppText(
@@ -359,7 +387,8 @@ class RelationshipModalSheet extends StatelessWidget {
                     fontSize: 16,
                     color: Colors.white70,
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.white24, size: 20),
+                  trailing: const Icon(Icons.chevron_right,
+                      color: Colors.white24, size: 20),
                   onTap: () {
                     status(items[index]);
                     Navigator.pop(context);

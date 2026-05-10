@@ -104,7 +104,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
             _participants.add(_Participant(
               id: 'remote_$remoteUid',
               name: 'User $remoteUid',
-              color: Colors.primaries[remoteUid % Colors.primaries.length].shade600,
+              color: Colors
+                  .primaries[remoteUid % Colors.primaries.length].shade600,
               remoteUid: remoteUid,
             ));
           }
@@ -118,11 +119,14 @@ class _VoiceCallPageState extends State<VoiceCallPage>
         setState(() {
           _participants.removeWhere((p) => p.remoteUid == remoteUid);
           if (_mainParticipantId == 'remote_$remoteUid') {
-            _mainParticipantId = _participants.isNotEmpty ? _participants.last.id : 'local';
+            _mainParticipantId =
+                _participants.isNotEmpty ? _participants.last.id : 'local';
           }
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User left the call'), backgroundColor: Colors.orange),
+          const SnackBar(
+              content: Text('User left the call'),
+              backgroundColor: Colors.orange),
         );
       }
     };
@@ -165,7 +169,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   }
 
   _Participant get _mainParticipant =>
-      _participants.firstWhere((p) => p.id == _mainParticipantId, orElse: () => _participants.first);
+      _participants.firstWhere((p) => p.id == _mainParticipantId,
+          orElse: () => _participants.first);
 
   void _toggleSpeaker() {
     _agoraService.toggleSpeaker();
@@ -229,13 +234,15 @@ class _VoiceCallPageState extends State<VoiceCallPage>
             CircleAvatar(
               radius: 16,
               backgroundColor: main.color,
-              child: Text(shortName[0], style: const TextStyle(color: Colors.white)),
+              child: Text(shortName[0],
+                  style: const TextStyle(color: Colors.white)),
             ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(main.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(main.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(
                   _isConnected ? _callDuration : 'Connecting...',
@@ -291,9 +298,13 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                             final t = _pulseController.value;
                             final phase = (i / 3 + t) % 1.0;
                             final base = 1.0 +
-                                ((_mainParticipantMuted(main) ? 0.0 : _audioLevel) * 0.35);
+                                ((_mainParticipantMuted(main)
+                                        ? 0.0
+                                        : _audioLevel) *
+                                    0.35);
                             final scale = base + phase * (0.9 + i * 0.2);
-                            final opacity = (1.0 - phase).clamp(0.0, 1.0) * 0.25;
+                            final opacity =
+                                (1.0 - phase).clamp(0.0, 1.0) * 0.25;
                             return Transform.scale(
                               scale: scale,
                               child: Opacity(
@@ -343,22 +354,28 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                         bottom: 6,
                         right: 6,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _mainParticipantMuted(main) ? Colors.redAccent : Colors.white12,
+                            color: _mainParticipantMuted(main)
+                                ? Colors.redAccent
+                                : Colors.white12,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
                               Icon(
-                                _mainParticipantMuted(main) ? Icons.mic_off : Icons.mic,
+                                _mainParticipantMuted(main)
+                                    ? Icons.mic_off
+                                    : Icons.mic,
                                 size: 14,
                                 color: Colors.white,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 _mainParticipantMuted(main) ? 'Muted' : 'On',
-                                style: const TextStyle(fontSize: 12, color: Colors.white),
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.white),
                               ),
                             ],
                           ),
@@ -372,10 +389,12 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(main.name,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600)),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white10,
                         borderRadius: BorderRadius.circular(12),
@@ -385,7 +404,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                             size: 14, color: Colors.white70),
                         const SizedBox(width: 6),
                         Text(_speakerOn ? 'Speaker' : 'Earpiece',
-                            style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.white70)),
                       ]),
                     ),
                   ],
@@ -405,7 +425,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                     children: [
                       CircularProgressIndicator(color: Colors.cyanAccent),
                       SizedBox(height: 16),
-                      Text('Connecting...', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                      Text('Connecting...',
+                          style:
+                              TextStyle(color: Colors.white70, fontSize: 16)),
                     ],
                   ),
                 ),
@@ -422,9 +444,11 @@ class _VoiceCallPageState extends State<VoiceCallPage>
               child: Card(
                 color: Colors.white12,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _participants.length,
@@ -441,7 +465,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                             color: Colors.white10,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isMain ? Colors.cyanAccent : Colors.transparent,
+                              color: isMain
+                                  ? Colors.cyanAccent
+                                  : Colors.transparent,
                               width: 2,
                             ),
                           ),
@@ -456,7 +482,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                                     radius: isMain ? 22 : 20,
                                     backgroundColor: p.color,
                                     child: Text(p.name[0],
-                                        style: const TextStyle(color: Colors.white)),
+                                        style: const TextStyle(
+                                            color: Colors.white)),
                                   ),
                                   if (p.mutedByAdmin || p.mutedSelf)
                                     const CircleAvatar(
@@ -482,7 +509,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           ),
 
           // Reactions
-          ..._reactions.map((r) => _FloatingReactionWidget(key: ValueKey(r.id), data: r)),
+          ..._reactions.map(
+              (r) => _FloatingReactionWidget(key: ValueKey(r.id), data: r)),
 
           // Bottom controls
           Align(
@@ -502,7 +530,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                           active: _isMuted,
                         ),
                         _ControlButton(
-                          icon: _speakerOn ? Icons.volume_up : Icons.volume_down,
+                          icon:
+                              _speakerOn ? Icons.volume_up : Icons.volume_down,
                           label: 'Speaker',
                           onPressed: _toggleSpeaker,
                           active: _speakerOn,
@@ -521,7 +550,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                         onTap: _endCall,
                         child: const Padding(
                           padding: EdgeInsets.all(14.0),
-                          child: Icon(Icons.call_end, color: Colors.white, size: 28),
+                          child: Icon(Icons.call_end,
+                              color: Colors.white, size: 28),
                         ),
                       ),
                     ),
@@ -536,7 +566,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                           onPressed: () => _showReactionPicker(context),
                         ),
                         _ControlButton(
-                          icon: _focusMode ? Icons.visibility : Icons.visibility_off,
+                          icon: _focusMode
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           label: 'Focus',
                           onPressed: _toggleFocusMode,
                           active: _focusMode,
@@ -574,7 +606,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                      color: Colors.white12, borderRadius: BorderRadius.circular(12)),
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(12)),
                   child: Text(e, style: const TextStyle(fontSize: 24)),
                 ),
               );
@@ -607,7 +640,8 @@ class _ControlButton extends StatelessWidget {
       children: [
         Material(
           color: bg,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: onPressed,
@@ -618,7 +652,8 @@ class _ControlButton extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white70)),
+        Text(label,
+            style: const TextStyle(fontSize: 11, color: Colors.white70)),
       ],
     );
   }
@@ -640,10 +675,12 @@ class _ReactionData {
 
 class _FloatingReactionWidget extends StatefulWidget {
   final _ReactionData data;
-  const _FloatingReactionWidget({required Key key, required this.data}) : super(key: key);
+  const _FloatingReactionWidget({required Key key, required this.data})
+      : super(key: key);
 
   @override
-  State<_FloatingReactionWidget> createState() => _FloatingReactionWidgetState();
+  State<_FloatingReactionWidget> createState() =>
+      _FloatingReactionWidgetState();
 }
 
 class _FloatingReactionWidgetState extends State<_FloatingReactionWidget>
@@ -657,12 +694,13 @@ class _FloatingReactionWidgetState extends State<_FloatingReactionWidget>
   void initState() {
     super.initState();
     _startXFraction = widget.data.start.dx + widget.data.dxJitter;
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2000))
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 2000))
       ..forward();
     _dy = Tween<double>(begin: 0, end: -180)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
-    _opacity = Tween<double>(begin: 1.0, end: 0.0)
-        .animate(CurvedAnimation(parent: _ctrl, curve: const Interval(0.5, 1.0)));
+    _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+        CurvedAnimation(parent: _ctrl, curve: const Interval(0.5, 1.0)));
   }
 
   @override
@@ -693,7 +731,8 @@ class _FloatingReactionWidgetState extends State<_FloatingReactionWidget>
                   color: Colors.white12,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(widget.data.emoji, style: const TextStyle(fontSize: 22)),
+                child: Text(widget.data.emoji,
+                    style: const TextStyle(fontSize: 22)),
               ),
             ),
           ),

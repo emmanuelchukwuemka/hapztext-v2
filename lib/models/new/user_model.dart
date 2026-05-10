@@ -24,16 +24,16 @@ class UserModel {
   });
 
   Map<String, dynamic> toJson() => {
-    "name": name,
-    "email": email,
-    "uid": uid,
-    "isOnline": isOnline,
-    "firstname": firstname,
-    "lastname": lastname,
-    // "profilePhoto": profilePhoto,
-    // "phoneNumber": phoneNumber,
-    // "groupId": groupId,
-  };
+        "name": name,
+        "email": email,
+        "uid": uid,
+        "isOnline": isOnline,
+        "firstname": firstname,
+        "lastname": lastname,
+        // "profilePhoto": profilePhoto,
+        // "phoneNumber": phoneNumber,
+        // "groupId": groupId,
+      };
 
   // static UserModel fromSnap(DocumentSnapshot snap) {
   //   var snapshot = snap.data() as Map<String, dynamic>;
@@ -44,9 +44,9 @@ class UserModel {
   //     lastname: snapshot['lastname'],
   //     uid: snapshot['uid'],
   //     isOnline: true,
-      // profilePhoto: snapshot['profilePhoto'],
-      // phoneNumber: snapshot['phoneNumber'],
-      // groupId: List<String>.from(map['groupId']),
+  // profilePhoto: snapshot['profilePhoto'],
+  // phoneNumber: snapshot['phoneNumber'],
+  // groupId: List<String>.from(map['groupId']),
   //   );
   // }
 
@@ -60,5 +60,4 @@ class UserModel {
 //     groupId: List<String>.from(map['groupId']),
 //   );
 // }
-
 }
