@@ -65,9 +65,11 @@ class _ChatScreenState extends State<ChatScreen> {
               _chatApiService.messageStream!.listen((newMessage) {
             if (mounted) {
               setState(() {
-                // Deduplicate: check if ID exists (e.g. from local add)
-                final existingIndex =
-                    _messages.indexWhere((m) => m.id == newMessage.id);
+                final existingIndex = _messages.indexWhere((m) =>
+                    m.id == newMessage.id ||
+                    (newMessage.me &&
+                        m.id.startsWith('local_') &&
+                        m.text == newMessage.text));
                 if (existingIndex != -1) {
                   _messages[existingIndex] =
                       newMessage; // Update with server data
@@ -412,7 +414,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   final bool willDisappear =
                       _chat.disappearing == DisappearingOption.fiveSeconds;
                   _addMessage(Message(
-                    id: DateTime.now().toString(),
+                    id: 'local_${DateTime.now().millisecondsSinceEpoch}',
                     text: text,
                     me: true,
                     timestamp: DateTime.now(),
@@ -575,7 +577,7 @@ class _ChatScreenState extends State<ChatScreen> {
             _chat.disappearing == DisappearingOption.fiveSeconds;
 
         _addMessage(Message(
-          id: DateTime.now().toString(),
+          id: 'local_${DateTime.now().millisecondsSinceEpoch}',
           text: "Voice Note",
           me: true,
           isVoice: true,

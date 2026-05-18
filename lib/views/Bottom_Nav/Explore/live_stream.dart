@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'dart:async';
+import 'dart:math';
 import 'package:haptext_api/common/coloors.dart';
 import 'package:haptext_api/exports.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
@@ -44,6 +45,65 @@ class _LiveStreamPageState extends State<LiveStreamPage>
   Duration _recordDuration = Duration.zero;
   Timer? _recordTimer;
 
+  // Mock stream simulation
+  Timer? _mockTimer;
+  final List<String> _mockUsers = ["Alex", "Jessica", "Marcus", "Emma", "David", "Chloe", "Sophia", "Lucas"];
+  final List<String> _mockComments = [
+    "Wow, this is amazing! 🔥",
+    "Hey Chloe! Looking great today!",
+    "Awesome live stream! 👏👏",
+    "Where are you streaming from?",
+    "This song is fire! 🎶🎶",
+    "Love the vibes here!",
+    "Amazing stream! 😍",
+    "Hello from NYC! 🗽"
+  ];
+  final List<String> _mockGifts = ["Rose 🌹", "Crown 👑", "Magic Wand 🪄", "Ice Cream 🍦"];
+
+  void _startMockStreamActivity() {
+    _mockTimer?.cancel();
+    _mockTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (!mounted) return;
+      final random = Random();
+      final actionType = random.nextInt(4); // 0: comment, 1: gift, 2: join, 3: reaction
+
+      setState(() {
+        if (actionType == 0) {
+          final user = _mockUsers[random.nextInt(_mockUsers.length)];
+          final text = _mockComments[random.nextInt(_mockComments.length)];
+          _comments.add({
+            'user': user,
+            'text': text,
+            'type': 'text',
+          });
+        } else if (actionType == 1) {
+          final user = _mockUsers[random.nextInt(_mockUsers.length)];
+          final gift = _mockGifts[random.nextInt(_mockGifts.length)];
+          _comments.add({
+            'user': user,
+            'text': 'sent $gift',
+            'type': 'gift',
+          });
+        } else if (actionType == 2) {
+          _viewerCount += random.nextBool() ? 1 : -1;
+          if (_viewerCount < 1) _viewerCount = 1;
+        } else {
+          final user = _mockUsers[random.nextInt(_mockUsers.length)];
+          _comments.add({
+            'user': user,
+            'text': 'reacted ❤️',
+            'type': 'text',
+          });
+        }
+        
+        // Keep list size under control
+        if (_comments.length > 50) {
+          _comments.removeAt(0);
+        }
+      });
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +142,10 @@ class _LiveStreamPageState extends State<LiveStreamPage>
       if (mounted) {
         setState(() {
           _isLive = true;
+          if (_agoraService.isMock) {
+            _viewerCount = 12; // Start with a realistic mock viewer count
+            _startMockStreamActivity();
+          }
         });
         _wsService.connectToWebSocket(_streamId);
       }
@@ -90,6 +154,7 @@ class _LiveStreamPageState extends State<LiveStreamPage>
 
   @override
   void dispose() {
+    _mockTimer?.cancel();
     _wsService.dispose();
     _agoraService.dispose();
     _commentController.dispose();
@@ -104,6 +169,7 @@ class _LiveStreamPageState extends State<LiveStreamPage>
         children: [
           // 1. Main Video Stream Placeholder
           if (_isLive &&
+              !_agoraService.isMock &&
               _agoraService.engine != null &&
               _agoraService.remoteUsers.isNotEmpty)
             SizedBox.expand(
@@ -116,15 +182,7 @@ class _LiveStreamPageState extends State<LiveStreamPage>
               ),
             )
           else
-            Positioned.fill(
-              child: Container(
-                color: Colors.black,
-                child: const Center(
-                  child: Icon(Icons.videocam_off,
-                      color: Colors.white10, size: 100),
-                ),
-              ),
-            ),
+            _buildLiveStreamAmbientWidget(),
 
           // 2. Top Bar (Live Badge & Viewer Count)
           SafeArea(
@@ -200,6 +258,7 @@ class _LiveStreamPageState extends State<LiveStreamPage>
                   SizedBox(
                     height: 180,
                     child: ListView.builder(
+                      reverse: true,
                       itemCount: _comments.length,
                       itemBuilder: (context, index) {
                         final comment = _comments[index];
@@ -273,42 +332,70 @@ class _LiveStreamPageState extends State<LiveStreamPage>
 
   Widget _buildCommentItem(Map<String, dynamic> comment) {
     bool isGift = comment['type'] == 'gift';
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "${comment['user']}: ",
-            style: TextStyle(
-              color: isGift ? const Color(0xFFFFD700) : Colors.white70,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+    bool isVoice = comment['type'] == 'voice';
+
+    if (isVoice) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "${comment['user']}: ",
+                style: const TextStyle(
+                  color: Color(0xFF8B5CF6),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 8),
+              VoiceNoteCommentWidget(comment: comment),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              "${comment['user']}: ",
+              style: TextStyle(
+                color: isGift ? const Color(0xFFFFD700) : const Color(0xFF8B5CF6),
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
-          ),
-          Expanded(
-            child: comment['type'] == 'voice'
-                ? Row(
-                    children: [
-                      const Icon(Icons.volume_up,
-                          color: Colors.white70, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        "[Voice Note ${comment['duration']}]",
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 14),
-                      ),
-                    ],
-                  )
-                : Text(
-                    comment['text'],
-                    style: TextStyle(
-                      color: isGift ? const Color(0xFFFFD700) : Colors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-          ),
-        ],
+            const SizedBox(width: 4),
+            Text(
+              comment['text'],
+              style: TextStyle(
+                color: isGift ? const Color(0xFFFFD700) : Colors.white,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -366,6 +453,20 @@ class _LiveStreamPageState extends State<LiveStreamPage>
                             hintStyle: TextStyle(color: Colors.white38),
                             border: InputBorder.none,
                           ),
+                          onSubmitted: (text) {
+                            final textTrim = text.trim();
+                            if (textTrim.isNotEmpty) {
+                              _wsService.sendComment(textTrim);
+                              setState(() {
+                                _comments.insert(0, {
+                                  'user': 'You',
+                                  'text': textTrim,
+                                  'type': 'text',
+                                });
+                              });
+                              _commentController.clear();
+                            }
+                          },
                         ),
                       ),
                     IconButton(
@@ -376,7 +477,17 @@ class _LiveStreamPageState extends State<LiveStreamPage>
                           final text = _commentController.text.trim();
                           if (text.isNotEmpty) {
                             _wsService.sendComment(text);
+                            setState(() {
+                              _comments.insert(0, {
+                                'user': 'You',
+                                'text': text,
+                                'type': 'text',
+                              });
+                            });
                             _commentController.clear();
+                          } else {
+                            // Start voice note recording when text is empty
+                            _toggleRecording();
                           }
                         }
                       },
@@ -394,9 +505,35 @@ class _LiveStreamPageState extends State<LiveStreamPage>
           ),
         ),
         const SizedBox(width: 12),
-        _buildSmallIconAction(Icons.card_giftcard, const Color(0xFFFFD700)),
+        _buildSmallIconAction(
+          Icons.card_giftcard,
+          const Color(0xFFFFD700),
+          onTap: () {
+            _wsService.sendGift("Super Gift");
+            setState(() {
+              _comments.insert(0, {
+                'user': 'You',
+                'text': 'sent Rose 🌹',
+                'type': 'gift',
+              });
+            });
+          },
+        ),
         const SizedBox(width: 12),
-        _buildSmallIconAction(Icons.favorite, Coloors.error),
+        _buildSmallIconAction(
+          Icons.favorite,
+          Coloors.error,
+          onTap: () {
+            _wsService.sendReaction("❤️");
+            setState(() {
+              _comments.insert(0, {
+                'user': 'You',
+                'text': 'reacted ❤️',
+                'type': 'text',
+              });
+            });
+          },
+        ),
       ],
     );
   }
@@ -415,11 +552,248 @@ class _LiveStreamPageState extends State<LiveStreamPage>
     );
   }
 
-  Widget _buildSmallIconAction(IconData icon, Color color) {
-    return CircleAvatar(
-      radius: 20,
-      backgroundColor: Colors.white.withOpacity(0.1),
-      child: Icon(icon, color: color, size: 20),
+  Widget _buildSmallIconAction(IconData icon, Color color, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: CircleAvatar(
+        radius: 20,
+        backgroundColor: Colors.white.withOpacity(0.1),
+        child: Icon(icon, color: color, size: 20),
+      ),
+    );
+  }
+
+  Widget _buildLiveStreamAmbientWidget() {
+    return Positioned.fill(
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF0F0C20),
+              Color(0xFF15102A),
+              Color(0xFF06040A),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Ambient glowing waves
+            const Positioned.fill(
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: NeverScrollableScrollPhysics(),
+                  child: Opacity(
+                    opacity: 0.15,
+                    child: Icon(
+                      Icons.waves,
+                      size: 400,
+                      color: Color(0xFF8B5CF6),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Pulsing glowing rings around avatar
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                        blurRadius: 40,
+                        spreadRadius: 10,
+                      ),
+                    ],
+                  ),
+                  child: const CircleAvatar(
+                    radius: 50,
+                    backgroundImage: AssetImage('assets/images/placeholder.jpg'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  "Chloe is live",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.wifi, color: Color(0xFF8B5CF6), size: 14),
+                      SizedBox(width: 6),
+                      Text(
+                        "Streaming Video & Audio",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
+
+class VoiceNoteCommentWidget extends StatefulWidget {
+  final Map<String, dynamic> comment;
+  const VoiceNoteCommentWidget({super.key, required this.comment});
+
+  @override
+  State<VoiceNoteCommentWidget> createState() => _VoiceNoteCommentWidgetState();
+}
+
+class _VoiceNoteCommentWidgetState extends State<VoiceNoteCommentWidget> {
+  bool _isPlaying = false;
+  Duration _elapsed = Duration.zero;
+  Timer? _playbackTimer;
+  late Duration _totalDuration;
+
+  @override
+  void initState() {
+    super.initState();
+    _totalDuration = _parseDuration(widget.comment['duration'] ?? '00:05');
+  }
+
+  Duration _parseDuration(String durationStr) {
+    try {
+      final parts = durationStr.split(':');
+      if (parts.length == 2) {
+        return Duration(
+          minutes: int.parse(parts[0]),
+          seconds: int.parse(parts[1]),
+        );
+      }
+    } catch (_) {}
+    return const Duration(seconds: 5);
+  }
+
+  @override
+  void dispose() {
+    _playbackTimer?.cancel();
+    super.dispose();
+  }
+
+  void _togglePlay() {
+    if (_isPlaying) {
+      _stopPlay();
+    } else {
+      _startPlay();
+    }
+  }
+
+  void _startPlay() {
+    setState(() {
+      _isPlaying = true;
+      _elapsed = Duration.zero;
+    });
+
+    _playbackTimer?.cancel();
+    _playbackTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() {
+        if (_elapsed >= _totalDuration) {
+          _stopPlay();
+        } else {
+          _elapsed += const Duration(seconds: 1);
+        }
+      });
+    });
+  }
+
+  void _stopPlay() {
+    _playbackTimer?.cancel();
+    setState(() {
+      _isPlaying = false;
+      _elapsed = Duration.zero;
+    });
+  }
+
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(d.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(d.inSeconds.remainder(60));
+    return "$twoDigitMinutes:$twoDigitSeconds";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        GestureDetector(
+          onTap: _togglePlay,
+          child: CircleAvatar(
+            radius: 12,
+            backgroundColor: _isPlaying ? const Color(0xFF8B5CF6) : Colors.white24,
+            child: Icon(
+              _isPlaying ? Icons.pause : Icons.play_arrow,
+              color: Colors.white,
+              size: 12,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Pulsing audio equalizers
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: List.generate(6, (index) {
+            final double height = _isPlaying
+                ? (4 + (index * 3) % 8 + (DateTime.now().millisecondsSinceEpoch ~/ 150 + index) % 6).toDouble()
+                : 4.0;
+            return Container(
+              width: 1.5,
+              height: height,
+              margin: const EdgeInsets.symmetric(horizontal: 1),
+              decoration: BoxDecoration(
+                color: _isPlaying ? const Color(0xFF8B5CF6) : Colors.white54,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          _isPlaying
+              ? "${_formatDuration(_elapsed)} / ${_formatDuration(_totalDuration)}"
+              : _formatDuration(_totalDuration),
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+      ],
+    );
+  }
+}
+

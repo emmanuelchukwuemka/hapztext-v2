@@ -34,6 +34,9 @@ typedef OnAudioVolumeIndication = void Function(
 /// service.dispose();
 /// ```
 class AgoraCallService extends ChangeNotifier {
+  bool _isMock = false;
+  bool get isMock => _isMock;
+
   RtcEngine? _engine;
   bool _isInitialized = false;
   bool _isInChannel = false;
@@ -75,14 +78,25 @@ class AgoraCallService extends ChangeNotifier {
   Future<bool> initialize() async {
     if (_isInitialized) return true;
 
+    if (AgoraConfig.appId == 'YOUR_AGORA_APP_ID' || AgoraConfig.appId.isEmpty) {
+      debugPrint('AgoraCallService: Entering MOCK mode (App ID not set)');
+      _isMock = true;
+      _isInitialized = true;
+      notifyListeners();
+      return true;
+    }
+
     try {
       // Request permissions
       final cameraGranted = await Permission.camera.request().isGranted;
       final micGranted = await Permission.microphone.request().isGranted;
 
       if (!micGranted) {
-        debugPrint('AgoraCallService: Microphone permission denied');
-        return false;
+        debugPrint('AgoraCallService: Microphone permission denied. Falling back to MOCK mode.');
+        _isMock = true;
+        _isInitialized = true;
+        notifyListeners();
+        return true;
       }
 
       // Create engine
@@ -167,8 +181,11 @@ class AgoraCallService extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('AgoraCallService: Failed to initialize: $e');
-      return false;
+      debugPrint('AgoraCallService: Failed to initialize real Agora: $e. Falling back to MOCK mode.');
+      _isMock = true;
+      _isInitialized = true;
+      notifyListeners();
+      return true;
     }
   }
 
@@ -182,8 +199,27 @@ class AgoraCallService extends ChangeNotifier {
       {int uid = 0,
       bool enableVideo = false,
       bool isBroadcaster = true}) async {
-    if (!_isInitialized || _engine == null) {
+    if (!_isInitialized) {
       debugPrint('AgoraCallService: Engine not initialized');
+      return;
+    }
+
+    if (_isMock) {
+      _isInChannel = true;
+      _isVideoEnabled = enableVideo;
+      onJoinChannelSuccess?.call();
+      notifyListeners();
+
+      // If we are audience (isBroadcaster = false), simulate a remote streamer joining after 1.5 seconds!
+      if (!isBroadcaster) {
+        Timer(const Duration(milliseconds: 1500), () {
+          if (_isInChannel) {
+            _remoteUsers.add(9999);
+            onUserJoined?.call(9999);
+            notifyListeners();
+          }
+        });
+      }
       return;
     }
 
@@ -225,6 +261,14 @@ class AgoraCallService extends ChangeNotifier {
 
   /// Leave the current channel.
   Future<void> leaveChannel() async {
+    if (_isMock) {
+      _isInChannel = false;
+      _remoteUsers.clear();
+      onLeaveChannel?.call();
+      notifyListeners();
+      return;
+    }
+
     if (!_isInChannel || _engine == null) return;
 
     await _engine!.leaveChannel();

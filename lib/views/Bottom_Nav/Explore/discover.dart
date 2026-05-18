@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:haptext_api/exports.dart';
 import 'package:haptext_api/common/coloors.dart';
@@ -14,13 +15,26 @@ class XploreTab3 extends StatefulWidget {
 
 enum DiscoverState { idle, searching, connected }
 
+class MockDiscoverProfile {
+  final String name;
+  final String avatar;
+  final String interests;
+  final List<String> chatMessages;
+
+  MockDiscoverProfile({
+    required this.name,
+    required this.avatar,
+    required this.interests,
+    required this.chatMessages,
+  });
+}
+
 class _XploreTab3State extends State<XploreTab3>
     with SingleTickerProviderStateMixin {
   DiscoverState _state = DiscoverState.idle;
   late AnimationController _pulseController;
   bool _showActions = false;
   bool _showChat = false;
-  bool _showFriendAdded = false;
   final TextEditingController _msgController = TextEditingController();
   final List<String> _messages = [];
   int _currentReaction = -1;
@@ -36,6 +50,51 @@ class _XploreTab3State extends State<XploreTab3>
     "😡"
   ];
 
+  // Matchmaking simulation variables
+  Timer? _searchTimer;
+  int _currentProfileIndex = 0;
+  int _currentMessageIndex = 0;
+  bool _isFriendAdded = false;
+
+  final List<MockDiscoverProfile> _mockProfiles = [
+    MockDiscoverProfile(
+      name: "Sophia",
+      avatar: "assets/images/placeholder.jpg",
+      interests: "🎨 Art, 🎮 Gaming, 🎧 Music",
+      chatMessages: [
+        "Hey! Nice to meet you here! 😊",
+        "I'm Sophia, currently studying art. What about you?",
+        "That's so cool! I love chatting with people here.",
+        "Haha totally! What are your hobbies?",
+        "Wow, we have so much in common! Let's add each other!",
+      ],
+    ),
+    MockDiscoverProfile(
+      name: "Marcus",
+      avatar: "assets/images/placeholder.jpg",
+      interests: "⚽ Sports, 🍔 Foodie, ✈️ Travel",
+      chatMessages: [
+        "Yo! What's up? ✌️",
+        "Just got back from a football match. You like sports?",
+        "Nice! I'm planning my next trip to Europe soon.",
+        "Definitely, life is too short to stay in one place!",
+        "Hey, you're awesome, let's connect as friends!",
+      ],
+    ),
+    MockDiscoverProfile(
+      name: "Emma",
+      avatar: "assets/images/placeholder.jpg",
+      interests: "📚 Reading, 🐱 Cats, ☕ Coffee",
+      chatMessages: [
+        "Hi there! 🌸",
+        "Drinking some caramel macchiato right now. What's your go-to drink?",
+        "Oh, that sounds delicious! 😋",
+        "Do you have any pets? I have two adorable cats!",
+        "You seem super friendly! Let's be friends!",
+      ],
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -47,18 +106,51 @@ class _XploreTab3State extends State<XploreTab3>
 
   @override
   void dispose() {
+    _searchTimer?.cancel();
     _pulseController.dispose();
     _msgController.dispose();
     super.dispose();
   }
 
-  void _startSearching() async {
-    setState(() => _state = DiscoverState.searching);
-    // TODO: Implement real random matching backend integration
-    // For now, we stay in searching state as there are no other real users online
+  void _startSearching() {
+    setState(() {
+      _state = DiscoverState.searching;
+      _showActions = false;
+      _showChat = false;
+      _isFriendAdded = false;
+      _messages.clear();
+      _currentMessageIndex = 0;
+    });
+
+    _searchTimer?.cancel();
+    _searchTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _state = DiscoverState.connected;
+          _showActions = true;
+          // Rotate to next profile
+          _currentProfileIndex = (_currentProfileIndex + 1) % _mockProfiles.length;
+        });
+
+        final profile = _mockProfiles[_currentProfileIndex];
+        setState(() {
+          _messages.add("System: Connected with ${profile.name}");
+        });
+        
+        Timer(const Duration(milliseconds: 1000), () {
+          if (mounted && _state == DiscoverState.connected) {
+            setState(() {
+              _messages.add("${profile.name}: ${profile.chatMessages[0]}");
+              _currentMessageIndex = 1;
+            });
+          }
+        });
+      }
+    });
   }
 
   void _cancelSearching() {
+    _searchTimer?.cancel();
     setState(() {
       _state = DiscoverState.idle;
       _showActions = false;
@@ -87,10 +179,32 @@ class _XploreTab3State extends State<XploreTab3>
 
   void _sendMessage() {
     if (_msgController.text.isNotEmpty) {
+      final userText = _msgController.text.trim();
       setState(() {
-        _messages.add(_msgController.text);
+        _messages.add("You: $userText");
         _msgController.clear();
       });
+
+      // Simulate matched user response
+      final profile = _mockProfiles[_currentProfileIndex];
+      if (_currentMessageIndex < profile.chatMessages.length) {
+        final reply = profile.chatMessages[_currentMessageIndex];
+        _currentMessageIndex++;
+        Timer(const Duration(milliseconds: 1500), () {
+          if (mounted && _state == DiscoverState.connected) {
+            setState(() {
+              _messages.add("${profile.name}: $reply");
+            });
+            // Trigger a random reaction from them
+            final random = Random();
+            if (random.nextBool()) {
+              setState(() {
+                _currentReaction = random.nextInt(_reactions.length);
+              });
+            }
+          }
+        });
+      }
     }
   }
 
@@ -98,6 +212,7 @@ class _XploreTab3State extends State<XploreTab3>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("User reported successfully")),
     );
+    _nextConnection();
   }
 
   @override
@@ -180,7 +295,7 @@ class _XploreTab3State extends State<XploreTab3>
                       .withOpacity(0.2 * _pulseController.value),
                   border: Border.all(
                     color: const Color(0xFF8B5CF6)
-                        .withOpacity(0.5 * _pulseController.value),
+                      .withOpacity(0.5 * _pulseController.value),
                     width: 2,
                   ),
                 ),
@@ -212,33 +327,12 @@ class _XploreTab3State extends State<XploreTab3>
   }
 
   Widget _buildConnectedState() {
+    final profile = _mockProfiles[_currentProfileIndex];
     return Stack(
       children: [
-        // 1. Partner Video Placeholder
+        // 1. Partner Video / Ambient Simulation
         Positioned.fill(
-          child: Container(
-            color: Colors.black,
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.white10,
-                      child: Icon(Icons.person_search,
-                          size: 60, color: Colors.white24)),
-                  SizedBox(height: 16),
-                  Text("Looking for someone...",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold)),
-                  Text("Random discovery is active",
-                      style: TextStyle(color: Colors.white70, fontSize: 16)),
-                ],
-              ),
-            ),
-          ),
+          child: _buildMatchedUserAmbientWidget(profile),
         ),
 
         // 2. Info Overlay
@@ -248,10 +342,9 @@ class _XploreTab3State extends State<XploreTab3>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildOverlayTag("Waiting...", Colors.black54),
-              // Common interests tag removed until real matching is implemented
-              // const SizedBox(height: 8),
-              // _buildOverlayTag("Common: ?? Gaming, ?? Music", const Color(0xFF8B5CF6).withOpacity(0.7)),
+              _buildOverlayTag("Matched: ${profile.name}", const Color(0xFF8B5CF6)),
+              const SizedBox(height: 8),
+              _buildOverlayTag(profile.interests, Colors.black54),
             ],
           ),
         ),
@@ -400,9 +493,36 @@ class _XploreTab3State extends State<XploreTab3>
             bottom: 300,
             child: Column(
               children: [
-                _actionButton(Icons.person_add, "Add Friend"),
+                _actionButton(
+                  Icons.person_add,
+                  "Add Friend",
+                  onTap: () {
+                    if (!_isFriendAdded) {
+                      setState(() {
+                        _isFriendAdded = true;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Friend request sent to ${profile.name}! ✨",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          backgroundColor: const Color(0xFF8B5CF6),
+                        ),
+                      );
+                    }
+                  },
+                ),
                 const SizedBox(height: 12),
-                _actionButton(Icons.share, "Share"),
+                _actionButton(
+                  Icons.share,
+                  "Share",
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Link copied to clipboard!")),
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -420,6 +540,99 @@ class _XploreTab3State extends State<XploreTab3>
       child: Text(text,
           style: const TextStyle(
               color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Widget _buildMatchedUserAmbientWidget(MockDiscoverProfile profile) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF0F0C20),
+            Color(0xFF1B1437),
+            Color(0xFF050308),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Dynamic pulsing backdrop waves
+          Center(
+            child: Opacity(
+              opacity: 0.1,
+              child: AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: 1.0 + 0.2 * _pulseController.value,
+                    child: const Icon(
+                      Icons.circle,
+                      size: 350,
+                      color: Color(0xFF8B5CF6),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Pulsing glow outer ring around partner avatar
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                      blurRadius: 50,
+                      spreadRadius: 8,
+                    ),
+                  ],
+                ),
+                child: const CircleAvatar(
+                  radius: 60,
+                  backgroundImage: AssetImage('assets/images/placeholder.jpg'),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                profile.name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.videocam, color: Colors.greenAccent, size: 16),
+                  SizedBox(width: 6),
+                  Text(
+                    "Live Video Match",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -451,17 +664,27 @@ class _XploreTab3State extends State<XploreTab3>
     );
   }
 
-  Widget _actionButton(IconData icon, String label) {
-    return Column(
-      children: [
-        CircleAvatar(
-          backgroundColor: Colors.white10,
-          child: Icon(icon, color: Colors.white),
-        ),
-        const SizedBox(height: 4),
-        Text(label,
-            style: const TextStyle(color: Colors.white70, fontSize: 10)),
-      ],
+  Widget _actionButton(IconData icon, String label, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          CircleAvatar(
+            backgroundColor: _isFriendAdded && label == "Add Friend"
+                ? Colors.green
+                : Colors.white10,
+            child: Icon(
+              _isFriendAdded && label == "Add Friend" ? Icons.check : icon,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _isFriendAdded && label == "Add Friend" ? "Added" : label,
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
+          ),
+        ],
+      ),
     );
   }
 }

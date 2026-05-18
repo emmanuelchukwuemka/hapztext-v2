@@ -69,10 +69,19 @@ class _FriendState extends State<Friend> {
                   itemCount: friends.length,
                   itemBuilder: (context, index) {
                     final friend = friends[index];
+                    final userModel = SearchedUserModel(
+                      id: friend.id,
+                      username:
+                          "${friend.firstName ?? ""} ${friend.lastName ?? ""}"
+                              .trim(),
+                      profilePicture: friend.profilePicture,
+                      profile: friend,
+                    );
                     return friendCardWidget(
                       context,
-                      '${friend.firstName} ${friend.lastName}',
+                      '${friend.firstName ?? ""} ${friend.lastName ?? ""}'.trim(),
                       friend.profilePicture ?? 'assets/images/placeholder.jpg',
+                      user: userModel,
                     );
                   },
                 );

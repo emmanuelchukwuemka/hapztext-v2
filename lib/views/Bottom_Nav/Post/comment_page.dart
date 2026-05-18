@@ -410,15 +410,9 @@ class _CommentScreenState extends State<CommentScreen>
               ]),
               const SizedBox(height: 6),
               // content
-              // c.isVoiceNote
-              //     ? const Row(children: [
-              //         Icon(Icons.play_arrow,
-              //             size: 18, color: Colors.cyanAccent),
-              //         SizedBox(width: 8),
-              //         AppText(text: '[Voice note]', color: Colors.white)
-              //       ])
-              //     :
-              _buildContentWithMentions(comment.textContent ?? ''),
+              comment.postFormat == 'audio' || (comment.audioContent != null && comment.audioContent!.isNotEmpty)
+                  ? CommentVoicePlayer(audioUrl: comment.audioContent!)
+                  : _buildContentWithMentions(comment.textContent ?? ''),
               const SizedBox(height: 8),
               // actions: reactions preview, reply, bookmark, open emoji picker
               Row(children: [
@@ -603,17 +597,16 @@ class _CommentScreenState extends State<CommentScreen>
                                           '${widget.post.senderName?.substring(0, 1)}',
                                       color: Colors.white)),
                               const SizedBox(width: 10),
-                              Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    AppText(
-                                        text: widget.post.senderName ?? "",
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white),
-                                    const SizedBox(height: 6),
-                                    SizedBox(
-                                      width: 280,
-                                      child: GestureDetector(
+                              Expanded(
+                                child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      AppText(
+                                          text: widget.post.senderName ?? "",
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white),
+                                      const SizedBox(height: 6),
+                                      GestureDetector(
                                         onTap: () => setState(() =>
                                             _showFullCaption =
                                                 !_showFullCaption),
@@ -622,8 +615,8 @@ class _CommentScreenState extends State<CommentScreen>
                                             maxLines: _showFullCaption ? 2 : 10,
                                             color: Colors.white70),
                                       ),
-                                    ),
-                                  ]),
+                                    ]),
+                              ),
                             ]),
                         const SizedBox(height: 10),
                         Row(children: [
@@ -688,11 +681,11 @@ class _CommentScreenState extends State<CommentScreen>
             ])),
             Container(
                 color: const Color(0xFF0B0B0C),
-                padding: EdgeInsets.only(
+                padding: const EdgeInsets.only(
                     left: 12,
                     right: 12,
                     top: 10,
-                    bottom: bottomInset > 0 ? bottomInset : 12),
+                    bottom: 12),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   // Reply-to banner (if replying)
                   if (_replyTo != null)
@@ -931,3 +924,145 @@ class _FloatingEmojiWidgetState extends State<_FloatingEmojiWidget>
     );
   }
 }
+
+class CommentVoicePlayer extends StatefulWidget {
+  final String audioUrl;
+  const CommentVoicePlayer({super.key, required this.audioUrl});
+
+  @override
+  State<CommentVoicePlayer> createState() => _CommentVoicePlayerState();
+}
+
+class _CommentVoicePlayerState extends State<CommentVoicePlayer> {
+  final AudioPlayer _player = AudioPlayer();
+  bool _isPlaying = false;
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPlayer();
+  }
+
+  void _initPlayer() async {
+    try {
+      await _player.setUrl(widget.audioUrl);
+      if (!mounted) return;
+      _player.durationStream.listen((d) {
+        if (mounted && d != null) {
+          setState(() {
+            _duration = d;
+            _isInitialized = true;
+          });
+        }
+      });
+      _player.positionStream.listen((p) {
+        if (mounted) {
+          setState(() {
+            _position = p;
+          });
+        }
+      });
+      _player.playerStateStream.listen((state) {
+        if (mounted) {
+          setState(() {
+            _isPlaying = state.playing;
+          });
+        }
+      });
+    } catch (e) {
+      print("Error loading voice note: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  void _togglePlay() async {
+    if (!_isInitialized) return;
+    if (_isPlaying) {
+      await _player.pause();
+    } else {
+      if (_position >= _duration) {
+        await _player.seek(Duration.zero);
+      }
+      await _player.play();
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(d.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(d.inSeconds.remainder(60));
+    return "$twoDigitMinutes:$twoDigitSeconds";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: _togglePlay,
+            child: CircleAvatar(
+              radius: 14,
+              backgroundColor: _isPlaying ? Colors.cyanAccent : Colors.white24,
+              child: Icon(
+                _isPlaying ? Icons.pause : Icons.play_arrow,
+                color: _isPlaying ? Colors.black : Colors.white,
+                size: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Pulsing Sound Wave / Slider
+          SizedBox(
+            width: 120,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                activeTrackColor: Colors.cyanAccent,
+                inactiveTrackColor: Colors.white24,
+                thumbColor: Colors.cyanAccent,
+              ),
+              child: Slider(
+                value: _position.inSeconds.toDouble(),
+                max: _duration.inSeconds > 0
+                    ? _duration.inSeconds.toDouble()
+                    : 1.0,
+                onChanged: (val) async {
+                  if (_isInitialized) {
+                    await _player.seek(Duration(seconds: val.toInt()));
+                  }
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _isPlaying
+                ? "${_formatDuration(_position)} / ${_formatDuration(_duration)}"
+                : _formatDuration(_duration),
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
