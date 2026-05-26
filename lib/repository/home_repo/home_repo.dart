@@ -33,16 +33,26 @@ class HomeRepo {
 
   Future<String?> _currentUsername(String userId) async {
     final user = Supabase.instance.client.auth.currentUser;
-    final metadataUsername = user?.userMetadata?['username']?.toString();
-    if (metadataUsername != null && metadataUsername.isNotEmpty) {
-      return metadataUsername;
+    if (user != null && user.id == userId) {
+      final metadataUsername = user.userMetadata?['username']?.toString();
+      if (metadataUsername != null && metadataUsername.isNotEmpty) {
+        return metadataUsername;
+      }
     }
-    final profile = await Supabase.instance.client
-        .from('profiles')
-        .select('username')
-        .eq('user_id', userId)
-        .maybeSingle();
-    return profile?['username']?.toString();
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('username')
+          .eq('user_id', userId)
+          .maybeSingle();
+      final dbUsername = profile?['username']?.toString();
+      if (dbUsername != null && dbUsername.isNotEmpty) {
+        return dbUsername;
+      }
+    } catch (e) {
+      // Fail-safe: fall back to auth user metadata if DB query fails
+    }
+    return user?.userMetadata?['username']?.toString();
   }
 
   String _ensurePublicUrl(String url) {
@@ -64,7 +74,7 @@ class HomeRepo {
       final currentUserId = user.id;
       dynamic builder = client
           .from(_postsTable)
-          .select('*, $_mediaFilesTable(*)')
+          .select('*, $_mediaFilesTable(*), replies:posts!previous_post_id(count)')
           .eq('is_reply', false);
 
       if (query != null && query.trim().isNotEmpty) {
@@ -98,10 +108,20 @@ class HomeRepo {
         }
       }
 
-      // Inject current_user_reaction into each post
+      // Inject current_user_reaction and reply_count into each post
       final enriched = rows.map((r) {
         final map = Map<String, dynamic>.from(r as Map);
         map['current_user_reaction'] = userReactions[map['id'].toString()];
+        
+        int replyCount = 0;
+        final repliesList = map['replies'];
+        if (repliesList is List && repliesList.isNotEmpty) {
+          final first = repliesList.first;
+          if (first is Map) {
+            replyCount = int.tryParse(first['count']?.toString() ?? '0') ?? 0;
+          }
+        }
+        map['reply_count'] = replyCount;
         return map;
       }).toList();
 
@@ -134,15 +154,29 @@ class HomeRepo {
 
       final rows = await client
           .from(_postsTable)
-          .select('*, $_mediaFilesTable(*)')
+          .select('*, $_mediaFilesTable(*), replies:posts!previous_post_id(count)')
           .eq('sender_id', effectiveUserId)
           .eq('is_reply', false)
           .order('created_at', ascending: false)
           .range(from, to);
 
+      final enriched = (rows as List).map((r) {
+        final map = Map<String, dynamic>.from(r as Map);
+        int replyCount = 0;
+        final repliesList = map['replies'];
+        if (repliesList is List && repliesList.isNotEmpty) {
+          final first = repliesList.first;
+          if (first is Map) {
+            replyCount = int.tryParse(first['count']?.toString() ?? '0') ?? 0;
+          }
+        }
+        map['reply_count'] = replyCount;
+        return map;
+      }).toList();
+
       return _jsonResponse(200, {
         'data': {
-          'result': rows,
+          'result': enriched,
           'previous_posts_data': null,
           'next_posts_data': null,
         }
@@ -220,9 +254,29 @@ class HomeRepo {
           .eq('previous_post_id', postId)
           .order('created_at', ascending: false);
 
+      final commentIds = (rows as List).map((r) => r['id'].toString()).toList();
+      Map<String, String> userReactions = {};
+      if (commentIds.isNotEmpty) {
+        final reactions = await client
+            .from(_reactionsTable)
+            .select('post_id, reaction')
+            .eq('user_id', user.id)
+            .inFilter('post_id', commentIds);
+        for (final r in reactions) {
+          userReactions[r['post_id'].toString()] = r['reaction'].toString();
+        }
+      }
+
+      final enriched = rows.map((r) {
+        final map = Map<String, dynamic>.from(r as Map);
+        map['current_user_reaction'] = userReactions[map['id'].toString()];
+        map['reaction_count'] = map['like_count'];
+        return map;
+      }).toList();
+
       return _jsonResponse(200, {
         'data': {
-          'result': rows,
+          'result': enriched,
           'previous_replies_data': null,
           'next_replies_data': null,
         }
@@ -268,11 +322,26 @@ class HomeRepo {
     }
 
     try {
-      await client.from(_reactionsTable).upsert({
-        'post_id': id,
-        'user_id': user.id,
-        'reaction': reaction,
-      });
+      final existing = await client
+          .from(_reactionsTable)
+          .select('reaction')
+          .eq('post_id', id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (existing != null && existing['reaction'] == reaction) {
+        await client
+            .from(_reactionsTable)
+            .delete()
+            .eq('post_id', id)
+            .eq('user_id', user.id);
+      } else {
+        await client.from(_reactionsTable).upsert({
+          'post_id': id,
+          'user_id': user.id,
+          'reaction': reaction,
+        });
+      }
 
       final reactions =
           await client.from(_reactionsTable).select('id').eq('post_id', id);
@@ -281,7 +350,12 @@ class HomeRepo {
       await client
           .from(_postsTable)
           .update({'like_count': likeCount}).eq('id', id);
-      return _jsonResponse(201, {'message': 'Reaction saved', 'data': {}});
+      return _jsonResponse(201, {
+        'message': existing != null && existing['reaction'] == reaction
+            ? 'Reaction removed'
+            : 'Reaction saved',
+        'data': {}
+      });
     } on PostgrestException catch (e) {
       return _jsonResponse(400, _errorBody(e.message));
     } catch (e) {
@@ -558,6 +632,27 @@ class HomeRepo {
       return _streamedJsonResponse(400, _errorBody(e.message));
     } catch (e) {
       return _streamedJsonResponse(500, _errorBody(e.toString()));
+    }
+  }
+
+  Future<Response> deletePost({required String postId}) async {
+    final client = Supabase.instance.client;
+    final user = _currentUser();
+    if (user == null) {
+      return _jsonResponse(401, _errorBody('Not authenticated'));
+    }
+
+    try {
+      await client
+          .from(_postsTable)
+          .delete()
+          .eq('id', postId)
+          .eq('sender_id', user.id);
+      return _jsonResponse(200, {'message': 'Post deleted successfully', 'data': {}});
+    } on PostgrestException catch (e) {
+      return _jsonResponse(400, _errorBody(e.message));
+    } catch (e) {
+      return _jsonResponse(500, _errorBody(e.toString()));
     }
   }
 }

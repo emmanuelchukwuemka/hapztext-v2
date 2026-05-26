@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Configuration constants for Agora SDK.
 /// Replace [appId] with your Agora project App ID from https://console.agora.io
 class AgoraConfig {
-  // TODO: Replace with your actual Agora App ID
-  static const String appId = 'YOUR_AGORA_APP_ID';
+  static String get appId => dotenv.env['AGORA_APP_ID'] ?? 'YOUR_AGORA_APP_ID';
 
   // For testing without a token server, set to empty string.
   // For production, generate tokens server-side.
@@ -101,7 +101,7 @@ class AgoraCallService extends ChangeNotifier {
 
       // Create engine
       _engine = createAgoraRtcEngine();
-      await _engine!.initialize(const RtcEngineContext(
+      await _engine!.initialize(RtcEngineContext(
         appId: AgoraConfig.appId,
         channelProfile: ChannelProfileType.channelProfileCommunication,
       ));

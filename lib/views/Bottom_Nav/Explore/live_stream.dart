@@ -7,6 +7,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:haptext_api/services/chat_ui/agora_call_service.dart';
 import 'package:haptext_api/services/chat_ui/livestream_websocket_service.dart';
 import 'package:haptext_api/services/chat_ui/hapztext_api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LiveStreamApp extends StatelessWidget {
   const LiveStreamApp({super.key});
@@ -35,8 +36,9 @@ class _LiveStreamPageState extends State<LiveStreamPage>
   late final LivestreamWebsocketService _wsService;
   int _viewerCount = 0;
   bool _isLive = false;
-  final String _streamId =
-      "live_stream_${DateTime.now().millisecondsSinceEpoch}";
+  bool _noActiveStream = false;
+  String? _streamId;
+  String _streamerUsername = "Chloe";
   final List<Map<String, dynamic>> _comments = [];
   final TextEditingController _commentController = TextEditingController();
 
@@ -135,9 +137,44 @@ class _LiveStreamPageState extends State<LiveStreamPage>
   }
 
   Future<void> _initLive() async {
+    setState(() {
+      _noActiveStream = false;
+    });
     final success = await _agoraService.initialize();
     if (success) {
-      await _agoraService.joinChannel(_streamId,
+      bool foundActive = false;
+      // Query active livestream from Supabase posts
+      try {
+        final client = Supabase.instance.client;
+        final activeStreams = await client
+            .from('posts')
+            .select('sender_username, video_content')
+            .eq('post_format', 'live')
+            .order('created_at', ascending: false)
+            .limit(1);
+
+        if (activeStreams != null && (activeStreams as List).isNotEmpty) {
+          final streamData = activeStreams.first;
+          _streamId = streamData['video_content']?.toString();
+          _streamerUsername = streamData['sender_username']?.toString() ?? "Streamer";
+          foundActive = true;
+          debugPrint('Found active stream channel ID: $_streamId from $_streamerUsername');
+        }
+      } catch (e) {
+        debugPrint('Error fetching active livestream post: $e');
+      }
+
+      if (!foundActive) {
+        if (mounted) {
+          setState(() {
+            _noActiveStream = true;
+            _isLive = false;
+          });
+        }
+        return;
+      }
+
+      await _agoraService.joinChannel(_streamId!,
           isBroadcaster: false, enableVideo: false);
       if (mounted) {
         setState(() {
@@ -147,7 +184,7 @@ class _LiveStreamPageState extends State<LiveStreamPage>
             _startMockStreamActivity();
           }
         });
-        _wsService.connectToWebSocket(_streamId);
+        _wsService.connectToWebSocket(_streamId!);
       }
     }
   }
@@ -163,6 +200,71 @@ class _LiveStreamPageState extends State<LiveStreamPage>
 
   @override
   Widget build(BuildContext context) {
+    if (_noActiveStream) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.sensors_off_outlined,
+                  color: Colors.white24,
+                  size: 80,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  "No Active Livestreams",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "There are no live broadcasts right now. Tap the 'Go Live' icon on the top right to start a stream!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _noActiveStream = false;
+                      _isLive = false;
+                      _streamId = null;
+                    });
+                    _initLive();
+                  },
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  label: const Text(
+                    "Refresh",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B5CF6),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -177,7 +279,7 @@ class _LiveStreamPageState extends State<LiveStreamPage>
                 controller: VideoViewController.remote(
                   rtcEngine: _agoraService.engine!,
                   canvas: VideoCanvas(uid: _agoraService.remoteUsers.first),
-                  connection: RtcConnection(channelId: _streamId),
+                  connection: RtcConnection(channelId: _streamId!),
                 ),
               ),
             )
@@ -208,7 +310,11 @@ class _LiveStreamPageState extends State<LiveStreamPage>
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _isStreamer ? "Your Stream" : "No active stream",
+                    _isStreamer
+                        ? "Your Stream"
+                        : (_streamId != null && !_streamId!.startsWith("live_stream_")
+                            ? "$_streamerUsername is Live"
+                            : "Demo Mode"),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -622,9 +728,11 @@ class _LiveStreamPageState extends State<LiveStreamPage>
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  "Chloe is live",
-                  style: TextStyle(
+                Text(
+                  _streamId != null && !_streamId!.startsWith("live_stream_")
+                      ? "$_streamerUsername is live"
+                      : "Chloe is live (Demo)",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,

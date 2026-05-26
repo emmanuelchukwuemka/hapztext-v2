@@ -72,15 +72,16 @@ class _PeopleTabState extends State<PeopleTab> {
                   return AppshadowContainer(
                     onTap: () {
                       if (person is SearchedUserProfile) {
-                        // For discovery, we might need to fetch full profile or just navigate
+                        // For discovery, we check if user is already followed, and map the correct username
+                        final isFollowing = watchPeople.followings.any((f) => f.userId == person.userId);
                         context.push(RouteName.friendsProfilePage.path,
                             extra: SearchedUserModel(
                               id: person.userId,
-                              username: person
-                                  .firstName, // Assuming firstName as fallback
+                              username: person.username ?? person.firstName,
                               profilePicture: person.profilePicture,
                               followerCount: person.followerCount,
                               followingCount: person.followingCount,
+                              following: isFollowing,
                               profile: person,
                             ));
                       } else if (person.profile?.firstName == null) {

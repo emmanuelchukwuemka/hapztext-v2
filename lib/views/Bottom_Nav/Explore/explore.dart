@@ -33,36 +33,17 @@ class Explore extends StatelessWidget {
                       },
                       icon: const Icon(Icons.search, size: 28),
                       color: context.theme.primaryColor),
-                  const SizedBox(width: 1.0),
-                  PopupMenuButton(
-                      position: PopupMenuPosition.under,
-                      color: context.theme.bgColor,
-                      icon: Icon(
-                        Icons.more_vert,
-                        size: 22,
-                        color: context.theme.primaryColor,
-                      ),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(0.0),
-                          bottomRight: Radius.circular(30),
-                          bottomLeft: Radius.circular(30),
-                        ),
-                      ),
-                      itemBuilder: (BuildContext context) => [
-                            PopupMenuItem(
-                                child: InkWell(
-                                    onTap: () {
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => const Live(),
-                                          ));
-                                    },
-                                    child: const AppText(
-                                        text: 'Go live', color: Colors.white)))
-                          ])
+                  IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const Live()),
+                        );
+                      },
+                      icon: const Icon(Icons.sensors, size: 28),
+                      tooltip: 'Go Live',
+                      color: Colors.redAccent),
+                  const SizedBox(width: 8.0),
                 ],
                 bottom: TabBar(
                     indicatorColor: context.theme.primaryColor,

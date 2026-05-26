@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:haptext_api/exports.dart';
 import 'package:haptext_api/common/coloors.dart';
 import 'package:haptext_api/common/theme/custom_theme_extension.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:haptext_api/bloc/people/cubit/people_cubit.dart';
 
 class XploreTab3 extends StatefulWidget {
   const XploreTab3({super.key});
@@ -50,11 +52,14 @@ class _XploreTab3State extends State<XploreTab3>
     "😡"
   ];
 
-  // Matchmaking simulation variables
+  // Matchmaking variables
   Timer? _searchTimer;
   int _currentProfileIndex = 0;
   int _currentMessageIndex = 0;
   bool _isFriendAdded = false;
+
+  List<Map<String, dynamic>> _realProfiles = [];
+  bool _isLoadingRealProfiles = false;
 
   final List<MockDiscoverProfile> _mockProfiles = [
     MockDiscoverProfile(
@@ -95,6 +100,73 @@ class _XploreTab3State extends State<XploreTab3>
     ),
   ];
 
+  Future<void> _loadRealProfiles() async {
+    if (_isLoadingRealProfiles) return;
+    setState(() {
+      _isLoadingRealProfiles = true;
+    });
+    try {
+      final client = Supabase.instance.client;
+      final currentUser = client.auth.currentUser;
+      if (currentUser != null) {
+        final List<dynamic> rows = await client
+            .from('profiles')
+            .select()
+            .neq('user_id', currentUser.id)
+            .limit(20);
+        
+        setState(() {
+          _realProfiles = List<Map<String, dynamic>>.from(rows);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading discover profiles: $e');
+    } finally {
+      setState(() {
+        _isLoadingRealProfiles = false;
+      });
+    }
+  }
+
+  String _getMatchName() {
+    if (_realProfiles.isNotEmpty) {
+      final profile = _realProfiles[_currentProfileIndex];
+      final username = profile['username']?.toString();
+      final firstName = profile['first_name']?.toString();
+      final lastName = profile['last_name']?.toString();
+      if (username != null && username.isNotEmpty) return username;
+      if (firstName != null && firstName.isNotEmpty) {
+        return "$firstName ${lastName ?? ''}".trim();
+      }
+      return 'User';
+    }
+    return _mockProfiles[_currentProfileIndex].name;
+  }
+
+  String _getMatchAvatar() {
+    if (_realProfiles.isNotEmpty) {
+      final profile = _realProfiles[_currentProfileIndex];
+      return profile['profile_picture']?.toString() ?? "assets/images/placeholder.jpg";
+    }
+    return _mockProfiles[_currentProfileIndex].avatar;
+  }
+
+  String _getMatchInterests() {
+    if (_realProfiles.isNotEmpty) {
+      final profile = _realProfiles[_currentProfileIndex];
+      return profile['bio']?.toString() ?? "No bio yet";
+    }
+    return _mockProfiles[_currentProfileIndex].interests;
+  }
+
+  String _getMatchUserId() {
+    if (_realProfiles.isNotEmpty) {
+      final profile = _realProfiles[_currentProfileIndex];
+      return profile['user_id']?.toString() ?? '';
+    }
+    return '';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -102,6 +174,7 @@ class _XploreTab3State extends State<XploreTab3>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+    _loadRealProfiles();
   }
 
   @override
@@ -125,22 +198,27 @@ class _XploreTab3State extends State<XploreTab3>
     _searchTimer?.cancel();
     _searchTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
+        final profilesCount = _realProfiles.isNotEmpty ? _realProfiles.length : _mockProfiles.length;
         setState(() {
           _state = DiscoverState.connected;
           _showActions = true;
           // Rotate to next profile
-          _currentProfileIndex = (_currentProfileIndex + 1) % _mockProfiles.length;
+          _currentProfileIndex = (_currentProfileIndex + 1) % profilesCount;
         });
 
-        final profile = _mockProfiles[_currentProfileIndex];
+        final name = _getMatchName();
+        final text = _realProfiles.isNotEmpty
+            ? "Hey! Nice to connect with you!"
+            : _mockProfiles[_currentProfileIndex].chatMessages[0];
+
         setState(() {
-          _messages.add("System: Connected with ${profile.name}");
+          _messages.add("System: Connected with $name");
         });
         
         Timer(const Duration(milliseconds: 1000), () {
           if (mounted && _state == DiscoverState.connected) {
             setState(() {
-              _messages.add("${profile.name}: ${profile.chatMessages[0]}");
+              _messages.add("$name: $text");
               _currentMessageIndex = 1;
             });
           }
@@ -186,24 +264,39 @@ class _XploreTab3State extends State<XploreTab3>
       });
 
       // Simulate matched user response
-      final profile = _mockProfiles[_currentProfileIndex];
-      if (_currentMessageIndex < profile.chatMessages.length) {
-        final reply = profile.chatMessages[_currentMessageIndex];
-        _currentMessageIndex++;
-        Timer(const Duration(milliseconds: 1500), () {
-          if (mounted && _state == DiscoverState.connected) {
-            setState(() {
-              _messages.add("${profile.name}: $reply");
-            });
-            // Trigger a random reaction from them
-            final random = Random();
-            if (random.nextBool()) {
+      final name = _getMatchName();
+      if (_realProfiles.isEmpty) {
+        final profile = _mockProfiles[_currentProfileIndex];
+        if (_currentMessageIndex < profile.chatMessages.length) {
+          final reply = profile.chatMessages[_currentMessageIndex];
+          _currentMessageIndex++;
+          Timer(const Duration(milliseconds: 1500), () {
+            if (mounted && _state == DiscoverState.connected) {
               setState(() {
-                _currentReaction = random.nextInt(_reactions.length);
+                _messages.add("${profile.name}: $reply");
+              });
+              // Trigger a random reaction from them
+              final random = Random();
+              if (random.nextBool()) {
+                setState(() {
+                  _currentReaction = random.nextInt(_reactions.length);
+                });
+              }
+            }
+          });
+        }
+      } else {
+        // Real profile simulation
+        if (_currentMessageIndex == 1) {
+          _currentMessageIndex = 2;
+          Timer(const Duration(milliseconds: 1500), () {
+            if (mounted && _state == DiscoverState.connected) {
+              setState(() {
+                _messages.add("$name: That's awesome! Let's be friends! Check out my profile.");
               });
             }
-          }
-        });
+          });
+        }
       }
     }
   }
@@ -327,12 +420,13 @@ class _XploreTab3State extends State<XploreTab3>
   }
 
   Widget _buildConnectedState() {
-    final profile = _mockProfiles[_currentProfileIndex];
+    final name = _getMatchName();
+    final interests = _getMatchInterests();
     return Stack(
       children: [
         // 1. Partner Video / Ambient Simulation
         Positioned.fill(
-          child: _buildMatchedUserAmbientWidget(profile),
+          child: _buildMatchedUserAmbientWidget(),
         ),
 
         // 2. Info Overlay
@@ -342,9 +436,9 @@ class _XploreTab3State extends State<XploreTab3>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildOverlayTag("Matched: ${profile.name}", const Color(0xFF8B5CF6)),
+              _buildOverlayTag("Matched: $name", const Color(0xFF8B5CF6)),
               const SizedBox(height: 8),
-              _buildOverlayTag(profile.interests, Colors.black54),
+              _buildOverlayTag(interests, Colors.black54),
             ],
           ),
         ),
@@ -501,10 +595,14 @@ class _XploreTab3State extends State<XploreTab3>
                       setState(() {
                         _isFriendAdded = true;
                       });
+                      final matchedUserId = _getMatchUserId();
+                      if (matchedUserId.isNotEmpty) {
+                        context.read<PeopleCubit>().followUser(userId: matchedUserId);
+                      }
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            "Friend request sent to ${profile.name}! ✨",
+                            "Friend request sent to $name! ✨",
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           backgroundColor: const Color(0xFF8B5CF6),
@@ -543,7 +641,9 @@ class _XploreTab3State extends State<XploreTab3>
     );
   }
 
-  Widget _buildMatchedUserAmbientWidget(MockDiscoverProfile profile) {
+  Widget _buildMatchedUserAmbientWidget() {
+    final name = _getMatchName();
+    final avatar = _getMatchAvatar();
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -598,14 +698,16 @@ class _XploreTab3State extends State<XploreTab3>
                     ),
                   ],
                 ),
-                child: const CircleAvatar(
+                child: CircleAvatar(
                   radius: 60,
-                  backgroundImage: AssetImage('assets/images/placeholder.jpg'),
+                  backgroundImage: avatar.startsWith('http')
+                      ? NetworkImage(avatar)
+                      : AssetImage(avatar) as ImageProvider,
                 ),
               ),
               const SizedBox(height: 20),
               Text(
-                profile.name,
+                name,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 26,

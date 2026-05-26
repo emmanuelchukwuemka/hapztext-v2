@@ -123,7 +123,7 @@ class _PostWrapperState extends State<PostWrapper>
             },
           ),
           // removed tagCount and viewCount overlays as they were mock data
-          if (overlayVisible)
+          if (overlayVisible && widget.post.postFormat != 'text')
             _PostOverlay(
               post: widget.post,
               onCommentTap: toggleComments,

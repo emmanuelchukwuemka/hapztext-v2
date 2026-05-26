@@ -97,6 +97,12 @@ class _InputAreaState extends State<InputArea> {
                               });
                             },
                             onChanged: widget.onChanged,
+                            onSubmitted: (val) {
+                              if (val.trim().isNotEmpty) {
+                                widget.onSendText(val.trim());
+                                _controller.clear();
+                              }
+                            },
                             decoration: InputDecoration(
                               hintText: widget.autoClearActive
                                   ? "Message (auto-clear active)"

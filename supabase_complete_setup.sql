@@ -355,6 +355,16 @@ begin
   exception
     when others then null;
   end;
+  begin
+    alter publication supabase_realtime add table public.posts;
+  exception
+    when others then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.post_reactions;
+  exception
+    when others then null;
+  end;
 end $$;
 
 commit;

@@ -88,7 +88,9 @@ class PeopleCubit extends Cubit<PeopleState> {
       if (response.statusCode == 200) {
         searchedUsers.clear();
         for (var user in body['data']['users']) {
-          searchedUsers.add(SearchedUserModel.fromJson(user));
+          final model = SearchedUserModel.fromJson(user);
+          model.following = followings.any((f) => f.userId == model.id);
+          searchedUsers.add(model);
         }
         emit(PeopleLoaded());
       } else {
@@ -185,6 +187,11 @@ class PeopleCubit extends Cubit<PeopleState> {
             user.following = true;
           }
         }
+        final currentUser = await SessionManager.getUser();
+        final currentUserId = currentUser?.id;
+        await fetchFollowings(userId: currentUserId);
+        await fetchFriends();
+        await fetchFollowers(userId: currentUserId);
         emit(PeopleLoaded());
       } else {
         ToastMessage.showErrorToast(
@@ -209,6 +216,11 @@ class PeopleCubit extends Cubit<PeopleState> {
             user.following = false;
           }
         }
+        final currentUser = await SessionManager.getUser();
+        final currentUserId = currentUser?.id;
+        await fetchFollowings(userId: currentUserId);
+        await fetchFriends();
+        await fetchFollowers(userId: currentUserId);
         emit(PeopleLoaded());
       } else {
         ToastMessage.showErrorToast(

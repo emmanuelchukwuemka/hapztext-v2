@@ -3,12 +3,16 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:haptext_api/exports.dart';
 import 'package:haptext_api/repository/home_repo/home_repo.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 part 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
   HomeRepo homeRepo;
+  RealtimeChannel? _postsRealtimeChannel;
+
   HomeCubit(this.homeRepo) : super(HomeInitial()) {
     fetchPosts();
+    initRealtimeListeners();
   }
 
   int page = 1;
@@ -53,8 +57,10 @@ class HomeCubit extends Cubit<HomeState> {
       if (response.statusCode == 201) {
         if (post != null) {
           post.comments.add(CommentModel.fromJson(body['data']));
+          post.replyCount = (post.replyCount ?? 0) + 1;
         }
         emit(PostCommented());
+        emit(HomeLoaded());
       } else {
         ToastMessage.showErrorToast(
             message: body["errors"]["detail"].toString());
@@ -63,6 +69,26 @@ class HomeCubit extends Cubit<HomeState> {
     } catch (e) {
       emit(HomeError());
       log("fetch post $e");
+    }
+  }
+
+  deleteComment({required ResultPostModel post, required CommentModel comment}) async {
+    emit(HomeLoading());
+    try {
+      final response = await homeRepo.deletePost(postId: comment.id ?? '');
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        post.comments.removeWhere((c) => c.id == comment.id);
+        post.replyCount = ((post.replyCount ?? 0) - 1).clamp(0, 999999);
+        emit(PostCommented());
+      } else {
+        ToastMessage.showErrorToast(
+            message: body["errors"]["detail"].toString());
+        emit(HomeError());
+      }
+    } catch (e) {
+      emit(HomeError());
+      log("delete comment $e");
     }
   }
 
@@ -278,5 +304,142 @@ class HomeCubit extends Cubit<HomeState> {
       emit(HomeError());
       log("create video post $e");
     }
+  }
+
+  void initRealtimeListeners() {
+    try {
+      final client = Supabase.instance.client;
+
+      _postsRealtimeChannel = client.channel('public:posts_changes')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'posts',
+          callback: (payload) async {
+            final record = payload.newRecord;
+            final oldRecord = payload.oldRecord;
+
+            if (payload.eventType == PostgresChangeEvent.insert) {
+              final isReply = record['is_reply'] as bool? ?? false;
+              final parentId = record['previous_post_id']?.toString();
+
+              if (isReply && parentId != null) {
+                _updatePostCommentCountLocally(parentId, 1);
+              }
+            } else if (payload.eventType == PostgresChangeEvent.delete) {
+              final isReply = oldRecord['is_reply'] as bool? ?? false;
+              final parentId = oldRecord['previous_post_id']?.toString();
+
+              if (isReply && parentId != null) {
+                _updatePostCommentCountLocally(parentId, -1);
+              }
+            } else if (payload.eventType == PostgresChangeEvent.update) {
+              final postId = record['id']?.toString();
+              if (postId != null) {
+                final newLikeCount = record['like_count'] as int?;
+                final newShareCount = record['share_count'] as int?;
+                _updatePostCountsLocally(postId, likeCount: newLikeCount, shareCount: newShareCount);
+              }
+            }
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'post_reactions',
+          callback: (payload) async {
+            final clientUser = client.auth.currentUser;
+            if (clientUser != null) {
+              if (payload.eventType == PostgresChangeEvent.insert || payload.eventType == PostgresChangeEvent.update) {
+                final record = payload.newRecord;
+                final userId = record['user_id']?.toString();
+                final postId = record['post_id']?.toString();
+                final reaction = record['reaction']?.toString();
+                if (userId == clientUser.id && postId != null) {
+                  _updatePostUserReactionLocally(postId, reaction);
+                }
+              } else if (payload.eventType == PostgresChangeEvent.delete) {
+                final record = payload.oldRecord;
+                final userId = record['user_id']?.toString();
+                final postId = record['post_id']?.toString();
+                if (userId == clientUser.id && postId != null) {
+                  _updatePostUserReactionLocally(postId, null);
+                }
+              }
+            }
+          },
+        );
+
+      _postsRealtimeChannel!.subscribe();
+    } catch (e) {
+      log("Error initializing realtime listeners: $e");
+    }
+  }
+
+  void _updatePostCommentCountLocally(String postId, int change) {
+    bool updated = false;
+    for (final list in [posts.result, trendingPosts.result, popularPosts.result]) {
+      if (list != null) {
+        final idx = list.indexWhere((p) => p.id == postId);
+        if (idx != -1) {
+          final post = list[idx];
+          post.replyCount = (post.replyCount ?? 0) + change;
+          if (post.replyCount! < 0) post.replyCount = 0;
+          updated = true;
+        }
+      }
+    }
+    if (updated) {
+      emit(HomeLoaded());
+    }
+  }
+
+  void _updatePostCountsLocally(String postId, {int? likeCount, int? shareCount}) {
+    bool updated = false;
+    for (final list in [posts.result, trendingPosts.result, popularPosts.result]) {
+      if (list != null) {
+        final idx = list.indexWhere((p) => p.id == postId);
+        if (idx != -1) {
+          final post = list[idx];
+          if (likeCount != null) {
+            post.likeCount = likeCount;
+          }
+          if (shareCount != null) {
+            post.shareCount = shareCount;
+          }
+          updated = true;
+        }
+      }
+    }
+    if (updated) {
+      emit(HomeLoaded());
+    }
+  }
+
+  void _updatePostUserReactionLocally(String postId, String? reaction) {
+    bool updated = false;
+    for (final list in [posts.result, trendingPosts.result, popularPosts.result]) {
+      if (list != null) {
+        final idx = list.indexWhere((p) => p.id == postId);
+        if (idx != -1) {
+          final post = list[idx];
+          post.currentUserReaction = reaction;
+          updated = true;
+        }
+      }
+    }
+    if (updated) {
+      emit(HomeLoaded());
+    }
+  }
+
+  void closeRealtimeListeners() {
+    _postsRealtimeChannel?.unsubscribe();
+  }
+
+  @override
+  Future<void> close() {
+    closeRealtimeListeners();
+    return super.close();
   }
 }

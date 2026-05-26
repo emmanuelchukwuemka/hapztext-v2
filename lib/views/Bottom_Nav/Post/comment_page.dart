@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:video_player/video_player.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CommentScreen extends StatefulWidget {
   final ResultPostModel post;
@@ -454,6 +455,11 @@ class _CommentScreenState extends State<CommentScreen>
                     onPressed: () => _openEmojiPickerFor(comment),
                     icon: const Icon(Icons.emoji_emotions_outlined,
                         color: Colors.white70)),
+                if (comment.senderId == Supabase.instance.client.auth.currentUser?.id)
+                  IconButton(
+                      onPressed: () => _confirmDeleteComment(comment),
+                      icon: const Icon(Icons.delete_outline,
+                          color: Colors.redAccent)),
               ])
             ]),
           )
@@ -505,6 +511,40 @@ class _CommentScreenState extends State<CommentScreen>
     return RichText(text: TextSpan(children: parts));
   }
 
+  // Confirm deletion of own comment
+  void _confirmDeleteComment(CommentModel comment) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF141416),
+        title: const AppText(
+          text: 'Delete Comment',
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+        ),
+        content: const AppText(
+          text: 'Are you sure you want to delete this comment?',
+          color: Colors.white70,
+          fontSize: 14,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const AppText(text: 'Cancel', color: Colors.white54),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<HomeCubit>().deleteComment(post: widget.post, comment: comment);
+            },
+            child: const AppText(text: 'Delete', color: Colors.redAccent),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Emoji picker for a specific comment
   void _openEmojiPickerFor(CommentModel c) {
     showModalBottomSheet(
@@ -521,6 +561,7 @@ class _CommentScreenState extends State<CommentScreen>
                 return GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
+                    _toggleReaction(c, e);
                   },
                   child: Container(
                       padding: const EdgeInsets.all(10),

@@ -5,6 +5,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:haptext_api/services/chat_ui/agora_call_service.dart';
 import 'package:haptext_api/services/chat_ui/livestream_websocket_service.dart';
 import 'package:haptext_api/services/chat_ui/hapztext_api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Live extends StatefulWidget {
   const Live({Key? key}) : super(key: key);
@@ -18,6 +19,7 @@ class _LiveState extends State<Live> {
   late final LivestreamWebsocketService _wsService;
   late final String _streamId;
   bool _isLive = false;
+  String? _postId;
 
   @override
   void initState() {
@@ -42,6 +44,35 @@ class _LiveState extends State<Live> {
         setState(() {
           _isLive = true;
         });
+
+        // Register the active livestream in Supabase database so viewers can query it
+        try {
+          final client = Supabase.instance.client;
+          final user = client.auth.currentUser;
+          if (user != null) {
+            String? username = user.userMetadata?['username']?.toString();
+            try {
+              final profile = await client.from('profiles').select('username').eq('user_id', user.id).maybeSingle();
+              if (profile != null && profile['username'] != null) {
+                username = profile['username'].toString();
+              }
+            } catch (_) {}
+
+            final post = await client.from('posts').insert({
+              'sender_id': user.id,
+              'sender_username': username ?? 'Streamer',
+              'post_format': 'live',
+              'text_content': 'My Livestream',
+              'video_content': _streamId,
+              'is_reply': false,
+              'is_published': true,
+            }).select().single();
+            _postId = post['id']?.toString();
+          }
+        } catch (e) {
+          debugPrint('Error registering livestream post: $e');
+        }
+
         _wsService.connectToWebSocket(_streamId);
         _wsService.startStream("My Livestream");
       }
@@ -52,6 +83,15 @@ class _LiveState extends State<Live> {
   void dispose() {
     if (_isLive) {
       _wsService.endStream();
+      // Remove the live post from Supabase
+      if (_postId != null) {
+        Supabase.instance.client
+            .from('posts')
+            .delete()
+            .eq('id', _postId!)
+            .then((_) => debugPrint('Deleted live post: $_postId'))
+            .catchError((e) => debugPrint('Error deleting live post: $e'));
+      }
     }
     _wsService.dispose();
     _agoraService.dispose();
