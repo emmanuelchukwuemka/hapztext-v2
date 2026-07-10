@@ -14,6 +14,7 @@ app.use('/posts', require('./routes/posts'));
 app.use('/people', require('./routes/people'));
 app.use('/conversations', require('./routes/conversations'));
 app.use('/profiles', require('./routes/profiles'));
+app.use('/streams', require('./routes/streams'));
 
 app.use((err, req, res, _next) => {
   console.error(err);
