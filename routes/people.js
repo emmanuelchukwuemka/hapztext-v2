@@ -98,11 +98,12 @@ router.get('/followings/:userId', authMw, async (req, res) => {
 router.get('/user/:userId', authMw, async (req, res) => {
   try {
     const uid = req.params.userId;
-    const [profileR, followerR, followingR, postR] = await Promise.all([
+    const [profileR, followerR, followingR, postR, followingMeR] = await Promise.all([
       pool.query('SELECT * FROM profiles WHERE user_id = $1', [uid]),
       pool.query('SELECT COUNT(*)::int AS cnt FROM user_follows WHERE following_id = $1', [uid]),
       pool.query('SELECT COUNT(*)::int AS cnt FROM user_follows WHERE follower_id = $1', [uid]),
       pool.query("SELECT COUNT(*)::int AS cnt FROM posts WHERE sender_id = $1 AND is_reply = FALSE AND is_published = TRUE", [uid]),
+      pool.query('SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2', [req.user.id, uid]),
     ]);
     const profile = profileR.rows[0] || { user_id: uid };
     return res.json({ data: {
@@ -110,6 +111,7 @@ router.get('/user/:userId', authMw, async (req, res) => {
       follower_count: followerR.rows[0]?.cnt ?? 0,
       following_count: followingR.rows[0]?.cnt ?? 0,
       post_count: postR.rows[0]?.cnt ?? 0,
+      is_following: followingMeR.rows.length > 0,
     }});
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
