@@ -515,7 +515,21 @@ router.post('/:postId/react', authMw, async (req, res) => {
 // POST /posts/:postId/share
 router.post('/:postId/share', authMw, async (req, res) => {
   try {
-    await pool.query('UPDATE posts SET share_count = share_count + 1 WHERE id = $1', [req.params.postId]);
+    const postId = req.params.postId;
+    const username = await getUsername(req.user.id);
+    // Increment share count and create a repost entry so it appears in the sharer's feed
+    await pool.query('UPDATE posts SET share_count = share_count + 1 WHERE id = $1', [postId]);
+    const already = await pool.query(
+      `SELECT id FROM posts WHERE sender_id = $1 AND repost_of = $2 AND post_format = 'repost' LIMIT 1`,
+      [req.user.id, postId]
+    );
+    if (!already.rows.length) {
+      await pool.query(
+        `INSERT INTO posts (sender_id, sender_username, post_format, text_content, is_reply, is_published, repost_of)
+         VALUES ($1,$2,'repost','',FALSE,TRUE,$3)`,
+        [req.user.id, username, postId]
+      );
+    }
     return res.status(201).json({ message: 'Post shared', data: {} });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
