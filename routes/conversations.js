@@ -43,7 +43,7 @@ router.get('/', authMw, async (req, res) => {
 
     const result = await Promise.all(
       convIds.map(async (convId) => {
-        const [partR, msgR, settingsR, unreadR] = await Promise.all([
+        const [partR, msgR, settingsR, otherSettingsR, unreadR] = await Promise.all([
           pool.query(
             `SELECT p.user_id AS id, p.username, p.profile_picture
              FROM conversation_participants cp
@@ -62,6 +62,17 @@ router.get('/', authMw, async (req, res) => {
              WHERE conversation_id = $1 AND user_id = $2`,
             [convId, req.user.id]
           ),
+          // Other participant's chat_mode — only meaningful for 1-on-1 chats.
+          // This is what tells *this* user how the other person wants to be
+          // contacted (their declared restriction), not the other way round.
+          pool.query(
+            `SELECT cus.chat_mode
+             FROM conversation_participants cp
+             LEFT JOIN conversation_user_settings cus
+               ON cus.conversation_id = cp.conversation_id AND cus.user_id = cp.user_id
+             WHERE cp.conversation_id = $1 AND cp.user_id <> $2`,
+            [convId, req.user.id]
+          ),
           pool.query(
             `SELECT COUNT(*)::int AS cnt
              FROM messages m
@@ -75,11 +86,15 @@ router.get('/', authMw, async (req, res) => {
           ),
         ]);
         const settings = settingsR.rows[0] || defaultSettings;
+        const otherChatMode = otherSettingsR.rows.length === 1
+          ? (otherSettingsR.rows[0].chat_mode || defaultSettings.chat_mode)
+          : null;
         return {
           id: convId,
           participants: partR.rows,
           last_message: msgR.rows[0] || null,
           settings,
+          other_chat_mode: otherChatMode,
           unread: unreadR.rows[0]?.cnt || 0,
         };
       })
@@ -251,12 +266,38 @@ router.get('/:convId/messages', authMw, async (req, res) => {
 router.post('/:convId/messages', authMw, async (req, res) => {
   const { text, type, mediaUrl, isReply, previousMessageId } = req.body;
   try {
-    const check = await pool.query(
-      'SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2',
-      [req.params.convId, req.user.id]
+    const partR = await pool.query(
+      'SELECT user_id FROM conversation_participants WHERE conversation_id = $1',
+      [req.params.convId]
     );
-    if (!check.rows.length)
+    if (!partR.rows.some((row) => row.user_id === req.user.id))
       return res.status(403).json({ errors: { detail: 'Not a participant' } });
+
+    // Enforce the recipient's declared chat_mode for 1-on-1 conversations
+    // (skip for group chats — no single "the recipient" to check against).
+    const others = partR.rows.map((row) => row.user_id).filter((id) => id !== req.user.id);
+    if (others.length === 1) {
+      const modeR = await pool.query(
+        'SELECT chat_mode FROM conversation_user_settings WHERE conversation_id = $1 AND user_id = $2',
+        [req.params.convId, others[0]]
+      );
+      const recipientMode = modeR.rows[0]?.chat_mode || 'mixed';
+      const msgType = (type || 'text').toLowerCase();
+      const blocked =
+        recipientMode === 'callsOnly' ||
+        (recipientMode === 'textOnly' && msgType !== 'text') ||
+        (recipientMode === 'voiceOnly' && msgType !== 'audio');
+      if (blocked) {
+        const recipientP = await pool.query('SELECT username FROM profiles WHERE user_id = $1', [others[0]]);
+        const recipientName = recipientP.rows[0]?.username || 'This user';
+        const modeLabel =
+          { textOnly: 'text messages', voiceOnly: 'voice notes', callsOnly: 'calls' }[recipientMode] ||
+          recipientMode;
+        return res.status(422).json({
+          errors: { detail: `This won't be delivered — ${recipientName} only accepts ${modeLabel}.` },
+        });
+      }
+    }
 
     const r = await pool.query(
       `INSERT INTO messages
@@ -269,14 +310,8 @@ router.post('/:convId/messages', authMw, async (req, res) => {
        previousMessageId || null]
     );
 
-    const [actorR, participantsR] = await Promise.all([
-      pool.query('SELECT username FROM profiles WHERE user_id = $1', [req.user.id]),
-      pool.query('SELECT user_id FROM conversation_participants WHERE conversation_id = $1', [
-        req.params.convId,
-      ]),
-    ]);
+    const actorR = await pool.query('SELECT username FROM profiles WHERE user_id = $1', [req.user.id]);
     const actorUsername = actorR.rows[0]?.username || 'Someone';
-    const others = participantsR.rows.map((x) => x.user_id).filter((id) => id !== req.user.id);
     for (const userId of others) {
       await pool.query(`INSERT INTO notifications (user_id, type, payload) VALUES ($1,'chat_message',$2)`, [
         userId,

@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { Server: SocketIOServer } = require('socket.io');
 
 const app = express();
 app.use(cors());
@@ -37,7 +39,11 @@ async function initializeDatabase() {
   }
 }
 
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer, { cors: { origin: '*' } });
+require('./realtime/livestream')(io);
+
 const PORT = process.env.PORT || 3000;
 initializeDatabase().then(() => {
-  app.listen(PORT, () => console.log(`Hapzo backend running on port ${PORT}`));
+  httpServer.listen(PORT, () => console.log(`Hapzo backend running on port ${PORT}`));
 });

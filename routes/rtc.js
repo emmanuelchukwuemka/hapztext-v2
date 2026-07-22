@@ -32,6 +32,35 @@ router.post('/invite', authMw, async (req, res) => {
   }
   const type = (callType === 'video') ? 'video' : 'audio';
   try {
+    // Enforce the callee's declared chat_mode: block the invite if they've
+    // restricted themselves to text or voice notes only.
+    const convR = await pool.query(
+      `SELECT cp1.conversation_id AS id
+       FROM conversation_participants cp1
+       JOIN conversation_participants cp2
+         ON cp1.conversation_id = cp2.conversation_id AND cp2.user_id = $2
+       WHERE cp1.user_id = $1
+         AND (SELECT COUNT(*) FROM conversation_participants WHERE conversation_id = cp1.conversation_id) = 2
+       LIMIT 1`,
+      [req.user.id, targetUserId]
+    );
+    const convId = convR.rows[0]?.id;
+    if (convId) {
+      const modeR = await pool.query(
+        'SELECT chat_mode FROM conversation_user_settings WHERE conversation_id = $1 AND user_id = $2',
+        [convId, targetUserId]
+      );
+      const targetMode = modeR.rows[0]?.chat_mode || 'mixed';
+      if (targetMode === 'textOnly' || targetMode === 'voiceOnly') {
+        const targetP = await pool.query('SELECT username FROM profiles WHERE user_id = $1', [targetUserId]);
+        const targetName = targetP.rows[0]?.username || 'This user';
+        const modeLabel = targetMode === 'textOnly' ? 'text messages' : 'voice notes';
+        return res.status(422).json({
+          errors: { detail: `This call won't go through — ${targetName} only accepts ${modeLabel}.` },
+        });
+      }
+    }
+
     const callerP = await pool.query('SELECT username FROM profiles WHERE user_id = $1', [req.user.id]);
     const callerUsername = callerP.rows[0]?.username || 'Someone';
     const r = await pool.query(

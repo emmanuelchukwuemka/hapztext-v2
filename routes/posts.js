@@ -277,6 +277,18 @@ router.get('/user/:userId', authMw, async (req, res) => {
   }
 });
 
+// GET /posts/:postId  (single post, e.g. deep-link from a notification)
+router.get('/:postId', authMw, async (req, res) => {
+  try {
+    const r = await pool.query('SELECT * FROM posts WHERE id = $1', [req.params.postId]);
+    if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Post not found' } });
+    const enriched = await enrichPosts(r.rows, req.user.id);
+    return res.json({ data: enriched[0] });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
 // GET /posts/:postId/comments
 router.get('/:postId/comments', authMw, async (req, res) => {
   try {
