@@ -11,8 +11,8 @@ router.get('/search', authMw, async (req, res) => {
       `SELECT p.*,
         (SELECT COUNT(*)::int FROM user_follows WHERE following_id = p.user_id) AS follower_count,
         (SELECT COUNT(*)::int FROM user_follows WHERE follower_id = p.user_id) AS following_count
-       FROM profiles p WHERE p.username ILIKE $1 LIMIT 20`,
-      [`%${q}%`]
+       FROM profiles p WHERE p.username ILIKE $1 OR p.phone_number = $2 LIMIT 20`,
+      [`%${q}%`, q]
     );
     const users = r.rows.map((p) => ({
       id: p.user_id,
