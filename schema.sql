@@ -142,6 +142,9 @@ CREATE TABLE IF NOT EXISTS messages (
 
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+-- Set on system-generated 'post_share' messages ("X uploaded a picture"),
+-- pointing at the post to open when the user taps "View" in the chat.
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS related_post_id UUID REFERENCES posts(id) ON DELETE SET NULL;
 
 -- ─── MESSAGE READS (per-user) ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS message_reads (

@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const pool = require('../db');
 const authMw = require('../middleware/auth');
+const { v4: uuidv4 } = require('uuid');
 
 const normalizeTag = (t) => (t || '').toLowerCase().replace(/^#+/, '').trim();
 const normalizeMention = (m) => (m || '').toLowerCase().replace(/^@+/, '').trim();
@@ -77,6 +78,66 @@ async function syncMentionsAndNotify(postId, mentions, actorId, actorUsername) {
         ]
       );
     }
+  }
+}
+
+const POST_FORMAT_LABEL = {
+  image: 'a picture',
+  video: 'a video',
+  audio: 'a voice note',
+  text: 'a post',
+};
+
+// Delivers "X uploaded a picture" directly into the chat with each follower,
+// as a system-style message (sender = the poster, message_type = 'post_share')
+// carrying related_post_id so the client can render a tappable "View" that
+// opens the post. Creates the 1-on-1 conversation with a follower if one
+// doesn't already exist yet.
+async function notifyFollowersOfNewPost(postId, posterId, posterUsername, postFormat) {
+  try {
+    const followersR = await pool.query(
+      'SELECT follower_id FROM user_follows WHERE following_id = $1',
+      [posterId]
+    );
+    if (!followersR.rows.length) return;
+
+    const messageText = `${posterUsername} uploaded ${POST_FORMAT_LABEL[postFormat] || 'a post'}`;
+
+    for (const { follower_id: followerId } of followersR.rows) {
+      const existing = await pool.query(
+        `SELECT cp1.conversation_id AS id
+         FROM conversation_participants cp1
+         JOIN conversation_participants cp2
+           ON cp1.conversation_id = cp2.conversation_id AND cp2.user_id = $2
+         WHERE cp1.user_id = $1
+           AND (SELECT COUNT(*) FROM conversation_participants
+                WHERE conversation_id = cp1.conversation_id) = 2
+         LIMIT 1`,
+        [posterId, followerId]
+      );
+
+      let convId = existing.rows[0]?.id;
+      if (!convId) {
+        convId = uuidv4();
+        await pool.query('INSERT INTO conversations (id, created_by) VALUES ($1,$2)', [
+          convId,
+          posterId,
+        ]);
+        await pool.query(
+          `INSERT INTO conversation_participants (conversation_id, user_id)
+           VALUES ($1,$2), ($1,$3) ON CONFLICT DO NOTHING`,
+          [convId, posterId, followerId]
+        );
+      }
+
+      await pool.query(
+        `INSERT INTO messages (conversation_id, sender_id, message_type, text_content, related_post_id, status)
+         VALUES ($1,$2,'post_share',$3,$4,'sent')`,
+        [convId, posterId, messageText, postId]
+      );
+    }
+  } catch (e) {
+    console.error('notifyFollowersOfNewPost error:', e.message);
   }
 }
 
@@ -331,6 +392,7 @@ router.post('/text', authMw, async (req, res) => {
     const post = r.rows[0];
     await syncHashtags(post.id, extractHashtags(textContent));
     await syncMentionsAndNotify(post.id, extractMentions(textContent), req.user.id, username);
+    await notifyFollowersOfNewPost(post.id, req.user.id, username, 'text');
     return res.status(201).json({ data: { ...r.rows[0], media_files: [] } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
@@ -358,6 +420,7 @@ router.post('/image', authMw, async (req, res) => {
     }
     await syncHashtags(post.id, extractHashtags(caption));
     await syncMentionsAndNotify(post.id, extractMentions(caption), req.user.id, username);
+    await notifyFollowersOfNewPost(post.id, req.user.id, username, 'image');
     return res.status(201).json({ data: { ...post, media_files: mediaFiles } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
@@ -379,6 +442,7 @@ router.post('/audio', authMw, async (req, res) => {
       'INSERT INTO media_files (post_id, media_type, audio_file) VALUES ($1,$2,$3) RETURNING *',
       [post.id, 'audio', audioUrl]
     );
+    await notifyFollowersOfNewPost(post.id, req.user.id, username, 'audio');
     return res.status(201).json({ data: { ...post, media_files: [mr.rows[0]] } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
@@ -402,6 +466,7 @@ router.post('/video', authMw, async (req, res) => {
     );
     await syncHashtags(post.id, extractHashtags(caption));
     await syncMentionsAndNotify(post.id, extractMentions(caption), req.user.id, username);
+    await notifyFollowersOfNewPost(post.id, req.user.id, username, 'video');
     return res.status(201).json({ data: { ...post, media_files: [mr.rows[0]] } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
