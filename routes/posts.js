@@ -239,10 +239,13 @@ router.get('/hashtags/:tag', authMw, async (req, res) => {
   const offset = (page - 1) * 20;
   const tag = normalizeTag(req.params.tag);
   try {
+    // Include replies/comments that used this hashtag too, not just
+    // top-level posts — otherwise a tag used inside a comment is
+    // discoverable in "trending" but never actually shows up when browsed.
     const r = await pool.query(
       `SELECT p.* FROM post_hashtags ph
        JOIN posts p ON p.id = ph.post_id
-       WHERE ph.tag = $1 AND p.is_reply = FALSE AND ((p.scheduled_at IS NULL AND p.is_published = TRUE) OR (p.scheduled_at IS NOT NULL AND p.scheduled_at <= NOW()))
+       WHERE ph.tag = $1 AND ((p.scheduled_at IS NULL AND p.is_published = TRUE) OR (p.scheduled_at IS NOT NULL AND p.scheduled_at <= NOW()))
        ORDER BY p.created_at DESC LIMIT 20 OFFSET $2`,
       [tag, offset]
     );
@@ -271,7 +274,8 @@ router.get('/', authMw, async (req, res) => {
   let join = '';
   let replyJoin = '';
   let selectCols = 'posts.*';
-  if (q && q.startsWith('#')) {
+  const isHashtagSearch = Boolean(q && q.startsWith('#'));
+  if (isHashtagSearch) {
     params.push(normalizeTag(q));
     join = ` JOIN post_hashtags ph ON ph.post_id = posts.id`;
     extra = ` AND ph.tag = $${params.length}`;
@@ -290,9 +294,13 @@ router.get('/', authMw, async (req, res) => {
           GROUP BY previous_post_id
         ) rc ON rc.previous_post_id = posts.id`;
     }
+    // A hashtag can be used inside a comment/reply, not just a top-level
+    // post — when browsing that tag, surface those too instead of hiding
+    // them (regular feed/text-search browsing still excludes replies).
+    const replyFilter = isHashtagSearch ? '' : 'posts.is_reply = FALSE AND ';
     const r = await pool.query(
       `SELECT ${selectCols} FROM posts${join}${replyJoin}
-       WHERE posts.is_reply = FALSE AND ((posts.scheduled_at IS NULL AND posts.is_published = TRUE) OR (posts.scheduled_at IS NOT NULL AND posts.scheduled_at <= NOW()))${extra}
+       WHERE ${replyFilter}((posts.scheduled_at IS NULL AND posts.is_published = TRUE) OR (posts.scheduled_at IS NOT NULL AND posts.scheduled_at <= NOW()))${extra}
        ORDER BY ${order} LIMIT $1 OFFSET $2`,
       params
     );
@@ -530,10 +538,17 @@ router.post('/:postId/repost', authMw, async (req, res) => {
   const { comment, scheduledAt } = req.body;
   try {
     const username = await getUsername(req.user.id);
+    // Reposting a repost collapses to the root original (same as retweeting
+    // a retweet on Twitter) instead of nesting — otherwise the UI can only
+    // ever show one level deep and the real original content gets buried.
+    const targetR = await pool.query('SELECT repost_of FROM posts WHERE id = $1', [
+      req.params.postId,
+    ]);
+    const targetPostId = targetR.rows[0]?.repost_of || req.params.postId;
     const r = await pool.query(
       `INSERT INTO posts (sender_id, sender_username, post_format, text_content, is_reply, is_published, scheduled_at, repost_of)
        VALUES ($1,$2,'repost',$3,FALSE,TRUE,$4,$5) RETURNING *`,
-      [req.user.id, username, comment || '', scheduledAt || null, req.params.postId]
+      [req.user.id, username, comment || '', scheduledAt || null, targetPostId]
     );
     const post = r.rows[0];
     await syncHashtags(post.id, extractHashtags(comment));

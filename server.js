@@ -42,6 +42,7 @@ async function initializeDatabase() {
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer, { cors: { origin: '*' } });
 require('./realtime/livestream')(io);
+require('./realtime/presence').attach(io);
 
 const PORT = process.env.PORT || 3000;
 initializeDatabase().then(() => {

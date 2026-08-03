@@ -2,6 +2,7 @@ const router = require('express').Router();
 const pool = require('../db');
 const authMw = require('../middleware/auth');
 const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
+const presence = require('../realtime/presence');
 
 router.get('/token', authMw, async (req, res) => {
   const channel = (req.query.channel || '').toString().trim();
@@ -63,16 +64,21 @@ router.post('/invite', authMw, async (req, res) => {
 
     const callerP = await pool.query('SELECT username FROM profiles WHERE user_id = $1', [req.user.id]);
     const callerUsername = callerP.rows[0]?.username || 'Someone';
+    const payload = {
+      actor_id: req.user.id,
+      actor_username: callerUsername,
+      channel,
+      call_type: type,
+      message: `${callerUsername} is calling you`,
+    };
     const r = await pool.query(
       `INSERT INTO notifications (user_id, type, payload) VALUES ($1,'call_invite',$2) RETURNING *`,
-      [targetUserId, JSON.stringify({
-        actor_id: req.user.id,
-        actor_username: callerUsername,
-        channel,
-        call_type: type,
-        message: `${callerUsername} is calling you`,
-      })]
+      [targetUserId, JSON.stringify(payload)]
     );
+    // Deliver in real time if the callee's app is open right now — this is
+    // what actually rings them, instead of relying on them noticing the
+    // notification and tapping it manually.
+    presence.sendToUser(targetUserId, 'incoming_call', payload);
     return res.status(201).json({ data: r.rows[0] });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
