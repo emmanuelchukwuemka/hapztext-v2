@@ -267,7 +267,9 @@ router.get('/', authMw, async (req, res) => {
   if (feedType === 'popular' || feedType === 'most_liked') order = 'like_count DESC';
   if (feedType === 'most_shared') order = 'share_count DESC';
   if (feedType === 'most_commented') order = 'reply_count_calc DESC';
-  if (feedType === 'trending') order = '(like_count * 2 + share_count * 3 + reply_count_calc * 2) DESC';
+  // Trending = posts carrying the currently most-used hashtags, not a
+  // generic engagement score — ties break by recency.
+  if (feedType === 'trending') order = 'trend_score DESC, created_at DESC';
 
   const params = [20, offset];
   let extra = '';
@@ -285,7 +287,7 @@ router.get('/', authMw, async (req, res) => {
   }
 
   try {
-    if (feedType === 'most_commented' || feedType === 'trending') {
+    if (feedType === 'most_commented') {
       selectCols = 'posts.*, COALESCE(rc.cnt,0) AS reply_count_calc';
       replyJoin = ` LEFT JOIN (
           SELECT previous_post_id, COUNT(*)::int AS cnt
@@ -293,6 +295,17 @@ router.get('/', authMw, async (req, res) => {
           WHERE is_reply = TRUE AND is_published = TRUE
           GROUP BY previous_post_id
         ) rc ON rc.previous_post_id = posts.id`;
+    } else if (feedType === 'trending') {
+      // A post's trend score is the highest usage_count among its own
+      // hashtags — posts using a hashtag everyone's using right now rank
+      // above posts with no hashtag or only rarely-used ones.
+      selectCols = 'posts.*, COALESCE(th.trend_score,0) AS trend_score';
+      replyJoin = ` LEFT JOIN (
+          SELECT ph.post_id, MAX(h.usage_count) AS trend_score
+          FROM post_hashtags ph
+          JOIN hashtags h ON h.tag = ph.tag
+          GROUP BY ph.post_id
+        ) th ON th.post_id = posts.id`;
     }
     // A hashtag can be used inside a comment/reply, not just a top-level
     // post — when browsing that tag, surface those too instead of hiding
