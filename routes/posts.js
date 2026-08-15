@@ -15,13 +15,22 @@ const extractHashtags = (text) => {
   return Array.from(set).filter(Boolean);
 };
 
-const extractMentions = (text) => {
+// Captures up to 4 space-separated words after '@' as one candidate phrase
+// (e.g. "@green ranger" -> "green ranger"), since a real username like
+// "green_ranger" is often typed with spaces instead of the actual
+// underscore. Which word-count is the "real" mention gets resolved against
+// actual usernames in syncMentionsAndNotify, since a plain regex can't know
+// where a name ends in free text.
+const extractMentionCandidates = (text) => {
   const s = (text || '').toString();
   const set = new Set();
-  const re = /@([a-zA-Z0-9_]+)/g;
+  const re = /@([a-zA-Z0-9_]+(?:[ ][a-zA-Z0-9_]+){0,3})/g;
   let m;
-  while ((m = re.exec(s)) !== null) set.add(normalizeMention(m[1]));
-  return Array.from(set).filter(Boolean);
+  while ((m = re.exec(s)) !== null) {
+    const phrase = m[1].trim();
+    if (phrase) set.add(phrase);
+  }
+  return Array.from(set);
 };
 
 async function syncHashtags(postId, tags) {
@@ -50,15 +59,39 @@ async function syncHashtags(postId, tags) {
   }
 }
 
-async function syncMentionsAndNotify(postId, mentions, actorId, actorUsername) {
-  await pool.query('DELETE FROM post_mentions WHERE post_id = $1', [postId]);
-  const usernames = Array.from(new Set((mentions || []).map(normalizeMention).filter(Boolean)));
-  if (!usernames.length) return;
+// Resolves free-text candidate phrases (e.g. "green ranger", already space-
+// trimmed) against real usernames. Tries the phrase's full word count first,
+// then progressively drops trailing words, converting spaces to underscores
+// each time, and keeps the longest prefix that actually matches a username —
+// so "@green ranger just landed" resolves to "green_ranger" without also
+// swallowing "just"/"landed" into the match.
+async function resolveMentionUsernames(candidates) {
+  const tried = new Set();
+  const toLookUp = new Set();
+  for (const phrase of candidates || []) {
+    const words = phrase.toLowerCase().split(/\s+/).filter(Boolean);
+    for (let n = words.length; n >= 1; n--) {
+      const candidate = words.slice(0, n).join('_');
+      if (!tried.has(candidate)) {
+        tried.add(candidate);
+        toLookUp.add(candidate);
+      }
+    }
+  }
+  if (!toLookUp.size) return [];
 
   const usersR = await pool.query('SELECT id, username FROM users WHERE LOWER(username) = ANY($1)', [
-    usernames,
+    Array.from(toLookUp),
   ]);
-  for (const u of usersR.rows) {
+  return usersR.rows;
+}
+
+async function syncMentionsAndNotify(postId, mentionCandidates, actorId, actorUsername) {
+  await pool.query('DELETE FROM post_mentions WHERE post_id = $1', [postId]);
+  if (!mentionCandidates || !mentionCandidates.length) return;
+
+  const matchedUsers = await resolveMentionUsernames(mentionCandidates);
+  for (const u of matchedUsers) {
     await pool.query(
       `INSERT INTO post_mentions (post_id, mentioned_user_id, mentioned_username)
        VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
@@ -412,7 +445,7 @@ router.post('/text', authMw, async (req, res) => {
     );
     const post = r.rows[0];
     await syncHashtags(post.id, extractHashtags(textContent));
-    await syncMentionsAndNotify(post.id, extractMentions(textContent), req.user.id, username);
+    await syncMentionsAndNotify(post.id, extractMentionCandidates(textContent), req.user.id, username);
     await notifyFollowersOfNewPost(post.id, req.user.id, username, 'text');
     return res.status(201).json({ data: { ...r.rows[0], media_files: [] } });
   } catch (e) {
@@ -440,7 +473,7 @@ router.post('/image', authMw, async (req, res) => {
       mediaFiles.push(mr.rows[0]);
     }
     await syncHashtags(post.id, extractHashtags(caption));
-    await syncMentionsAndNotify(post.id, extractMentions(caption), req.user.id, username);
+    await syncMentionsAndNotify(post.id, extractMentionCandidates(caption), req.user.id, username);
     await notifyFollowersOfNewPost(post.id, req.user.id, username, 'image');
     return res.status(201).json({ data: { ...post, media_files: mediaFiles } });
   } catch (e) {
@@ -486,7 +519,7 @@ router.post('/video', authMw, async (req, res) => {
       [post.id, 'video', videoUrl]
     );
     await syncHashtags(post.id, extractHashtags(caption));
-    await syncMentionsAndNotify(post.id, extractMentions(caption), req.user.id, username);
+    await syncMentionsAndNotify(post.id, extractMentionCandidates(caption), req.user.id, username);
     await notifyFollowersOfNewPost(post.id, req.user.id, username, 'video');
     return res.status(201).json({ data: { ...post, media_files: [mr.rows[0]] } });
   } catch (e) {
@@ -511,7 +544,7 @@ router.post('/:postId/comments', authMw, async (req, res) => {
     );
     const created = r.rows[0];
     await syncHashtags(created.id, extractHashtags(comment));
-    await syncMentionsAndNotify(created.id, extractMentions(comment), req.user.id, username);
+    await syncMentionsAndNotify(created.id, extractMentionCandidates(comment), req.user.id, username);
     // Notify post owner (not self)
     const postR = await pool.query('SELECT sender_id FROM posts WHERE id=$1', [postId]);
     const ownerId = postR.rows[0]?.sender_id;
@@ -540,7 +573,7 @@ router.put('/:postId/comments/:commentId', authMw, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Comment not found' } });
     const updated = r.rows[0];
     await syncHashtags(updated.id, extractHashtags(comment));
-    await syncMentionsAndNotify(updated.id, extractMentions(comment), req.user.id, username);
+    await syncMentionsAndNotify(updated.id, extractMentionCandidates(comment), req.user.id, username);
     return res.json({ data: updated });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
@@ -565,7 +598,7 @@ router.post('/:postId/repost', authMw, async (req, res) => {
     );
     const post = r.rows[0];
     await syncHashtags(post.id, extractHashtags(comment));
-    await syncMentionsAndNotify(post.id, extractMentions(comment), req.user.id, username);
+    await syncMentionsAndNotify(post.id, extractMentionCandidates(comment), req.user.id, username);
     const enriched = await enrichPosts([post], req.user.id);
     return res.status(201).json({ data: enriched[0] });
   } catch (e) {
@@ -636,6 +669,25 @@ router.post('/:postId/share', authMw, async (req, res) => {
       );
     }
     return res.status(201).json({ message: 'Post shared', data: {} });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// POST /posts/:postId/view — records a distinct-viewer impression. Safe to
+// call repeatedly for the same viewer (ON CONFLICT DO NOTHING keeps
+// view_count as a count of unique people, not raw page-loads).
+router.post('/:postId/view', authMw, async (req, res) => {
+  try {
+    const inserted = await pool.query(
+      'INSERT INTO post_views (post_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING post_id',
+      [req.params.postId, req.user.id]
+    );
+    const isNewView = inserted.rows.length > 0;
+    if (isNewView) {
+      await pool.query('UPDATE posts SET view_count = view_count + 1 WHERE id = $1', [req.params.postId]);
+    }
+    return res.status(201).json({ message: 'View recorded', data: { newView: isNewView } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
   }

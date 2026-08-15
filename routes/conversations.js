@@ -150,38 +150,53 @@ router.put('/:convId/settings', authMw, async (req, res) => {
     if (!check.rows.length)
       return res.status(403).json({ errors: { detail: 'Not a participant' } });
 
+    // A partial body (e.g. { chatMode: 'mixed' } from the quick-change menu)
+    // must only touch the fields it actually sent — the previous version
+    // unconditionally overwrote every column with a hardcoded default for
+    // anything omitted, so changing just the chat mode silently reset the
+    // theme/disappearing/auto-clear settings back to defaults every time.
+    // COALESCE against the existing row (falling back to hardcoded defaults
+    // only for a brand-new row) fixes that.
     const r = await pool.query(
       `INSERT INTO conversation_user_settings
         (conversation_id, user_id, pinned, muted, chat_mode, disappearing, auto_clear_enabled,
          auto_clear_start, auto_clear_end, theme_index, notification_tone)
        VALUES
-        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        ($1,$2,
+         COALESCE($3, $12), COALESCE($4, $13), COALESCE($5, $14), COALESCE($6, $15),
+         COALESCE($7, $16), $8, $9, COALESCE($10, $17), $11)
        ON CONFLICT (conversation_id, user_id)
        DO UPDATE SET
-        pinned = EXCLUDED.pinned,
-        muted = EXCLUDED.muted,
-        chat_mode = EXCLUDED.chat_mode,
-        disappearing = EXCLUDED.disappearing,
-        auto_clear_enabled = EXCLUDED.auto_clear_enabled,
-        auto_clear_start = EXCLUDED.auto_clear_start,
-        auto_clear_end = EXCLUDED.auto_clear_end,
-        theme_index = EXCLUDED.theme_index,
-        notification_tone = EXCLUDED.notification_tone,
+        pinned = COALESCE($3, conversation_user_settings.pinned),
+        muted = COALESCE($4, conversation_user_settings.muted),
+        chat_mode = COALESCE($5, conversation_user_settings.chat_mode),
+        disappearing = COALESCE($6, conversation_user_settings.disappearing),
+        auto_clear_enabled = COALESCE($7, conversation_user_settings.auto_clear_enabled),
+        auto_clear_start = COALESCE($8, conversation_user_settings.auto_clear_start),
+        auto_clear_end = COALESCE($9, conversation_user_settings.auto_clear_end),
+        theme_index = COALESCE($10, conversation_user_settings.theme_index),
+        notification_tone = COALESCE($11, conversation_user_settings.notification_tone),
         updated_at = NOW()
        RETURNING pinned, muted, chat_mode, disappearing, auto_clear_enabled,
                  auto_clear_start, auto_clear_end, theme_index, notification_tone`,
       [
         req.params.convId,
         req.user.id,
-        pinned ?? defaultSettings.pinned,
-        muted ?? defaultSettings.muted,
-        normalizeChatMode(chatMode || defaultSettings.chat_mode),
-        normalizeDisappearing(disappearing || defaultSettings.disappearing),
-        autoClearEnabled ?? defaultSettings.auto_clear_enabled,
-        autoClearStart ?? defaultSettings.auto_clear_start,
-        autoClearEnd ?? defaultSettings.auto_clear_end,
-        themeIndex ?? defaultSettings.theme_index,
-        notificationTone ?? defaultSettings.notification_tone,
+        pinned ?? null,
+        muted ?? null,
+        chatMode ? normalizeChatMode(chatMode) : null,
+        disappearing ? normalizeDisappearing(disappearing) : null,
+        autoClearEnabled ?? null,
+        autoClearStart ?? null,
+        autoClearEnd ?? null,
+        themeIndex ?? null,
+        notificationTone ?? null,
+        defaultSettings.pinned,
+        defaultSettings.muted,
+        defaultSettings.chat_mode,
+        defaultSettings.disappearing,
+        defaultSettings.auto_clear_enabled,
+        defaultSettings.theme_index,
       ]
     );
     return res.json({ success: true, data: r.rows[0] });

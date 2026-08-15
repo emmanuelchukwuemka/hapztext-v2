@@ -193,6 +193,17 @@ CREATE TABLE IF NOT EXISTS post_mentions (
   PRIMARY KEY (post_id, mentioned_user_id)
 );
 
+-- One row per (post, viewer) so re-viewing your own feed doesn't inflate the
+-- count — view_count on posts is how many *distinct people* saw it.
+CREATE TABLE IF NOT EXISTS post_views (
+  post_id    UUID        NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (post_id, user_id)
+);
+
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS view_count INT NOT NULL DEFAULT 0;
+
 -- ─── INDEXES ──────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_posts_sender     ON posts(sender_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created    ON posts(created_at DESC);
