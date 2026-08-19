@@ -178,7 +178,7 @@ async function enrichPostsBase(posts, userId) {
   if (!posts.length) return [];
   const ids = posts.map((p) => p.id);
 
-  const [mediaR, reactR, replyR, hashR, mentionR, repostR] = await Promise.all([
+  const [mediaR, reactR, replyR, hashR, mentionR, repostR, bookmarkR] = await Promise.all([
     pool.query('SELECT * FROM media_files WHERE post_id = ANY($1)', [ids]),
     pool.query(
       'SELECT post_id, reaction FROM post_reactions WHERE user_id = $1 AND post_id = ANY($2)',
@@ -196,6 +196,7 @@ async function enrichPostsBase(posts, userId) {
        WHERE repost_of = ANY($1) GROUP BY repost_of`,
       [ids]
     ),
+    pool.query('SELECT post_id FROM post_bookmarks WHERE user_id = $1 AND post_id = ANY($2)', [userId, ids]),
   ]);
 
   const mediaMap = {},
@@ -203,7 +204,8 @@ async function enrichPostsBase(posts, userId) {
     replyMap = {},
     hashMap = {},
     mentionMap = {},
-    repostMap = {};
+    repostMap = {},
+    bookmarkSet = new Set(bookmarkR.rows.map((r) => r.post_id));
   for (const m of mediaR.rows) {
     if (!mediaMap[m.post_id]) mediaMap[m.post_id] = [];
     mediaMap[m.post_id].push(m);
@@ -228,6 +230,7 @@ async function enrichPostsBase(posts, userId) {
     hashtags: hashMap[p.id] || [],
     mentions: mentionMap[p.id] || [],
     repost_count: repostMap[p.id] || 0,
+    is_bookmarked: bookmarkSet.has(p.id),
   }));
 }
 
@@ -483,19 +486,21 @@ router.post('/image', authMw, async (req, res) => {
 
 // POST /posts/audio
 router.post('/audio', authMw, async (req, res) => {
-  const { audioUrl, scheduledAt } = req.body;
+  const { audioUrl, caption, scheduledAt } = req.body;
   try {
     const username = await getUsername(req.user.id);
     const r = await pool.query(
       `INSERT INTO posts (sender_id, sender_username, post_format, text_content, audio_content, is_reply, is_published, scheduled_at)
-       VALUES ($1,$2,'audio','',$3,FALSE,TRUE,$4) RETURNING *`,
-      [req.user.id, username, audioUrl, scheduledAt || null]
+       VALUES ($1,$2,'audio',$3,$4,FALSE,TRUE,$5) RETURNING *`,
+      [req.user.id, username, caption || '', audioUrl, scheduledAt || null]
     );
     const post = r.rows[0];
     const mr = await pool.query(
       'INSERT INTO media_files (post_id, media_type, audio_file) VALUES ($1,$2,$3) RETURNING *',
       [post.id, 'audio', audioUrl]
     );
+    await syncHashtags(post.id, extractHashtags(caption));
+    await syncMentionsAndNotify(post.id, extractMentionCandidates(caption), req.user.id, username);
     await notifyFollowersOfNewPost(post.id, req.user.id, username, 'audio');
     return res.status(201).json({ data: { ...post, media_files: [mr.rows[0]] } });
   } catch (e) {
@@ -650,6 +655,52 @@ router.post('/:postId/react', authMw, async (req, res) => {
   }
 });
 
+// POST /posts/:postId/bookmark — save a post
+router.post('/:postId/bookmark', authMw, async (req, res) => {
+  try {
+    await pool.query(
+      'INSERT INTO post_bookmarks (post_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+      [req.params.postId, req.user.id]
+    );
+    return res.status(201).json({ success: true });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// DELETE /posts/:postId/bookmark — unsave a post
+router.delete('/:postId/bookmark', authMw, async (req, res) => {
+  try {
+    await pool.query(
+      'DELETE FROM post_bookmarks WHERE post_id = $1 AND user_id = $2',
+      [req.params.postId, req.user.id]
+    );
+    return res.json({ success: true });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// GET /posts/bookmarks — this user's saved posts, newest-saved first
+router.get('/bookmarks/mine', authMw, async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const offset = (page - 1) * 20;
+  try {
+    const r = await pool.query(
+      `SELECT p.* FROM post_bookmarks b
+       JOIN posts p ON p.id = b.post_id
+       WHERE b.user_id = $1
+       ORDER BY b.created_at DESC
+       LIMIT 20 OFFSET $2`,
+      [req.user.id, offset]
+    );
+    const enriched = await enrichPosts(r.rows, req.user.id);
+    return res.json({ data: { result: enriched } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
 // POST /posts/:postId/share
 router.post('/:postId/share', authMw, async (req, res) => {
   try {
@@ -694,6 +745,23 @@ router.post('/:postId/view', authMw, async (req, res) => {
 });
 
 // DELETE /posts/:postId
+// GET /posts/scheduled/mine — this user's own not-yet-published scheduled
+// posts (the main feed and /posts/user/:id both exclude these on purpose).
+router.get('/scheduled/mine', authMw, async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT * FROM posts
+       WHERE sender_id = $1 AND scheduled_at IS NOT NULL AND scheduled_at > NOW()
+       ORDER BY scheduled_at ASC`,
+      [req.user.id]
+    );
+    const enriched = await enrichPosts(r.rows, req.user.id);
+    return res.json({ data: { result: enriched } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
 router.delete('/:postId', authMw, async (req, res) => {
   try {
     await pool.query(
