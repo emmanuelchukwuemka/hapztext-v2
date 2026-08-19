@@ -18,6 +18,7 @@ app.use('/conversations', require('./routes/conversations'));
 app.use('/profiles', require('./routes/profiles'));
 app.use('/streams', require('./routes/streams'));
 app.use('/rtc', require('./routes/rtc'));
+app.use('/events', require('./routes/events'));
 
 app.use((err, req, res, _next) => {
   console.error(err);

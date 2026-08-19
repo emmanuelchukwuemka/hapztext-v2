@@ -145,6 +145,13 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DE
 -- Set on system-generated 'post_share' messages ("X uploaded a picture"),
 -- pointing at the post to open when the user taps "View" in the chat.
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS related_post_id UUID REFERENCES posts(id) ON DELETE SET NULL;
+-- View-once media (WhatsApp-style): once the recipient opens it,
+-- view_once_consumed_at is stamped and the media_url stops being served.
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS view_once BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS view_once_consumed_at TIMESTAMPTZ;
+-- Disappearing messages: set at send time from the sender's "Disappearing
+-- Messages" chat setting; once past, GET /messages simply stops returning it.
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS disappear_at TIMESTAMPTZ;
 
 -- ─── MESSAGE READS (per-user) ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS message_reads (
@@ -203,6 +210,49 @@ CREATE TABLE IF NOT EXISTS post_views (
 );
 
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS view_count INT NOT NULL DEFAULT 0;
+
+-- ─── EVENTS (Discover/Explore "Events" tab) ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS events (
+  id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  host_id               UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title                 TEXT        NOT NULL,
+  category              TEXT        NOT NULL DEFAULT 'Other',
+  area_name             TEXT        NOT NULL,
+  guests_limit          INT,
+  is_guest_list_public  BOOLEAN     NOT NULL DEFAULT TRUE,
+  closes_at             TIMESTAMPTZ,
+  expires_at            TIMESTAMPTZ,
+  cancelled_at          TIMESTAMPTZ,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS event_attendees (
+  event_id   UUID        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  joined_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS event_ratings (
+  event_id   UUID        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating     INT         NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS event_reports (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id   UUID        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason     TEXT        NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_created  ON events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_events_host     ON events(host_id);
+CREATE INDEX IF NOT EXISTS idx_event_attendees_user ON event_attendees(user_id);
 
 -- ─── INDEXES ──────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_posts_sender     ON posts(sender_id);

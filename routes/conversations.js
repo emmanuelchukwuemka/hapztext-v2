@@ -267,19 +267,45 @@ router.get('/:convId/messages', authMw, async (req, res) => {
     if (!check.rows.length)
       return res.status(403).json({ errors: { detail: 'Not a participant' } });
 
+    // Opportunistic cleanup — no cron needed, expired rows just get swept the
+    // next time anyone opens this conversation.
+    await pool.query(
+      'DELETE FROM messages WHERE conversation_id = $1 AND disappear_at IS NOT NULL AND disappear_at <= NOW()',
+      [req.params.convId]
+    );
+
     const r = await pool.query(
-      'SELECT * FROM messages WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+      `SELECT m.*, p.username AS previous_message_sender_username
+       FROM messages m
+       LEFT JOIN profiles p ON p.user_id = m.previous_message_sender_id
+       WHERE m.conversation_id = $1
+       ORDER BY m.created_at DESC LIMIT $2 OFFSET $3`,
       [req.params.convId, size, offset]
     );
-    return res.json({ data: { result: r.rows } });
+    // A view-once media message stops being servable to anyone but its
+    // sender the instant it's been consumed — the row stays for history,
+    // just with media_url nulled out for the recipient.
+    const rows = r.rows.map((row) => {
+      if (row.view_once && row.view_once_consumed_at && row.sender_id !== req.user.id) {
+        return { ...row, media_url: null };
+      }
+      return row;
+    });
+    return res.json({ data: { result: rows } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
   }
 });
 
 // POST /conversations/:convId/messages
+const disappearingDurationMs = {
+  fiveSeconds: 5 * 1000,
+  oneHour: 60 * 60 * 1000,
+  oneDay: 24 * 60 * 60 * 1000,
+};
+
 router.post('/:convId/messages', authMw, async (req, res) => {
-  const { text, type, mediaUrl, isReply, previousMessageId } = req.body;
+  const { text, type, mediaUrl, isReply, previousMessageId, viewOnce, disappearing } = req.body;
   try {
     const partR = await pool.query(
       'SELECT user_id FROM conversation_participants WHERE conversation_id = $1',
@@ -314,15 +340,42 @@ router.post('/:convId/messages', authMw, async (req, res) => {
       }
     }
 
+    // Snapshot the quoted message server-side (not trusting whatever the
+    // client claims it said) so the reply preview survives edits/deletes and
+    // reloads on any device.
+    let previousMessageContent = null;
+    let previousMessageSenderId = null;
+    if (isReply && previousMessageId) {
+      const prevR = await pool.query(
+        'SELECT sender_id, message_type, text_content FROM messages WHERE id = $1 AND conversation_id = $2',
+        [previousMessageId, req.params.convId]
+      );
+      const prev = prevR.rows[0];
+      if (prev) {
+        previousMessageSenderId = prev.sender_id;
+        const typeLabel = { image: 'Photo', video: 'Video', audio: 'Voice Note' }[prev.message_type];
+        previousMessageContent = typeLabel || prev.text_content || '';
+      }
+    }
+
+    const disappearMs = disappearingDurationMs[disappearing];
+    const disappearAt = disappearMs ? new Date(Date.now() + disappearMs) : null;
+
     const r = await pool.query(
       `INSERT INTO messages
-         (conversation_id, sender_id, message_type, text_content, media_url, is_reply, previous_message_id, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'sent') RETURNING *`,
+         (conversation_id, sender_id, message_type, text_content, media_url, is_reply,
+          previous_message_id, previous_message_content, previous_message_sender_id,
+          view_once, disappear_at, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'sent') RETURNING *`,
       [req.params.convId, req.user.id,
        type || 'text', text || '',
        mediaUrl || null,
        isReply || false,
-       previousMessageId || null]
+       previousMessageId || null,
+       previousMessageContent,
+       previousMessageSenderId,
+       viewOnce === true,
+       disappearAt]
     );
 
     const actorR = await pool.query('SELECT username FROM profiles WHERE user_id = $1', [req.user.id]);
@@ -365,6 +418,56 @@ router.put('/:convId/messages/:messageId', authMw, async (req, res) => {
     );
     if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Message not found' } });
     return res.json({ success: true, data: r.rows[0] });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// DELETE /conversations/:convId/messages/:messageId — sender only, matching
+// the long-press "Delete" menu (which only ever offers this on your own
+// messages) and the auto-clear sweep (which only deletes its own out-of-
+// window sends server-side for the same reason).
+router.delete('/:convId/messages/:messageId', authMw, async (req, res) => {
+  try {
+    const r = await pool.query(
+      'DELETE FROM messages WHERE id = $1 AND conversation_id = $2 AND sender_id = $3 RETURNING id',
+      [req.params.messageId, req.params.convId, req.user.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Message not found' } });
+    return res.json({ success: true });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// POST /conversations/:convId/messages/:messageId/view-once
+// Called the instant the recipient actually opens a view-once photo/video.
+// Stamps it consumed so GET /messages stops returning the media_url to
+// anyone but the sender from that point on — real one-time viewing, not
+// just a local "already tapped" flag that resets on reload.
+router.post('/:convId/messages/:messageId/view-once', authMw, async (req, res) => {
+  try {
+    const check = await pool.query(
+      'SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2',
+      [req.params.convId, req.user.id]
+    );
+    if (!check.rows.length)
+      return res.status(403).json({ errors: { detail: 'Not a participant' } });
+
+    const r = await pool.query(
+      `UPDATE messages
+       SET view_once_consumed_at = NOW()
+       WHERE id = $1 AND conversation_id = $2 AND view_once = TRUE
+         AND sender_id != $3 AND view_once_consumed_at IS NULL
+       RETURNING media_url`,
+      [req.params.messageId, req.params.convId, req.user.id]
+    );
+    if (!r.rows.length) {
+      // Either not a view-once message, already consumed, or the sender
+      // trying to "view" their own send — nothing to reveal in any case.
+      return res.status(410).json({ errors: { detail: 'No longer available' } });
+    }
+    return res.json({ success: true, data: { mediaUrl: r.rows[0].media_url } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
   }

@@ -16,6 +16,17 @@ let ioRef = null;
 const pendingCallOffers = new Map(); // userId -> { data, expiresAt }
 const CALL_RING_TIMEOUT_MS = 5 * 60 * 1000;
 
+// "Discover" random-match queue: whoever is waiting longest gets paired with
+// the next person who joins. Purely in-memory — a match is just an
+// introduction; the actual call still goes over the same WebRTC signaling
+// above, so no separate media relay is needed here.
+const discoverQueue = []; // [{ userId, isVideo }]
+
+function removeFromDiscoverQueue(userId) {
+  const idx = discoverQueue.findIndex((w) => w.userId === userId);
+  if (idx !== -1) discoverQueue.splice(idx, 1);
+}
+
 function attach(io) {
   ioRef = io;
   io.on('connection', (socket) => {
@@ -46,6 +57,54 @@ function attach(io) {
         set.delete(socket.id);
         if (set.size === 0) userSockets.delete(userId);
       }
+      removeFromDiscoverQueue(userId);
+    });
+
+    // ─── Discover random-match queue ─────────────────────────────────
+    socket.on('discover_join', async (data) => {
+      const userId = socket.data.userId;
+      if (!userId) return;
+      removeFromDiscoverQueue(userId);
+      const isVideo = data?.isVideo !== false;
+
+      const partnerIdx = discoverQueue.findIndex((w) => w.userId !== userId);
+      if (partnerIdx === -1) {
+        discoverQueue.push({ userId, isVideo });
+        return;
+      }
+      const partner = discoverQueue.splice(partnerIdx, 1)[0];
+
+      try {
+        const [meRes, partnerRes] = await Promise.all([
+          pool.query('SELECT username, profile_picture FROM profiles WHERE user_id = $1', [userId]),
+          pool.query('SELECT username, profile_picture FROM profiles WHERE user_id = $1', [partner.userId]),
+        ]);
+        const me = meRes.rows[0] || {};
+        const them = partnerRes.rows[0] || {};
+
+        sendToUser(partner.userId, 'discover_matched', {
+          matchedUserId: userId,
+          matchedUsername: me.username || 'Someone',
+          matchedProfilePicture: me.profile_picture || null,
+          isCaller: true,
+        });
+        socket.emit('discover_matched', {
+          matchedUserId: partner.userId,
+          matchedUsername: them.username || 'Someone',
+          matchedProfilePicture: them.profile_picture || null,
+          isCaller: false,
+        });
+      } catch (e) {
+        console.error('discover_join match error:', e.message);
+        // Put both back so neither is stranded on a failed match attempt
+        discoverQueue.push(partner);
+      }
+    });
+
+    socket.on('discover_leave', () => {
+      const userId = socket.data.userId;
+      if (!userId) return;
+      removeFromDiscoverQueue(userId);
     });
 
     // ─── WebRTC call signaling ────────────────────────────────────────
