@@ -152,6 +152,12 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS view_once_consumed_at TIMESTAMPTZ;
 -- Disappearing messages: set at send time from the sender's "Disappearing
 -- Messages" chat setting; once past, GET /messages simply stops returning it.
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS disappear_at TIMESTAMPTZ;
+-- Multi-reply (WhatsApp-style "reply to up to 2 messages at once"): the
+-- first quote still uses the original previous_message_* columns above,
+-- this is only the optional second one.
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS previous_message_id_2 UUID REFERENCES messages(id) ON DELETE SET NULL;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS previous_message_content_2 TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS previous_message_sender_id_2 UUID REFERENCES users(id) ON DELETE SET NULL;
 
 -- ─── MESSAGE READS (per-user) ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS message_reads (

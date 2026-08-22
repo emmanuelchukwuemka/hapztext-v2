@@ -275,9 +275,11 @@ router.get('/:convId/messages', authMw, async (req, res) => {
     );
 
     const r = await pool.query(
-      `SELECT m.*, p.username AS previous_message_sender_username
+      `SELECT m.*, p.username AS previous_message_sender_username,
+              p2.username AS previous_message_sender_username_2
        FROM messages m
        LEFT JOIN profiles p ON p.user_id = m.previous_message_sender_id
+       LEFT JOIN profiles p2 ON p2.user_id = m.previous_message_sender_id_2
        WHERE m.conversation_id = $1
        ORDER BY m.created_at DESC LIMIT $2 OFFSET $3`,
       [req.params.convId, size, offset]
@@ -305,7 +307,7 @@ const disappearingDurationMs = {
 };
 
 router.post('/:convId/messages', authMw, async (req, res) => {
-  const { text, type, mediaUrl, isReply, previousMessageId, viewOnce, disappearing } = req.body;
+  const { text, type, mediaUrl, isReply, previousMessageId, previousMessageId2, viewOnce, disappearing } = req.body;
   try {
     const partR = await pool.query(
       'SELECT user_id FROM conversation_participants WHERE conversation_id = $1',
@@ -340,23 +342,22 @@ router.post('/:convId/messages', authMw, async (req, res) => {
       }
     }
 
-    // Snapshot the quoted message server-side (not trusting whatever the
+    // Snapshot the quoted message(s) server-side (not trusting whatever the
     // client claims it said) so the reply preview survives edits/deletes and
-    // reloads on any device.
-    let previousMessageContent = null;
-    let previousMessageSenderId = null;
-    if (isReply && previousMessageId) {
+    // reloads on any device. Up to 2 quotes (multi-reply).
+    async function snapshotQuote(id) {
+      if (!id) return { content: null, senderId: null };
       const prevR = await pool.query(
         'SELECT sender_id, message_type, text_content FROM messages WHERE id = $1 AND conversation_id = $2',
-        [previousMessageId, req.params.convId]
+        [id, req.params.convId]
       );
       const prev = prevR.rows[0];
-      if (prev) {
-        previousMessageSenderId = prev.sender_id;
-        const typeLabel = { image: 'Photo', video: 'Video', audio: 'Voice Note' }[prev.message_type];
-        previousMessageContent = typeLabel || prev.text_content || '';
-      }
+      if (!prev) return { content: null, senderId: null };
+      const typeLabel = { image: 'Photo', video: 'Video', audio: 'Voice Note' }[prev.message_type];
+      return { content: typeLabel || prev.text_content || '', senderId: prev.sender_id };
     }
+    const quote1 = isReply ? await snapshotQuote(previousMessageId) : { content: null, senderId: null };
+    const quote2 = isReply ? await snapshotQuote(previousMessageId2) : { content: null, senderId: null };
 
     const disappearMs = disappearingDurationMs[disappearing];
     const disappearAt = disappearMs ? new Date(Date.now() + disappearMs) : null;
@@ -365,15 +366,19 @@ router.post('/:convId/messages', authMw, async (req, res) => {
       `INSERT INTO messages
          (conversation_id, sender_id, message_type, text_content, media_url, is_reply,
           previous_message_id, previous_message_content, previous_message_sender_id,
+          previous_message_id_2, previous_message_content_2, previous_message_sender_id_2,
           view_once, disappear_at, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'sent') RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'sent') RETURNING *`,
       [req.params.convId, req.user.id,
        type || 'text', text || '',
        mediaUrl || null,
        isReply || false,
        previousMessageId || null,
-       previousMessageContent,
-       previousMessageSenderId,
+       quote1.content,
+       quote1.senderId,
+       previousMessageId2 || null,
+       quote2.content,
+       quote2.senderId,
        viewOnce === true,
        disappearAt]
     );
