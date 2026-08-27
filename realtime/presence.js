@@ -176,6 +176,22 @@ function attach(io) {
       if (!fromId || !data || !data.toId) return;
       sendToUser(data.toId, 'call_end', { ...data, fromId });
     });
+
+    // Floating emoji reactions during a call — purely cosmetic, so this is a
+    // best-effort relay with no persistence, same shape as ICE relaying.
+    socket.on('call_reaction', (data) => {
+      const fromId = socket.data.userId;
+      if (!fromId || !data || !data.toId || !data.emoji) return;
+      sendToUser(data.toId, 'call_reaction', { ...data, fromId });
+    });
+
+    // Mini text chat shown alongside a Discover call — not stored, just
+    // relayed live between the two matched participants.
+    socket.on('discover_message', (data) => {
+      const fromId = socket.data.userId;
+      if (!fromId || !data || !data.toId || !data.text) return;
+      sendToUser(data.toId, 'discover_message', { ...data, fromId });
+    });
   });
 }
 

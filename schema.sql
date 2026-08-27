@@ -178,12 +178,16 @@ CREATE TABLE IF NOT EXISTS conversation_user_settings (
   auto_clear_enabled  BOOLEAN     NOT NULL DEFAULT FALSE,
   auto_clear_start    TEXT,
   auto_clear_end      TEXT,
+  -- Stamped when auto_clear_enabled flips to true, cleared when it flips
+  -- back to false — the sweep only ever considers messages sent after this.
+  auto_clear_enabled_at TIMESTAMPTZ,
   theme_index         INT         NOT NULL DEFAULT 0,
   notification_tone   TEXT,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (conversation_id, user_id)
 );
+ALTER TABLE conversation_user_settings ADD COLUMN IF NOT EXISTS auto_clear_enabled_at TIMESTAMPTZ;
 
 -- ─── HASHTAGS + MENTIONS ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS hashtags (

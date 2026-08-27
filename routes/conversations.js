@@ -57,7 +57,7 @@ router.get('/', authMw, async (req, res) => {
           ),
           pool.query(
             `SELECT pinned, muted, chat_mode, disappearing, auto_clear_enabled,
-                    auto_clear_start, auto_clear_end, theme_index, notification_tone
+                    auto_clear_start, auto_clear_end, auto_clear_enabled_at, theme_index, notification_tone
              FROM conversation_user_settings
              WHERE conversation_id = $1 AND user_id = $2`,
             [convId, req.user.id]
@@ -118,7 +118,7 @@ router.get('/:convId/settings', authMw, async (req, res) => {
 
     const r = await pool.query(
       `SELECT pinned, muted, chat_mode, disappearing, auto_clear_enabled,
-              auto_clear_start, auto_clear_end, theme_index, notification_tone
+              auto_clear_start, auto_clear_end, auto_clear_enabled_at, theme_index, notification_tone
        FROM conversation_user_settings
        WHERE conversation_id = $1 AND user_id = $2`,
       [req.params.convId, req.user.id]
@@ -139,6 +139,8 @@ router.put('/:convId/settings', authMw, async (req, res) => {
     autoClearEnabled,
     autoClearStart,
     autoClearEnd,
+    autoClearEnabledAt,
+    clearAutoClearEnabledAt,
     themeIndex,
     notificationTone,
   } = req.body || {};
@@ -160,11 +162,11 @@ router.put('/:convId/settings', authMw, async (req, res) => {
     const r = await pool.query(
       `INSERT INTO conversation_user_settings
         (conversation_id, user_id, pinned, muted, chat_mode, disappearing, auto_clear_enabled,
-         auto_clear_start, auto_clear_end, theme_index, notification_tone)
+         auto_clear_start, auto_clear_end, auto_clear_enabled_at, theme_index, notification_tone)
        VALUES
         ($1,$2,
-         COALESCE($3, $12), COALESCE($4, $13), COALESCE($5, $14), COALESCE($6, $15),
-         COALESCE($7, $16), $8, $9, COALESCE($10, $17), $11)
+         COALESCE($3, $14), COALESCE($4, $15), COALESCE($5, $16), COALESCE($6, $17),
+         COALESCE($7, $18), $8, $9, $12, COALESCE($10, $19), $11)
        ON CONFLICT (conversation_id, user_id)
        DO UPDATE SET
         pinned = COALESCE($3, conversation_user_settings.pinned),
@@ -174,11 +176,15 @@ router.put('/:convId/settings', authMw, async (req, res) => {
         auto_clear_enabled = COALESCE($7, conversation_user_settings.auto_clear_enabled),
         auto_clear_start = COALESCE($8, conversation_user_settings.auto_clear_start),
         auto_clear_end = COALESCE($9, conversation_user_settings.auto_clear_end),
+        auto_clear_enabled_at = CASE
+          WHEN $13 = TRUE THEN NULL
+          ELSE COALESCE($12, conversation_user_settings.auto_clear_enabled_at)
+        END,
         theme_index = COALESCE($10, conversation_user_settings.theme_index),
         notification_tone = COALESCE($11, conversation_user_settings.notification_tone),
         updated_at = NOW()
        RETURNING pinned, muted, chat_mode, disappearing, auto_clear_enabled,
-                 auto_clear_start, auto_clear_end, theme_index, notification_tone`,
+                 auto_clear_start, auto_clear_end, auto_clear_enabled_at, theme_index, notification_tone`,
       [
         req.params.convId,
         req.user.id,
@@ -191,6 +197,8 @@ router.put('/:convId/settings', authMw, async (req, res) => {
         autoClearEnd ?? null,
         themeIndex ?? null,
         notificationTone ?? null,
+        autoClearEnabledAt ?? null,
+        clearAutoClearEnabledAt === true,
         defaultSettings.pinned,
         defaultSettings.muted,
         defaultSettings.chat_mode,
