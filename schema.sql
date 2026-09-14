@@ -272,6 +272,50 @@ CREATE INDEX IF NOT EXISTS idx_events_created  ON events(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_events_host     ON events(host_id);
 CREATE INDEX IF NOT EXISTS idx_event_attendees_user ON event_attendees(user_id);
 
+-- ─── ADMIN / MODERATION ─────────────────────────────────────────────────────
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin      BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned     BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at     TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_reason TEXT;
+
+-- Generic report against a post, user, or message — target_id is
+-- intentionally not a foreign key since it points at whichever table
+-- target_type names (a post being reported doesn't reference the same
+-- table a reported user would).
+CREATE TABLE IF NOT EXISTS content_reports (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id   UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target_type   TEXT        NOT NULL, -- 'post' | 'user' | 'message'
+  target_id     UUID        NOT NULL,
+  content_type  TEXT,                 -- 'image' | 'video' | 'text' | 'audio' | 'other' — snapshotted at report time for the Reports-by-type breakdown
+  reason        TEXT        NOT NULL, -- 'spam' | 'harassment' | 'nudity' | 'hate_speech' | 'violence' | 'other'
+  details       TEXT,
+  status        TEXT        NOT NULL DEFAULT 'pending', -- 'pending' | 'under_review' | 'resolved' | 'dismissed'
+  resolved_by   UUID        REFERENCES users(id) ON DELETE SET NULL,
+  resolved_at   TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Call history — the WebRTC signaling in realtime/presence.js was previously
+-- 100% ephemeral (nothing persisted), so an admin dashboard had no real data
+-- to show for calls at all. Logged from that same relay on offer/answer/end.
+CREATE TABLE IF NOT EXISTS calls (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  caller_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  callee_id    UUID        REFERENCES users(id) ON DELETE SET NULL,
+  call_type    TEXT        NOT NULL DEFAULT 'voice', -- 'voice' | 'video'
+  is_discover  BOOLEAN     NOT NULL DEFAULT FALSE,
+  status       TEXT        NOT NULL DEFAULT 'ringing', -- 'ringing' | 'active' | 'ended' | 'rejected' | 'unavailable'
+  started_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  connected_at TIMESTAMPTZ,
+  ended_at     TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_reports_status  ON content_reports(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reports_target  ON content_reports(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_calls_started   ON calls(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_calls_status    ON calls(status);
+
 -- ─── INDEXES ──────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_posts_sender     ON posts(sender_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created    ON posts(created_at DESC);

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hapzo Admin</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ─── LOGIN ─────────────────────────────────────────────────────────── -->
+<div id="loginScreen" class="login-screen">
+  <form id="loginForm" class="login-card">
+    <div class="login-logo">🔥</div>
+    <h1>Hapzo Admin</h1>
+    <p class="muted">Sign in with your Hapzo account</p>
+    <input type="text" id="loginEmail" placeholder="Email or username" autocomplete="username" required />
+    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required />
+    <button type="submit">Sign in</button>
+    <p id="loginError" class="error-text"></p>
+  </form>
+</div>
+
+<!-- ─── APP SHELL ─────────────────────────────────────────────────────── -->
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-emoji">🔥</span>
+      <div>
+        <div class="brand-title">Hapzo</div>
+        <div class="brand-sub">Admin Panel</div>
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-group-label">Overview</div>
+      <a href="#dashboard" class="nav-link active" data-page="dashboard">Dashboard</a>
+
+      <div class="nav-group-label">Content Moderation</div>
+      <a href="#reports" class="nav-link" data-page="reports">Reports</a>
+      <span class="nav-link disabled">Content Management</span>
+      <span class="nav-link disabled">Banned Content</span>
+      <span class="nav-link disabled">Appeals</span>
+
+      <div class="nav-group-label">Users &amp; Community</div>
+      <a href="#users" class="nav-link" data-page="users">Users</a>
+      <span class="nav-link disabled">User Roles &amp; Permissions</span>
+      <span class="nav-link disabled">Community Guidelines</span>
+
+      <div class="nav-group-label">Communication</div>
+      <span class="nav-link disabled">Random Calls</span>
+      <span class="nav-link disabled">Messages (DMs)</span>
+
+      <div class="nav-group-label">System</div>
+      <span class="nav-link disabled">Settings</span>
+      <span class="nav-link disabled">Staff Management</span>
+    </nav>
+
+    <button id="logoutBtn" class="logout-btn">Log out</button>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h2 id="pageTitle">Good day, <span id="adminName">Admin</span>! 👋</h2>
+        <p class="muted" id="pageSubtitle">Here's what's happening on Hapzo today.</p>
+      </div>
+      <button id="refreshBtn" class="refresh-btn">↻ Refresh</button>
+    </header>
+
+    <!-- ─── DASHBOARD PAGE ─────────────────────────────────────────── -->
+    <section id="page-dashboard" class="page">
+      <div class="stat-grid" id="statGrid">
+        <!-- filled by app.js -->
+      </div>
+
+      <div class="chart-grid">
+        <div class="card chart-card">
+          <h3>User Growth <span class="muted">· last 30 days</span></h3>
+          <canvas id="userGrowthChart" height="220"></canvas>
+        </div>
+        <div class="card chart-card">
+          <h3>Content Distribution</h3>
+          <canvas id="contentDistChart" height="220"></canvas>
+        </div>
+        <div class="card chart-card">
+          <h3>Reports by Type</h3>
+          <canvas id="reportsByTypeChart" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="table-grid">
+        <div class="card">
+          <div class="card-header">
+            <h3>Recent Reports</h3>
+            <a href="#reports" class="link">View all</a>
+          </div>
+          <table id="recentReportsTable">
+            <thead><tr><th>User</th><th>Content</th><th>Reason</th><th>Status</th><th>Time</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Recent Users</h3>
+            <a href="#users" class="link">View all</a>
+          </div>
+          <table id="recentUsersTable">
+            <thead><tr><th>User</th><th>Joined</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Live Random Calls</h3>
+          </div>
+          <table id="liveCallsTable">
+            <thead><tr><th>Caller</th><th>Callee</th><th>Type</th><th>Duration</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── REPORTS PAGE ───────────────────────────────────────────── -->
+    <section id="page-reports" class="page hidden">
+      <div class="card">
+        <div class="card-header">
+          <h3>All Reports</h3>
+          <select id="reportsStatusFilter">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="under_review">Under review</option>
+            <option value="resolved">Resolved</option>
+            <option value="dismissed">Dismissed</option>
+          </select>
+        </div>
+        <table id="reportsTable">
+          <thead><tr><th>User</th><th>Content</th><th>Reason</th><th>Reporter</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div id="reportsEmpty" class="empty-state hidden">No reports yet.</div>
+      </div>
+    </section>
+
+    <!-- ─── USERS PAGE ─────────────────────────────────────────────── -->
+    <section id="page-users" class="page hidden">
+      <div class="card">
+        <div class="card-header">
+          <h3>All Users</h3>
+          <input type="text" id="usersSearch" placeholder="Search username or email…" />
+        </div>
+        <table id="usersTable">
+          <thead><tr><th>User</th><th>Email</th><th>Joined</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

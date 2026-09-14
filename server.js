@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const { Server: SocketIOServer } = require('socket.io');
 
 const app = express();
@@ -19,6 +21,9 @@ app.use('/profiles', require('./routes/profiles'));
 app.use('/streams', require('./routes/streams'));
 app.use('/rtc', require('./routes/rtc'));
 app.use('/events', require('./routes/events'));
+app.use('/reports', require('./routes/reports'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/admin', express.static(path.join(__dirname, 'public/admin')));
 
 app.use((err, req, res, _next) => {
   console.error(err);
@@ -26,9 +31,6 @@ app.use((err, req, res, _next) => {
 });
 
 const pool = require('./db');
-
-const fs = require('fs');
-const path = require('path');
 
 async function initializeDatabase() {
   try {

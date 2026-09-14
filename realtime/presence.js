@@ -27,6 +27,64 @@ function removeFromDiscoverQueue(userId) {
   if (idx !== -1) discoverQueue.splice(idx, 1);
 }
 
+// Call history — presence.js never persisted anything before (pure signaling
+// relay), so an admin dashboard had zero real data to show for calls. This
+// map bridges the client's own callId (a timestamp-based string, not a UUID)
+// to the real `calls` row it corresponds to.
+const callRecords = new Map(); // clientCallId -> { dbId, callerId, calleeId, callType, isDiscover, startedAt }
+
+async function logCallStart({ callId, callerId, calleeId, isVideo, isDiscover }) {
+  try {
+    const r = await pool.query(
+      `INSERT INTO calls (caller_id, callee_id, call_type, is_discover, status)
+       VALUES ($1,$2,$3,$4,'ringing') RETURNING id`,
+      [callerId, calleeId, isVideo ? 'video' : 'voice', !!isDiscover]
+    );
+    callRecords.set(callId, {
+      dbId: r.rows[0].id,
+      callerId,
+      calleeId,
+      callType: isVideo ? 'video' : 'voice',
+      isDiscover: !!isDiscover,
+      startedAt: Date.now(),
+    });
+  } catch (e) {
+    console.error('call log start error:', e.message);
+  }
+}
+
+async function logCallUpdate(callId, status, { connected = false, ended = false } = {}) {
+  const rec = callRecords.get(callId);
+  if (!rec) return;
+  try {
+    const sets = ['status = $2'];
+    if (connected) sets.push('connected_at = NOW()');
+    if (ended) sets.push('ended_at = NOW()');
+    await pool.query(`UPDATE calls SET ${sets.join(', ')} WHERE id = $1`, [rec.dbId, status]);
+  } catch (e) {
+    console.error('call log update error:', e.message);
+  }
+  if (ended) callRecords.delete(callId);
+}
+
+// Read-only accessors for the admin dashboard (routes/admin.js) — kept here
+// instead of querying the DB for "live" state since in-progress calls only
+// really exist in this module's memory until they end.
+function getActiveUserCount() {
+  return userSockets.size;
+}
+
+function getLiveCalls() {
+  return Array.from(callRecords.entries()).map(([callId, rec]) => ({
+    callId,
+    callerId: rec.callerId,
+    calleeId: rec.calleeId,
+    callType: rec.callType,
+    isDiscover: rec.isDiscover,
+    durationSeconds: Math.floor((Date.now() - rec.startedAt) / 1000),
+  }));
+}
+
 function attach(io) {
   ioRef = io;
   io.on('connection', (socket) => {
@@ -134,6 +192,16 @@ function attach(io) {
         }
 
         const payload = { ...data, fromId };
+        // Log the dial attempt regardless of outcome — a real admin metric
+        // counts missed/rejected calls too, not just ones that connected.
+        await logCallStart({
+          callId: data.callId,
+          callerId: fromId,
+          calleeId: data.toId,
+          isVideo: data.isVideo === true,
+          isDiscover: data.isDiscover === true,
+        });
+
         const targetSet = userSockets.get(data.toId);
         if (!targetSet || !targetSet.size) {
           pendingCallOffers.set(data.toId, {
@@ -145,6 +213,7 @@ function attach(io) {
             toId: data.toId,
             reason: 'not connected right now',
           });
+          logCallUpdate(data.callId, 'unavailable', { ended: true });
           return;
         }
         for (const socketId of targetSet) ioRef.to(socketId).emit('call_offer', payload);
@@ -157,6 +226,7 @@ function attach(io) {
       const fromId = socket.data.userId;
       if (!fromId || !data || !data.toId) return;
       sendToUser(data.toId, 'call_answer', { ...data, fromId });
+      if (data.callId) logCallUpdate(data.callId, 'active', { connected: true });
     });
 
     socket.on('call_ice_candidate', (data) => {
@@ -169,12 +239,14 @@ function attach(io) {
       const fromId = socket.data.userId;
       if (!fromId || !data || !data.toId) return;
       sendToUser(data.toId, 'call_reject', { ...data, fromId });
+      if (data.callId) logCallUpdate(data.callId, 'rejected', { ended: true });
     });
 
     socket.on('call_end', (data) => {
       const fromId = socket.data.userId;
       if (!fromId || !data || !data.toId) return;
       sendToUser(data.toId, 'call_end', { ...data, fromId });
+      if (data.callId) logCallUpdate(data.callId, 'ended', { ended: true });
     });
 
     // Floating emoji reactions during a call — purely cosmetic, so this is a
@@ -204,4 +276,4 @@ function sendToUser(userId, event, payload) {
   }
 }
 
-module.exports = { attach, sendToUser };
+module.exports = { attach, sendToUser, getActiveUserCount, getLiveCalls };
