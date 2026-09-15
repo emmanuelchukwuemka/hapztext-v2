@@ -1,6 +1,18 @@
 // Hapzo Admin — vanilla JS, no build step, no mock data. Every number on
 // this page comes from a real request to this same backend.
 
+// Surface any uncaught error directly on the login screen instead of the
+// page just silently doing nothing when a button is clicked — a blank
+// console most people never open is indistinguishable from "broken".
+window.addEventListener('error', (e) => showFatalError(e.message));
+window.addEventListener('unhandledrejection', (e) => showFatalError(e.reason?.message || String(e.reason)));
+
+function showFatalError(message) {
+  const el = document.getElementById('loginError');
+  if (el) el.textContent = `Unexpected error: ${message}`;
+  console.error(message);
+}
+
 const TOKEN_KEY = 'hapzo_admin_token';
 
 function getToken() { return localStorage.getItem(TOKEN_KEY); }
@@ -56,7 +68,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginSubmitBtn');
   errEl.textContent = '';
+  btn.disabled = true;
+  btn.querySelector('.btn-label').textContent = 'Signing in…';
+  btn.querySelector('.btn-spinner').classList.remove('hidden');
   try {
     const loginData = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     setToken(loginData.tokens.auth);
@@ -70,6 +86,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     errEl.textContent = err.message.includes('Admin access')
       ? "This account doesn't have admin access."
       : err.message;
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('.btn-label').textContent = 'Sign in';
+    btn.querySelector('.btn-spinner').classList.add('hidden');
   }
 });
 
@@ -111,6 +131,43 @@ function router() {
 window.addEventListener('hashchange', router);
 document.getElementById('refreshBtn').addEventListener('click', router);
 
+// ─── EXPORT (real CSV of whatever data is currently loaded) ──────────────
+
+function downloadCsv(filename, rows) {
+  if (!rows.length) { alert('Nothing to export yet.'); return; }
+  const headers = Object.keys(rows[0]);
+  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = [headers.join(','), ...rows.map((r) => headers.map((h) => escape(r[h])).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const active = location.hash.replace('#', '') || 'dashboard';
+  try {
+    if (active === 'users') {
+      const { result } = await api('/api/admin/users?pageSize=1000');
+      downloadCsv('hapzo-users.csv', result.map((u) => ({
+        username: u.username, email: u.email, joined: u.created_at, banned: u.is_banned, admin: u.is_admin,
+      })));
+    } else if (active === 'reports') {
+      const { result } = await api('/api/admin/reports?pageSize=1000');
+      downloadCsv('hapzo-reports.csv', result.map((r) => ({
+        user: r.username, contentType: r.contentType, reason: r.reason,
+        reporter: r.reporterUsername, status: r.status, createdAt: r.createdAt,
+      })));
+    } else {
+      const overview = await api('/api/admin/stats/overview');
+      downloadCsv('hapzo-dashboard-summary.csv', [overview]);
+    }
+  } catch (e) { alert(e.message); }
+});
+
 // ─── FORMATTERS ─────────────────────────────────────────────────────────
 
 function timeAgo(iso) {
@@ -150,10 +207,17 @@ const STAT_ICONS = {
   activeNow: { icon: '🟣', bg: '#f1e9ff', label: 'Active Now' },
 };
 
+function avatarCell(username) {
+  const name = username || 'Unknown';
+  const initial = name[0].toUpperCase();
+  return `<span class="avatar-cell"><span class="avatar-dot">${initial}</span>@${name}</span>`;
+}
+
 async function loadDashboard() {
   try {
     const overview = await api('/api/admin/stats/overview');
     renderStatGrid(overview);
+    renderPillGrid(overview);
   } catch (e) {
     console.error(e);
   }
@@ -188,6 +252,25 @@ function renderStatGrid(overview) {
         ${deltaHtml}
       </div>`;
   }).join('');
+}
+
+function renderPillGrid(overview) {
+  const grid = document.getElementById('pillGrid');
+  const pills = [
+    { icon: '🚩', bg: '#fdeceb', label: 'Pending Reports', value: overview.pendingReports, sub: 'Require attention' },
+    { icon: '📞', bg: '#e6f9ec', label: 'Active Calls', value: overview.activeCalls, sub: 'Live right now' },
+    { icon: '🚫', bg: '#f1e9ff', label: 'Banned Users', value: overview.bannedUsers, sub: 'Currently suspended' },
+    { icon: '💚', bg: '#e6f9ec', label: 'System Status', value: 'Operational', sub: 'Database reachable' },
+  ];
+  grid.innerHTML = pills.map((p) => `
+    <div class="pill-card">
+      <div class="icon" style="background:${p.bg}">${p.icon}</div>
+      <div>
+        <div class="label">${p.label}</div>
+        <div class="value">${p.value}</div>
+        <div class="sub">${p.sub}</div>
+      </div>
+    </div>`).join('');
 }
 
 let userGrowthChart, contentDistChart, reportsByTypeChart;
@@ -232,14 +315,22 @@ async function loadContentDistributionChart() {
 
     const ctx = document.getElementById('contentDistChart');
     contentDistChart?.destroy();
+    const total = data.reduce((s, n) => s + n, 0);
+    document.getElementById('donutCenter').innerHTML =
+      total > 0 ? `<span class="n">${total.toLocaleString()}</span><span class="t">Total Posts</span>` : '';
     if (data.length === 0) { ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height); return; }
     contentDistChart = new Chart(ctx, {
       type: 'doughnut',
       data: { labels, datasets: [{ data, backgroundColor: bg, borderWidth: 0 }] },
-      options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } },
+      options: {
+        cutout: '68%',
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+      },
     });
   } catch (e) { console.error(e); }
 }
+
+const BAR_COLORS = ['#e14b4b', '#f59e0b', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'];
 
 async function loadReportsByTypeChart() {
   try {
@@ -250,7 +341,11 @@ async function loadReportsByTypeChart() {
       type: 'bar',
       data: {
         labels: rows.map((r) => r.reason.replace('_', ' ')),
-        datasets: [{ data: rows.map((r) => r.count), backgroundColor: '#e14b4b', borderRadius: 6 }],
+        datasets: [{
+          data: rows.map((r) => r.count),
+          backgroundColor: rows.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]),
+          borderRadius: 6,
+        }],
       },
       options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
     });
@@ -264,7 +359,7 @@ async function loadRecentReports() {
     tbody.innerHTML = result.length
       ? result.map((r) => `
         <tr>
-          <td>@${r.username}</td>
+          <td>${avatarCell(r.username)}</td>
           <td>${r.contentType}</td>
           <td>${r.reason.replace('_', ' ')}</td>
           <td>${statusBadge(r.status)}</td>
@@ -281,7 +376,7 @@ async function loadRecentUsers() {
     const { result } = await api('/api/admin/users?pageSize=5');
     tbody.innerHTML = result.map((u) => `
       <tr>
-        <td>@${u.username}</td>
+        <td>${avatarCell(u.username)}</td>
         <td class="muted">${timeAgo(u.created_at)}</td>
         <td>${u.is_banned ? statusBadge('banned') : statusBadge('ok')}</td>
       </tr>`).join('') || '<tr><td colspan="3" class="muted">No users yet</td></tr>';
@@ -295,8 +390,8 @@ async function loadLiveCalls() {
     tbody.innerHTML = calls.length
       ? calls.map((c) => `
         <tr>
-          <td>@${c.callerUsername}</td>
-          <td>@${c.calleeUsername}</td>
+          <td>${avatarCell(c.callerUsername)}</td>
+          <td>${avatarCell(c.calleeUsername)}</td>
           <td>${c.callType}</td>
           <td>${fmtDuration(c.durationSeconds)}</td>
         </tr>`).join('')
@@ -316,7 +411,7 @@ async function loadReports() {
     document.getElementById('reportsEmpty').classList.toggle('hidden', result.length > 0);
     tbody.innerHTML = result.map((r) => `
       <tr>
-        <td>@${r.username}</td>
+        <td>${avatarCell(r.username)}</td>
         <td>${r.contentType}</td>
         <td>${r.reason.replace('_', ' ')}</td>
         <td>@${r.reporterUsername}</td>
@@ -358,7 +453,7 @@ async function loadUsers() {
     tbody.innerHTML = result.length
       ? result.map((u) => `
         <tr>
-          <td>@${u.username}</td>
+          <td>${avatarCell(u.username)}</td>
           <td class="muted">${u.email}</td>
           <td class="muted">${fmtDate(u.created_at)}</td>
           <td>${u.is_banned ? statusBadge('banned') : statusBadge('ok')}</td>

@@ -31,6 +31,7 @@ router.get('/stats/overview', async (req, res) => {
       totalPosts, postsThis, postsPrev,
       totalReports, reportsThis, reportsPrev,
       totalCalls, callsThis, callsPrev,
+      pendingReports, bannedUsers,
     ] = await Promise.all([
       q('SELECT COUNT(*)::int AS c FROM users'),
       q(`SELECT COUNT(*)::int AS c FROM users WHERE created_at >= date_trunc('month', NOW())`),
@@ -52,8 +53,11 @@ router.get('/stats/overview', async (req, res) => {
       q(`SELECT COUNT(*)::int AS c FROM calls
            WHERE started_at >= date_trunc('month', NOW() - INTERVAL '1 month')
              AND started_at < date_trunc('month', NOW())`),
+      q(`SELECT COUNT(*)::int AS c FROM content_reports WHERE status = 'pending'`),
+      q(`SELECT COUNT(*)::int AS c FROM users WHERE is_banned = TRUE`),
     ]);
 
+    const live = presence.getLiveCalls();
     return res.json({
       data: {
         totalUsers, totalUsersChangePct: pctChange(usersThis, usersPrev),
@@ -61,6 +65,9 @@ router.get('/stats/overview', async (req, res) => {
         reportsReceived: totalReports, reportsChangePct: pctChange(reportsThis, reportsPrev),
         totalCalls, callsChangePct: pctChange(callsThis, callsPrev),
         activeNow: presence.getActiveUserCount(),
+        pendingReports,
+        bannedUsers,
+        activeCalls: live.length,
       },
     });
   } catch (e) {

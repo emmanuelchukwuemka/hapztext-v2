@@ -5,19 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Hapzo Admin</title>
 <link rel="stylesheet" href="styles.css" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
 <!-- ─── LOGIN ─────────────────────────────────────────────────────────── -->
 <div id="loginScreen" class="login-screen">
   <form id="loginForm" class="login-card">
-    <div class="login-logo">🔥</div>
+    <img src="logo.png" alt="Hapzo" class="login-logo" />
     <h1>Hapzo Admin</h1>
-    <p class="muted">Sign in with your Hapzo account</p>
-    <input type="text" id="loginEmail" placeholder="Email or username" autocomplete="username" required />
-    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required />
-    <button type="submit">Sign in</button>
+    <p class="muted">Sign in with your Hapzo account to continue</p>
+    <label class="field-label" for="loginEmail">Email or username</label>
+    <input type="text" id="loginEmail" placeholder="you@hapzo.com" autocomplete="username" required />
+    <label class="field-label" for="loginPassword">Password</label>
+    <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required />
+    <button type="submit" id="loginSubmitBtn">
+      <span class="btn-label">Sign in</span>
+      <span class="btn-spinner hidden"></span>
+    </button>
     <p id="loginError" class="error-text"></p>
   </form>
 </div>
@@ -26,7 +30,7 @@
 <div id="app" class="app hidden">
   <aside class="sidebar">
     <div class="brand">
-      <span class="brand-emoji">🔥</span>
+      <img src="logo.png" alt="Hapzo" class="brand-logo" />
       <div>
         <div class="brand-title">Hapzo</div>
         <div class="brand-sub">Admin Panel</div>
@@ -35,29 +39,29 @@
 
     <nav>
       <div class="nav-group-label">Overview</div>
-      <a href="#dashboard" class="nav-link active" data-page="dashboard">Dashboard</a>
+      <a href="#dashboard" class="nav-link active" data-page="dashboard"><span class="nav-ico">🏠</span>Dashboard</a>
 
       <div class="nav-group-label">Content Moderation</div>
-      <a href="#reports" class="nav-link" data-page="reports">Reports</a>
-      <span class="nav-link disabled">Content Management</span>
-      <span class="nav-link disabled">Banned Content</span>
-      <span class="nav-link disabled">Appeals</span>
+      <a href="#reports" class="nav-link" data-page="reports"><span class="nav-ico">🚩</span>Reports</a>
+      <span class="nav-link disabled"><span class="nav-ico">🗂️</span>Content Management</span>
+      <span class="nav-link disabled"><span class="nav-ico">🚫</span>Banned Content</span>
+      <span class="nav-link disabled"><span class="nav-ico">⚖️</span>Appeals</span>
 
       <div class="nav-group-label">Users &amp; Community</div>
-      <a href="#users" class="nav-link" data-page="users">Users</a>
-      <span class="nav-link disabled">User Roles &amp; Permissions</span>
-      <span class="nav-link disabled">Community Guidelines</span>
+      <a href="#users" class="nav-link" data-page="users"><span class="nav-ico">👥</span>Users</a>
+      <span class="nav-link disabled"><span class="nav-ico">🛡️</span>Roles &amp; Permissions</span>
+      <span class="nav-link disabled"><span class="nav-ico">📋</span>Community Guidelines</span>
 
       <div class="nav-group-label">Communication</div>
-      <span class="nav-link disabled">Random Calls</span>
-      <span class="nav-link disabled">Messages (DMs)</span>
+      <span class="nav-link disabled"><span class="nav-ico">📞</span>Random Calls</span>
+      <span class="nav-link disabled"><span class="nav-ico">💬</span>Messages (DMs)</span>
 
       <div class="nav-group-label">System</div>
-      <span class="nav-link disabled">Settings</span>
-      <span class="nav-link disabled">Staff Management</span>
+      <span class="nav-link disabled"><span class="nav-ico">⚙️</span>Settings</span>
+      <span class="nav-link disabled"><span class="nav-ico">🧑‍💼</span>Staff Management</span>
     </nav>
 
-    <button id="logoutBtn" class="logout-btn">Log out</button>
+    <button id="logoutBtn" class="logout-btn">↪ Log out</button>
   </aside>
 
   <main class="main">
@@ -66,34 +70,40 @@
         <h2 id="pageTitle">Good day, <span id="adminName">Admin</span>! 👋</h2>
         <p class="muted" id="pageSubtitle">Here's what's happening on Hapzo today.</p>
       </div>
-      <button id="refreshBtn" class="refresh-btn">↻ Refresh</button>
+      <div class="topbar-actions">
+        <button id="refreshBtn" class="btn-outline">↻ Refresh</button>
+        <button id="exportBtn" class="btn-primary">⬇ Export</button>
+      </div>
     </header>
 
     <!-- ─── DASHBOARD PAGE ─────────────────────────────────────────── -->
     <section id="page-dashboard" class="page">
-      <div class="stat-grid" id="statGrid">
-        <!-- filled by app.js -->
-      </div>
+      <div class="stat-grid" id="statGrid"><!-- filled by app.js --></div>
+
+      <div class="pill-grid" id="pillGrid"><!-- filled by app.js --></div>
 
       <div class="chart-grid">
-        <div class="card chart-card">
+        <div class="card chart-card chart-card-wide">
           <h3>User Growth <span class="muted">· last 30 days</span></h3>
-          <canvas id="userGrowthChart" height="220"></canvas>
+          <canvas id="userGrowthChart" height="210"></canvas>
         </div>
         <div class="card chart-card">
           <h3>Content Distribution</h3>
-          <canvas id="contentDistChart" height="220"></canvas>
+          <div class="donut-wrap">
+            <canvas id="contentDistChart" height="210"></canvas>
+            <div class="donut-center" id="donutCenter"></div>
+          </div>
         </div>
         <div class="card chart-card">
           <h3>Reports by Type</h3>
-          <canvas id="reportsByTypeChart" height="220"></canvas>
+          <canvas id="reportsByTypeChart" height="210"></canvas>
         </div>
       </div>
 
       <div class="table-grid">
         <div class="card">
           <div class="card-header">
-            <h3>Recent Reports</h3>
+            <h3>🚩 Recent Reports</h3>
             <a href="#reports" class="link">View all</a>
           </div>
           <table id="recentReportsTable">
@@ -103,7 +113,7 @@
         </div>
         <div class="card">
           <div class="card-header">
-            <h3>Recent Users</h3>
+            <h3>👥 Recent Users</h3>
             <a href="#users" class="link">View all</a>
           </div>
           <table id="recentUsersTable">
@@ -113,7 +123,7 @@
         </div>
         <div class="card">
           <div class="card-header">
-            <h3>Live Random Calls</h3>
+            <h3>📞 Live Random Calls</h3>
           </div>
           <table id="liveCallsTable">
             <thead><tr><th>Caller</th><th>Callee</th><th>Type</th><th>Duration</th></tr></thead>
@@ -160,6 +170,7 @@
   </main>
 </div>
 
-<script src="app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+<script src="app.js" defer></script>
 </body>
 </html>
