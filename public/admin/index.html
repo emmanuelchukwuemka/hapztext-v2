@@ -1,176 +1,191 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Hapzo Admin</title>
+<link rel="icon" href="logo.png" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<!-- ─── LOGIN ─────────────────────────────────────────────────────────── -->
+<!-- ─── LOGIN ─────────────────────────────────────────────────────── -->
 <div id="loginScreen" class="login-screen">
-  <form id="loginForm" class="login-card">
-    <img src="logo.png" alt="Hapzo" class="login-logo" />
+  <div class="login-card">
+    <img src="logo.png" class="login-logo" alt="Hapzo" />
     <h1>Hapzo Admin</h1>
-    <p class="muted">Sign in with your Hapzo account to continue</p>
-    <label class="field-label" for="loginEmail">Email or username</label>
-    <input type="text" id="loginEmail" placeholder="you@hapzo.com" autocomplete="username" required />
-    <label class="field-label" for="loginPassword">Password</label>
-    <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required />
-    <button type="submit" id="loginSubmitBtn">
-      <span class="btn-label">Sign in</span>
-      <span class="btn-spinner hidden"></span>
-    </button>
-    <p id="loginError" class="error-text"></p>
-  </form>
+    <p>Sign in to manage the platform</p>
+    <form id="loginForm">
+      <label class="field-label">Email</label>
+      <input type="email" id="loginEmail" autocomplete="username" required />
+      <label class="field-label">Password</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" required />
+      <button type="submit" id="loginBtn"><span>Sign In</span></button>
+      <div class="error-text" id="loginError"></div>
+    </form>
+  </div>
 </div>
 
-<!-- ─── APP SHELL ─────────────────────────────────────────────────────── -->
+<!-- ─── APP ───────────────────────────────────────────────────────── -->
 <div id="app" class="app hidden">
-  <aside class="sidebar">
+  <div class="sidebar" id="sidebar">
     <div class="brand">
-      <img src="logo.png" alt="Hapzo" class="brand-logo" />
-      <div>
-        <div class="brand-title">Hapzo</div>
-        <div class="brand-sub">Admin Panel</div>
-      </div>
+      <img src="logo.png" alt="Hapzo" />
+      <h2>Hapzo</h2>
+      <p>Admin Panel</p>
     </div>
+    <div class="menu">
+      <div class="menu-item active" data-screen="dashboard"><i class="fas fa-gauge-high"></i> Dashboard</div>
+      <div class="menu-item" data-screen="reports"><i class="fas fa-flag"></i> Reports</div>
+      <div class="menu-item" data-screen="users"><i class="fas fa-users"></i> Users</div>
+      <div class="menu-item" data-screen="content"><i class="fas fa-photo-film"></i> Content</div>
+      <div class="menu-item" data-screen="trending"><i class="fas fa-fire"></i> Trending</div>
+      <div class="menu-item" data-screen="calls"><i class="fas fa-phone"></i> Random Calls</div>
+      <div class="menu-item" data-screen="appeals"><i class="fas fa-gavel"></i> Appeals</div>
+      <div class="menu-item" data-screen="settings"><i class="fas fa-gear"></i> Settings</div>
+    </div>
+    <div class="logout">
+      <button id="logoutBtn"><i class="fas fa-right-from-bracket"></i> Logout</button>
+    </div>
+  </div>
 
-    <nav>
-      <div class="nav-group-label">Overview</div>
-      <a href="#dashboard" class="nav-link active" data-page="dashboard"><span class="nav-ico">🏠</span>Dashboard</a>
+  <div class="main">
+    <div class="topbar">
+      <button class="icon-btn" id="menuToggle" style="display:none"><i class="fas fa-bars"></i></button>
+      <h1 id="topbarTitle">Dashboard</h1>
+      <button class="icon-btn" id="refreshBtn" title="Refresh"><i class="fas fa-rotate-right"></i></button>
+    </div>
+    <div class="content">
 
-      <div class="nav-group-label">Content Moderation</div>
-      <a href="#reports" class="nav-link" data-page="reports"><span class="nav-ico">🚩</span>Reports</a>
-      <span class="nav-link disabled"><span class="nav-ico">🗂️</span>Content Management</span>
-      <span class="nav-link disabled"><span class="nav-ico">🚫</span>Banned Content</span>
-      <span class="nav-link disabled"><span class="nav-ico">⚖️</span>Appeals</span>
-
-      <div class="nav-group-label">Users &amp; Community</div>
-      <a href="#users" class="nav-link" data-page="users"><span class="nav-ico">👥</span>Users</a>
-      <span class="nav-link disabled"><span class="nav-ico">🛡️</span>Roles &amp; Permissions</span>
-      <span class="nav-link disabled"><span class="nav-ico">📋</span>Community Guidelines</span>
-
-      <div class="nav-group-label">Communication</div>
-      <span class="nav-link disabled"><span class="nav-ico">📞</span>Random Calls</span>
-      <span class="nav-link disabled"><span class="nav-ico">💬</span>Messages (DMs)</span>
-
-      <div class="nav-group-label">System</div>
-      <span class="nav-link disabled"><span class="nav-ico">⚙️</span>Settings</span>
-      <span class="nav-link disabled"><span class="nav-ico">🧑‍💼</span>Staff Management</span>
-    </nav>
-
-    <button id="logoutBtn" class="logout-btn">↪ Log out</button>
-  </aside>
-
-  <main class="main">
-    <header class="topbar">
-      <div>
-        <h2 id="pageTitle">Good day, <span id="adminName">Admin</span>! 👋</h2>
-        <p class="muted" id="pageSubtitle">Here's what's happening on Hapzo today.</p>
+      <!-- DASHBOARD -->
+      <div class="screen active" id="screen-dashboard">
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="section-title"><i class="fas fa-fire" style="color:#FF5722"></i> Top Trending Posts</div>
+        <div class="trending-list" id="dashTrendingList"></div>
       </div>
-      <div class="topbar-actions">
-        <button id="refreshBtn" class="btn-outline">↻ Refresh</button>
-        <button id="exportBtn" class="btn-primary">⬇ Export</button>
+
+      <!-- REPORTS -->
+      <div class="screen" id="screen-reports">
+        <div class="section-title">Pending Reports <span class="spacer"></span></div>
+        <div id="reportsList"></div>
       </div>
-    </header>
 
-    <!-- ─── DASHBOARD PAGE ─────────────────────────────────────────── -->
-    <section id="page-dashboard" class="page">
-      <div class="stat-grid" id="statGrid"><!-- filled by app.js --></div>
-
-      <div class="pill-grid" id="pillGrid"><!-- filled by app.js --></div>
-
-      <div class="chart-grid">
-        <div class="card chart-card chart-card-wide">
-          <h3>User Growth <span class="muted">· last 30 days</span></h3>
-          <canvas id="userGrowthChart" height="210"></canvas>
+      <!-- USERS -->
+      <div class="screen" id="screen-users">
+        <div class="search-bar">
+          <i class="fas fa-magnifying-glass" style="color:#999"></i>
+          <input type="text" id="userSearch" placeholder="Search users by name or email..." />
         </div>
-        <div class="card chart-card">
-          <h3>Content Distribution</h3>
-          <div class="donut-wrap">
-            <canvas id="contentDistChart" height="210"></canvas>
-            <div class="donut-center" id="donutCenter"></div>
+        <div id="usersList"></div>
+      </div>
+
+      <!-- CONTENT -->
+      <div class="screen" id="screen-content">
+        <div class="filters" id="contentFilters">
+          <div class="filter-chip active" data-type="all">All</div>
+          <div class="filter-chip" data-type="text">Text</div>
+          <div class="filter-chip" data-type="video">Video</div>
+          <div class="filter-chip" data-type="audio">Audio</div>
+          <div class="filter-chip" data-type="image">Image</div>
+        </div>
+        <div class="content-grid" id="contentGrid"></div>
+      </div>
+
+      <!-- TRENDING -->
+      <div class="screen" id="screen-trending">
+        <div class="algorithm-box">
+          <i class="fas fa-circle-info"></i>
+          <div>
+            <div class="title">Trending Algorithm</div>
+            <div class="formula">score = (likes×1 + comments×3 + shares×5 + boost×20) ÷ hours_since_posted</div>
           </div>
         </div>
-        <div class="card chart-card">
-          <h3>Reports by Type</h3>
-          <canvas id="reportsByTypeChart" height="210"></canvas>
+        <div class="filters">
+          <div class="filter-chip active" data-period="24h">Last 24h</div>
+          <div class="filter-chip" data-period="7d">Last 7 days</div>
+          <div class="filter-chip" data-period="30d">Last 30 days</div>
+        </div>
+        <div id="trendingList"></div>
+      </div>
+
+      <!-- RANDOM CALLS -->
+      <div class="screen" id="screen-calls">
+        <div class="tabs">
+          <div class="tab active" data-tab="active">Active Calls</div>
+          <div class="tab" data-tab="history">History</div>
+          <div class="tab" data-tab="flagged">Flagged Users</div>
+        </div>
+        <div id="callsTabContent"></div>
+      </div>
+
+      <!-- APPEALS -->
+      <div class="screen" id="screen-appeals">
+        <div class="section-title">Ban Appeals</div>
+        <div id="appealsList"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="screen" id="screen-settings">
+        <div class="settings-section alert">
+          <div class="section-title"><i class="fas fa-shield-heart" style="color:#E53935"></i> Age-Based Safety Rules</div>
+          <div class="protection-box">
+            <div class="title">Automatic Protections</div>
+            <div class="item"><i class="fas fa-check"></i> Minors (under 18) can only be matched with other minors</div>
+            <div class="item"><i class="fas fa-check"></i> Adults (18+) can only be matched with other adults</div>
+            <div class="item"><i class="fas fa-check"></i> Minor-to-minor matches limited to a 4 year age gap</div>
+            <div class="item"><i class="fas fa-check"></i> Age computed live from verified date of birth on every match</div>
+            <div class="item"><i class="fas fa-check"></i> Any mismatch triggers an instant admin alert + audit log entry</div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-title"><i class="fas fa-ban" style="color:#E53935"></i> Banned Words</div>
+          <div class="input-row">
+            <input type="text" id="bannedWordInput" placeholder="Add a banned word or phrase..." />
+            <button class="btn btn-primary" id="addBannedWordBtn">Add</button>
+          </div>
+          <div class="tags" id="bannedWordsTags"></div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-title"><i class="fas fa-list-check" style="color:#FF9800"></i> Violation Rules</div>
+          <div id="rulesList"></div>
+          <div class="input-row" style="margin-top:16px;flex-wrap:wrap">
+            <input type="text" id="ruleNameInput" placeholder="Rule name" style="flex:1 1 140px" />
+            <input type="text" id="rulePatternInput" placeholder="Regex pattern" style="flex:1 1 140px" />
+            <select id="ruleActionInput" style="padding:12px;border-radius:8px;border:1px solid #ddd">
+              <option value="flag">Flag</option>
+              <option value="warn">Warn</option>
+              <option value="remove">Remove</option>
+              <option value="ban">Ban</option>
+            </select>
+            <input type="number" id="ruleStrikesInput" placeholder="Strikes" style="width:90px" min="1" value="1" />
+            <button class="btn btn-primary" id="addRuleBtn">Add Rule</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-title"><i class="fas fa-file-lines" style="color:#4CAF50"></i> Community Guidelines</div>
+          <textarea id="guidelinesText" rows="8" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit"></textarea>
+          <div style="margin-top:12px;text-align:right">
+            <button class="btn btn-primary" id="saveGuidelinesBtn">Save Guidelines</button>
+          </div>
         </div>
       </div>
 
-      <div class="table-grid">
-        <div class="card">
-          <div class="card-header">
-            <h3>🚩 Recent Reports</h3>
-            <a href="#reports" class="link">View all</a>
-          </div>
-          <table id="recentReportsTable">
-            <thead><tr><th>User</th><th>Content</th><th>Reason</th><th>Status</th><th>Time</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h3>👥 Recent Users</h3>
-            <a href="#users" class="link">View all</a>
-          </div>
-          <table id="recentUsersTable">
-            <thead><tr><th>User</th><th>Joined</th><th>Status</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h3>📞 Live Random Calls</h3>
-          </div>
-          <table id="liveCallsTable">
-            <thead><tr><th>Caller</th><th>Callee</th><th>Type</th><th>Duration</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── REPORTS PAGE ───────────────────────────────────────────── -->
-    <section id="page-reports" class="page hidden">
-      <div class="card">
-        <div class="card-header">
-          <h3>All Reports</h3>
-          <select id="reportsStatusFilter">
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="under_review">Under review</option>
-            <option value="resolved">Resolved</option>
-            <option value="dismissed">Dismissed</option>
-          </select>
-        </div>
-        <table id="reportsTable">
-          <thead><tr><th>User</th><th>Content</th><th>Reason</th><th>Reporter</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
-          <tbody></tbody>
-        </table>
-        <div id="reportsEmpty" class="empty-state hidden">No reports yet.</div>
-      </div>
-    </section>
-
-    <!-- ─── USERS PAGE ─────────────────────────────────────────────── -->
-    <section id="page-users" class="page hidden">
-      <div class="card">
-        <div class="card-header">
-          <h3>All Users</h3>
-          <input type="text" id="usersSearch" placeholder="Search username or email…" />
-        </div>
-        <table id="usersTable">
-          <thead><tr><th>User</th><th>Email</th><th>Joined</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+    </div>
+  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
-<script src="app.js" defer></script>
+<!-- ─── DIALOG ────────────────────────────────────────────────────── -->
+<div class="dialog-overlay" id="dialogOverlay">
+  <div class="dialog" id="dialogBox"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
