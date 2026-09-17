@@ -376,25 +376,31 @@ CREATE TABLE IF NOT EXISTS content_reports (
 -- 100% ephemeral (nothing persisted), so an admin dashboard had no real data
 -- to show for calls at all. Logged from that same relay on offer/answer/end.
 CREATE TABLE IF NOT EXISTS calls (
-  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  caller_id         UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  callee_id         UUID        REFERENCES users(id) ON DELETE SET NULL,
-  call_type         TEXT        NOT NULL DEFAULT 'voice', -- 'voice' | 'video'
-  is_discover       BOOLEAN     NOT NULL DEFAULT FALSE,
-  status            TEXT        NOT NULL DEFAULT 'ringing', -- 'ringing' | 'active' | 'ended' | 'rejected' | 'unavailable'
-  started_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  connected_at      TIMESTAMPTZ,
-  ended_at          TIMESTAMPTZ,
-  end_reason        TEXT,       -- 'user_hangup' | 'admin_action' | 'age_protection'
-  ended_by          UUID        REFERENCES users(id) ON DELETE SET NULL,
-  reports_count     INT         NOT NULL DEFAULT 0,
-  -- Real ages computed from profiles.birth_date at call time — this is what
-  -- actually powers the age-safety alert, not a placeholder.
-  caller_age        INT,
-  callee_age        INT,
-  age_alert         BOOLEAN     NOT NULL DEFAULT FALSE,
-  age_alert_reason  TEXT
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  caller_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  callee_id    UUID        REFERENCES users(id) ON DELETE SET NULL,
+  call_type    TEXT        NOT NULL DEFAULT 'voice', -- 'voice' | 'video'
+  is_discover  BOOLEAN     NOT NULL DEFAULT FALSE,
+  status       TEXT        NOT NULL DEFAULT 'ringing', -- 'ringing' | 'active' | 'ended' | 'rejected' | 'unavailable'
+  started_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  connected_at TIMESTAMPTZ,
+  ended_at     TIMESTAMPTZ
 );
+
+-- Added after `calls` already existed in production — CREATE TABLE IF NOT
+-- EXISTS silently no-ops on an existing table, so these must be explicit
+-- ALTERs (a prior version baked them into the CREATE TABLE above and it
+-- quietly never applied on live data, then broke the index below and rolled
+-- back the whole schema.sql transaction on every boot).
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS end_reason        TEXT;       -- 'user_hangup' | 'admin_action' | 'age_protection'
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS ended_by          UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS reports_count     INT NOT NULL DEFAULT 0;
+-- Real ages computed from profiles.birth_date at call time — this is what
+-- actually powers the age-safety alert, not a placeholder.
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS caller_age        INT;
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS callee_age        INT;
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS age_alert         BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS age_alert_reason  TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_reports_status  ON content_reports(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reports_target  ON content_reports(target_type, target_id);
