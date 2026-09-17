@@ -73,6 +73,10 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS repost_of UUID REFERENCES posts(id) ON DELETE SET NULL;
+-- Trending admin controls — deliberately separate from like_count/share_count
+-- (real engagement) so "Boost"/"Remove" never falsifies those numbers.
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS trending_boost    INT     NOT NULL DEFAULT 0;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS trending_excluded BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- ─── MEDIA FILES ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS media_files (
@@ -277,6 +281,78 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin      BOOLEAN NOT NULL DEFAUL
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned     BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at     TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_reason TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_expires_at TIMESTAMPTZ; -- NULL = permanent (or not banned)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS warnings_count INT NOT NULL DEFAULT 0;
+-- Additive RBAC — every existing is_admin=true account defaults to 'master'
+-- with every permission on, so nothing that already works loses access.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_role TEXT; -- 'master' | 'staff' | 'auditor', NULL for non-admins
+ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_permissions JSONB NOT NULL DEFAULT '{}'::jsonb;
+UPDATE users SET admin_role = 'master' WHERE is_admin = TRUE AND admin_role IS NULL;
+UPDATE users SET admin_permissions = '{
+  "dashboardView": true,
+  "reportsView": true, "reportsIgnore": true, "reportsWarn": true, "reportsDelete": true,
+  "usersView": true, "usersWarn": true, "usersSuspend": true, "usersBan": true, "usersLiftBan": true,
+  "contentView": true, "contentDelete": true,
+  "trendingView": true, "trendingBoost": true, "trendingRemove": true,
+  "callsView": true, "callsEnd": true, "callsRestrict": true,
+  "settingsView": true, "settingsEdit": true,
+  "appealsView": true, "appealsApprove": true, "appealsDeny": true,
+  "staffManage": true
+}'::jsonb WHERE is_admin = TRUE AND admin_permissions = '{}'::jsonb;
+
+-- Random-call safety flags (Discover match queue enforces these live —
+-- see realtime/presence.js discover_join)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS calls_restricted BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS calls_watched    BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS appeals (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  violation_type   TEXT,
+  original_action  TEXT,
+  message          TEXT        NOT NULL,
+  status           TEXT        NOT NULL DEFAULT 'pending', -- 'pending' | 'approved' | 'denied'
+  reviewed_by      UUID        REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at      TIMESTAMPTZ,
+  review_notes     TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS banned_words (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  word        TEXT        UNIQUE NOT NULL,
+  created_by  UUID        REFERENCES users(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS violation_rules (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT        NOT NULL,
+  pattern     TEXT        NOT NULL, -- regex, matched against post text_content
+  action      TEXT        NOT NULL DEFAULT 'Auto-flag', -- 'Auto-flag' | 'Auto-delete' | 'Review Required'
+  strikes     INT         NOT NULL DEFAULT 1,
+  enabled     BOOLEAN     NOT NULL DEFAULT TRUE,
+  created_by  UUID        REFERENCES users(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key         TEXT        PRIMARY KEY,
+  value       JSONB       NOT NULL,
+  updated_by  UUID        REFERENCES users(id) ON DELETE SET NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+  id           BIGSERIAL   PRIMARY KEY,
+  actor_id     UUID        REFERENCES users(id) ON DELETE SET NULL,
+  actor_name   TEXT,
+  action       TEXT        NOT NULL,
+  target_type  TEXT,
+  target_id    TEXT,
+  meta         JSONB,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 -- Generic report against a post, user, or message — target_id is
 -- intentionally not a foreign key since it points at whichever table
@@ -300,21 +376,33 @@ CREATE TABLE IF NOT EXISTS content_reports (
 -- 100% ephemeral (nothing persisted), so an admin dashboard had no real data
 -- to show for calls at all. Logged from that same relay on offer/answer/end.
 CREATE TABLE IF NOT EXISTS calls (
-  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  caller_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  callee_id    UUID        REFERENCES users(id) ON DELETE SET NULL,
-  call_type    TEXT        NOT NULL DEFAULT 'voice', -- 'voice' | 'video'
-  is_discover  BOOLEAN     NOT NULL DEFAULT FALSE,
-  status       TEXT        NOT NULL DEFAULT 'ringing', -- 'ringing' | 'active' | 'ended' | 'rejected' | 'unavailable'
-  started_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  connected_at TIMESTAMPTZ,
-  ended_at     TIMESTAMPTZ
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  caller_id         UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  callee_id         UUID        REFERENCES users(id) ON DELETE SET NULL,
+  call_type         TEXT        NOT NULL DEFAULT 'voice', -- 'voice' | 'video'
+  is_discover       BOOLEAN     NOT NULL DEFAULT FALSE,
+  status            TEXT        NOT NULL DEFAULT 'ringing', -- 'ringing' | 'active' | 'ended' | 'rejected' | 'unavailable'
+  started_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  connected_at      TIMESTAMPTZ,
+  ended_at          TIMESTAMPTZ,
+  end_reason        TEXT,       -- 'user_hangup' | 'admin_action' | 'age_protection'
+  ended_by          UUID        REFERENCES users(id) ON DELETE SET NULL,
+  reports_count     INT         NOT NULL DEFAULT 0,
+  -- Real ages computed from profiles.birth_date at call time — this is what
+  -- actually powers the age-safety alert, not a placeholder.
+  caller_age        INT,
+  callee_age        INT,
+  age_alert         BOOLEAN     NOT NULL DEFAULT FALSE,
+  age_alert_reason  TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_reports_status  ON content_reports(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reports_target  ON content_reports(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_calls_started   ON calls(started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_calls_status    ON calls(status);
+CREATE INDEX IF NOT EXISTS idx_calls_age_alert ON calls(age_alert) WHERE age_alert = TRUE;
+CREATE INDEX IF NOT EXISTS idx_appeals_status  ON appeals(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_created   ON admin_audit_logs(created_at DESC);
 
 -- ─── INDEXES ──────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_posts_sender     ON posts(sender_id);

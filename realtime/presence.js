@@ -9,6 +9,39 @@ const pool = require('../db');
 const userSockets = new Map(); // userId -> Set<socket.id>
 let ioRef = null;
 
+// ─── Age safety ─────────────────────────────────────────────────────────────
+// profiles.birth_date is stored as real 'YYYY-MM-DD' text from signup, so age
+// can be computed for real — no separate date-of-birth column was needed.
+async function getAge(userId) {
+  try {
+    const r = await pool.query(
+      `SELECT DATE_PART('year', AGE(birth_date::date))::int AS age
+       FROM profiles WHERE user_id = $1 AND birth_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`,
+      [userId]
+    );
+    return r.rows[0]?.age ?? null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Minors (0-17) may only ever be matched with other minors, no more than 4
+// years apart; adults (18+) only with other adults. A user with no birth_date
+// on file defaults to the adult bucket — otherwise random calls would be
+// unusable for the (likely large) share of accounts that never filled it in.
+function isAgeCompatible(ageA, ageB) {
+  const aMinor = ageA != null && ageA < 18;
+  const bMinor = ageB != null && ageB < 18;
+  if (aMinor !== bMinor) return false;
+  if (aMinor && bMinor) return Math.abs(ageA - ageB) <= 4;
+  return true;
+}
+
+function emitToAdmins(event, payload) {
+  if (!ioRef) return;
+  ioRef.to('admin_room').emit(event, payload);
+}
+
 // A call_offer for someone who isn't connected right now (locked/backgrounded
 // app, brief network drop) is held here so it can be redelivered the instant
 // that device reconnects, instead of being lost the moment the first relay
@@ -35,10 +68,21 @@ const callRecords = new Map(); // clientCallId -> { dbId, callerId, calleeId, ca
 
 async function logCallStart({ callId, callerId, calleeId, isVideo, isDiscover }) {
   try {
+    const [callerAge, calleeAge] = await Promise.all([getAge(callerId), getAge(calleeId)]);
+    const ageAlert = !isAgeCompatible(callerAge, calleeAge);
+    const ageAlertReason = !ageAlert
+      ? null
+      : callerAge != null && calleeAge != null
+        ? `Minor (${Math.min(callerAge, calleeAge)}) matched with ${
+            Math.max(callerAge, calleeAge) >= 18 ? 'Adult' : 'user'
+          } (${Math.max(callerAge, calleeAge)})`
+        : 'Age could not be verified for one or both participants';
+
     const r = await pool.query(
-      `INSERT INTO calls (caller_id, callee_id, call_type, is_discover, status)
-       VALUES ($1,$2,$3,$4,'ringing') RETURNING id`,
-      [callerId, calleeId, isVideo ? 'video' : 'voice', !!isDiscover]
+      `INSERT INTO calls
+         (caller_id, callee_id, call_type, is_discover, status, caller_age, callee_age, age_alert, age_alert_reason)
+       VALUES ($1,$2,$3,$4,'ringing',$5,$6,$7,$8) RETURNING id`,
+      [callerId, calleeId, isVideo ? 'video' : 'voice', !!isDiscover, callerAge, calleeAge, ageAlert, ageAlertReason]
     );
     callRecords.set(callId, {
       dbId: r.rows[0].id,
@@ -47,7 +91,31 @@ async function logCallStart({ callId, callerId, calleeId, isVideo, isDiscover })
       callType: isVideo ? 'video' : 'voice',
       isDiscover: !!isDiscover,
       startedAt: Date.now(),
+      ageAlert,
+      ageAlertReason,
     });
+
+    // The doc's single most critical safety requirement: push this to any
+    // connected admin immediately so a human can end the call right away,
+    // not just whenever someone happens to refresh the dashboard.
+    if (ageAlert) {
+      emitToAdmins('call:age_alert', {
+        callId,
+        dbId: r.rows[0].id,
+        callerId,
+        calleeId,
+        callerAge,
+        calleeAge,
+        reason: ageAlertReason,
+      });
+      pool
+        .query(
+          `INSERT INTO admin_audit_logs (action, target_type, target_id, meta)
+           VALUES ('AGE_ALERT', 'call', $1, $2)`,
+          [r.rows[0].id, JSON.stringify({ callerId, calleeId, callerAge, calleeAge, reason: ageAlertReason })]
+        )
+        .catch(() => {});
+    }
   } catch (e) {
     console.error('call log start error:', e.message);
   }
@@ -77,23 +145,53 @@ function getActiveUserCount() {
 function getLiveCalls() {
   return Array.from(callRecords.entries()).map(([callId, rec]) => ({
     callId,
+    dbId: rec.dbId,
     callerId: rec.callerId,
     calleeId: rec.calleeId,
     callType: rec.callType,
     isDiscover: rec.isDiscover,
     durationSeconds: Math.floor((Date.now() - rec.startedAt) / 1000),
+    ageAlert: rec.ageAlert,
+    ageAlertReason: rec.ageAlertReason,
   }));
+}
+
+// Admin-triggered "END IMMEDIATELY" — tells both participants' real sockets
+// to hang up (not just marking the DB row dead), since the whole point of
+// the critical-age-alert flow is stopping the call itself right now.
+function adminEndCall(dbCallId, adminId, reason) {
+  for (const [clientCallId, rec] of callRecords.entries()) {
+    if (rec.dbId !== dbCallId) continue;
+    sendToUser(rec.callerId, 'call_end', { callId: clientCallId, toId: rec.callerId, fromId: 'admin' });
+    sendToUser(rec.calleeId, 'call_end', { callId: clientCallId, toId: rec.calleeId, fromId: 'admin' });
+    pool
+      .query(
+        `UPDATE calls SET status = 'ended', ended_at = NOW(), end_reason = $2, ended_by = $3 WHERE id = $1`,
+        [dbCallId, reason || 'admin_action', adminId]
+      )
+      .catch((e) => console.error('adminEndCall update error:', e.message));
+    callRecords.delete(clientCallId);
+    return true;
+  }
+  return false;
 }
 
 function attach(io) {
   ioRef = io;
   io.on('connection', (socket) => {
-    socket.on('authenticate', (token) => {
+    socket.on('authenticate', async (token) => {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         socket.data.userId = decoded.id;
         if (!userSockets.has(decoded.id)) userSockets.set(decoded.id, new Set());
         userSockets.get(decoded.id).add(socket.id);
+
+        // Admins get a room so age-alerts and other safety events can be
+        // pushed live instead of only appearing on the next dashboard poll.
+        try {
+          const r = await pool.query('SELECT is_admin FROM users WHERE id = $1', [decoded.id]);
+          if (r.rows[0]?.is_admin) socket.join('admin_room');
+        } catch (_) {}
 
         const pending = pendingCallOffers.get(decoded.id);
         if (pending) {
@@ -125,12 +223,34 @@ function attach(io) {
       removeFromDiscoverQueue(userId);
       const isVideo = data?.isVideo !== false;
 
-      const partnerIdx = discoverQueue.findIndex((w) => w.userId !== userId);
-      if (partnerIdx === -1) {
-        discoverQueue.push({ userId, isVideo });
+      const restrictedR = await pool.query('SELECT calls_restricted FROM users WHERE id = $1', [userId]).catch(() => null);
+      if (restrictedR?.rows[0]?.calls_restricted) {
+        socket.emit('call_unavailable', { reason: 'Random calls have been restricted on this account.' });
         return;
       }
-      const partner = discoverQueue.splice(partnerIdx, 1)[0];
+
+      const myAge = await getAge(userId);
+
+      // Never just take whoever's next in line — search for the longest-
+      // waiting candidate that's actually safe to pair with. Age safety is
+      // enforced here at the match itself, not just flagged after the fact.
+      let partnerIdx = -1;
+      let partner = null;
+      for (let i = 0; i < discoverQueue.length; i++) {
+        const candidate = discoverQueue[i];
+        if (candidate.userId === userId) continue;
+        if (isAgeCompatible(myAge, candidate.age)) {
+          partnerIdx = i;
+          partner = candidate;
+          break;
+        }
+      }
+
+      if (partnerIdx === -1) {
+        discoverQueue.push({ userId, isVideo, age: myAge });
+        return;
+      }
+      discoverQueue.splice(partnerIdx, 1);
 
       try {
         const [meRes, partnerRes] = await Promise.all([
@@ -276,4 +396,4 @@ function sendToUser(userId, event, payload) {
   }
 }
 
-module.exports = { attach, sendToUser, getActiveUserCount, getLiveCalls };
+module.exports = { attach, sendToUser, getActiveUserCount, getLiveCalls, adminEndCall, emitToAdmins };
