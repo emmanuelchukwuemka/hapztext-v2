@@ -8,7 +8,7 @@ const pool = require('../db');
 module.exports = async (req, res, next) => {
   try {
     const r = await pool.query(
-      'SELECT is_admin, admin_role, admin_permissions FROM users WHERE id = $1',
+      'SELECT is_admin, admin_role, admin_permissions, username FROM users WHERE id = $1',
       [req.user.id]
     );
     if (!r.rows.length || r.rows[0].is_admin !== true) {
@@ -17,6 +17,7 @@ module.exports = async (req, res, next) => {
     req.admin = {
       role: r.rows[0].admin_role || 'staff',
       permissions: r.rows[0].admin_permissions || {},
+      username: r.rows[0].username,
     };
     next();
   } catch (e) {

@@ -63,8 +63,9 @@
   }
 
   // ─── DIALOG ───────────────────────────────────────────────────────────
-  function openDialog(html) {
+  function openDialog(html, wide = false) {
     $('#dialogBox').innerHTML = html;
+    $('#dialogBox').classList.toggle('wide', wide);
     $('#dialogOverlay').classList.add('open');
   }
   function closeDialog() {
@@ -123,6 +124,9 @@
       $('#loginError').textContent = 'This account does not have admin access.';
       return;
     }
+    const canManageStaff = me.admin_role === 'master' || me.admin_permissions?.staffManage === true;
+    $$('.master-only').forEach((el) => el.classList.toggle('hidden', !canManageStaff));
+
     $('#loginScreen').classList.add('hidden');
     $('#app').classList.remove('hidden');
     connectSocket();
@@ -144,6 +148,7 @@
   const titles = {
     dashboard: 'Dashboard', reports: 'Reports', users: 'Users', content: 'Content',
     trending: 'Trending', calls: 'Random Calls', appeals: 'Appeals', settings: 'Settings',
+    staff: 'Staff Management', audit: 'Audit Log',
   };
 
   function switchScreen(screen) {
@@ -166,6 +171,8 @@
     if (screen === 'calls') return renderCallsTab();
     if (screen === 'appeals') return loadAppeals();
     if (screen === 'settings') return loadSettings();
+    if (screen === 'staff') return loadStaff();
+    if (screen === 'audit') return loadAuditLog();
   }
 
   // ─── DASHBOARD ────────────────────────────────────────────────────────
@@ -426,19 +433,23 @@
       const { result } = await api(`/api/admin/content?pageSize=48${type}`);
       grid.innerHTML = result.length ? result.map(contentCardHtml).join('') : '<div class="empty-note">No content found</div>';
       result.forEach((p) => {
+        $(`#content-view-${p.id}`)?.addEventListener('click', () => openContentViewer(p));
         $(`#content-del-${p.id}`)?.addEventListener('click', () => deleteContent(p.id));
       });
     } catch (e) { toast(e.message, 'error'); }
   }
 
   function contentCardHtml(p) {
-    let preview = `<div class="type"><i class="fas fa-align-left" style="font-size:28px"></i></div>`;
-    if (p.post_format === 'image' && p.image_content) preview = `<img src="${p.image_content}" />`;
-    else if (p.post_format === 'video' && p.video_content) preview = `<video src="${p.video_content}" muted></video>`;
-    else if (p.post_format === 'audio') preview = `<div class="type"><i class="fas fa-music" style="font-size:28px"></i><br/>Audio</div>`;
+    let preview;
+    const images = p.image_files?.length ? p.image_files : (p.image_content ? [p.image_content] : []);
+    if (p.post_format === 'image' && images.length) {
+      preview = `<img src="${images[0]}" />${images.length > 1 ? `<div class="preview-badge"><i class="fas fa-images"></i> ${images.length}</div>` : ''}`;
+    } else if (p.post_format === 'video' && p.video_content) preview = `<video src="${p.video_content}" muted></video>`;
+    else if (p.post_format === 'audio' && p.audio_content) preview = `<div class="type"><i class="fas fa-music" style="font-size:28px"></i><br/>Audio</div>`;
+    else preview = `<div class="type text-preview">${escapeHtml((p.text_content || '').slice(0, 140)) || '<i class="fas fa-align-left" style="font-size:28px"></i>'}</div>`;
     return `
       <div class="content-card">
-        <div class="preview">${preview}</div>
+        <div class="preview" id="content-view-${p.id}">${preview}</div>
         <div class="body">
           <div class="by">${escapeHtml(p.sender_username)} · ${timeAgo(p.created_at)}</div>
           <div class="stats">
@@ -448,6 +459,27 @@
           <button class="btn btn-red" id="content-del-${p.id}"><i class="fas fa-trash"></i> Delete</button>
         </div>
       </div>`;
+  }
+
+  function openContentViewer(p) {
+    let body;
+    const images = p.image_files?.length ? p.image_files : (p.image_content ? [p.image_content] : []);
+    if (p.post_format === 'image' && images.length) {
+      body = images.map((url) => `<img src="${url}" class="media-full" style="margin-bottom:10px" />`).join('');
+    } else if (p.post_format === 'video' && p.video_content) {
+      body = `<video src="${p.video_content}" class="media-full" controls autoplay></video>`;
+    } else if (p.post_format === 'audio' && p.audio_content) {
+      body = `<audio src="${p.audio_content}" class="media-full-audio" controls autoplay></audio>`;
+    } else {
+      body = `<div class="text-full">${escapeHtml(p.text_content || 'No text content')}</div>`;
+    }
+    openDialog(`
+      <div class="title">${escapeHtml(p.sender_username)} · ${timeAgo(p.created_at)}</div>
+      <div class="body">${body}</div>
+      <div class="actions">
+        <button class="btn btn-outline" id="cvClose">Close</button>
+      </div>`, true);
+    $('#cvClose').addEventListener('click', closeDialog);
   }
 
   async function deleteContent(id) {
@@ -741,6 +773,188 @@
       toast('Guidelines saved', 'success');
     } catch (e) { toast(e.message, 'error'); }
   });
+
+  // ─── STAFF MANAGEMENT ───────────────────────────────────────────────────
+  const PERMISSION_GROUPS = [
+    { label: 'Dashboard', flags: [['dashboardView', 'View dashboard']] },
+    { label: 'Reports', flags: [
+      ['reportsView', 'View reports'], ['reportsIgnore', 'Ignore reports'],
+      ['reportsWarn', 'Warn from report'], ['reportsDelete', 'Delete reported post'],
+    ] },
+    { label: 'Users', flags: [
+      ['usersView', 'View users'], ['usersWarn', 'Warn users'],
+      ['usersSuspend', 'Suspend users'], ['usersBan', 'Ban users'], ['usersLiftBan', 'Lift bans'],
+    ] },
+    { label: 'Content', flags: [['contentView', 'View content'], ['contentDelete', 'Delete content']] },
+    { label: 'Trending', flags: [
+      ['trendingView', 'View trending'], ['trendingBoost', 'Boost posts'], ['trendingRemove', 'Remove from trending'],
+    ] },
+    { label: 'Random Calls', flags: [
+      ['callsView', 'View calls'], ['callsEnd', 'End calls'], ['callsRestrict', 'Restrict/watch users'],
+    ] },
+    { label: 'Appeals', flags: [
+      ['appealsView', 'View appeals'], ['appealsApprove', 'Approve appeals'], ['appealsDeny', 'Deny appeals'],
+    ] },
+    { label: 'Settings', flags: [['settingsView', 'View settings'], ['settingsEdit', 'Edit settings']] },
+    { label: 'Staff', flags: [['staffManage', 'Manage staff accounts']] },
+  ];
+  const AUDITOR_PRESET = ['dashboardView', 'reportsView', 'usersView', 'contentView', 'trendingView', 'callsView', 'appealsView', 'settingsView'];
+  const roleChipColor = { master: 'red', staff: 'blue', auditor: 'purple' };
+
+  async function loadStaff() {
+    const el = $('#staffList');
+    el.innerHTML = '<div class="empty-note">Loading…</div>';
+    try {
+      const rows = await api('/api/admin/staff');
+      el.innerHTML = rows.length ? rows.map(staffCardHtml).join('') : '<div class="empty-note">No staff accounts yet</div>';
+      rows.forEach((s) => {
+        $(`#staff-edit-${s.id}`)?.addEventListener('click', () => openStaffDialog(s));
+        $(`#staff-revoke-${s.id}`)?.addEventListener('click', () => revokeStaff(s));
+      });
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  function staffCardHtml(s) {
+    const permCount = Object.keys(s.admin_permissions || {}).length;
+    const isSelf = me && me.id === s.id;
+    return `
+      <div class="user-card">
+        <div class="avatar">${initials(s.username)}</div>
+        <div class="info">
+          <div class="name">${escapeHtml(s.username)} ${isSelf ? '<span class="chip blue">You</span>' : ''}</div>
+          <div class="email">${escapeHtml(s.email)}</div>
+          <div class="chips">
+            <span class="chip ${roleChipColor[s.admin_role] || ''}">${escapeHtml(s.admin_role || 'staff')}</span>
+            ${s.admin_role !== 'master' ? `<span class="chip">${permCount} permission${permCount === 1 ? '' : 's'}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn btn-outline" id="staff-edit-${s.id}" style="font-size:11px">Edit</button>
+          ${!isSelf ? `<button class="btn btn-red" id="staff-revoke-${s.id}" style="font-size:11px">Revoke</button>` : ''}
+        </div>
+      </div>`;
+  }
+
+  function openStaffDialog(existing) {
+    const isMaster = me?.admin_role === 'master';
+    const perms = existing?.admin_permissions || {};
+    const role = existing?.admin_role || 'staff';
+    openDialog(`
+      <div class="title">${existing ? 'Edit Staff Member' : 'Add Staff Member'}</div>
+      <div class="body">
+        <label class="field-label">Email</label>
+        <input type="email" id="stEmail" ${existing ? 'readonly' : ''} value="${existing ? escapeHtml(existing.email) : ''}" placeholder="staff@example.com" />
+        ${!existing ? `
+        <p style="font-size:11px;color:var(--text-lo);margin:6px 0 12px">If this email doesn't have an account yet, also fill in a username and temporary password to create one.</p>
+        <label class="field-label">Username (new account only)</label>
+        <input type="text" id="stUsername" placeholder="username" />
+        <label class="field-label">Temporary Password (new account only)</label>
+        <input type="password" id="stPassword" placeholder="password" />` : ''}
+        <label class="field-label" style="margin-top:12px">Role</label>
+        <select id="stRole" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px">
+          <option value="staff" ${role === 'staff' ? 'selected' : ''}>Staff (custom permissions)</option>
+          <option value="auditor" ${role === 'auditor' ? 'selected' : ''}>Auditor (read-only)</option>
+          ${isMaster ? `<option value="master" ${role === 'master' ? 'selected' : ''}>Master (full access)</option>` : ''}
+        </select>
+        <div id="stPermsWrap">
+          <label class="field-label">Permissions</label>
+          <div class="perm-grid" id="stPerms">
+            ${PERMISSION_GROUPS.map((g) => `
+              <div class="perm-group">
+                <div class="perm-group-label">${g.label}</div>
+                ${g.flags.map(([key, label]) => `
+                  <label class="perm-check"><input type="checkbox" data-perm="${key}" ${perms[key] ? 'checked' : ''} /> ${label}</label>
+                `).join('')}
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline" id="stCancel">Cancel</button>
+        <button class="btn btn-primary" id="stSave">${existing ? 'Save Changes' : 'Add Staff'}</button>
+      </div>`, true);
+
+    const roleSelect = $('#stRole');
+    const permsWrap = $('#stPermsWrap');
+    const applyRoleUI = () => {
+      permsWrap.classList.toggle('hidden', roleSelect.value === 'master');
+      if (roleSelect.value === 'auditor' && !existing) {
+        $$('#stPerms input[type=checkbox]').forEach((cb) => { cb.checked = AUDITOR_PRESET.includes(cb.dataset.perm); });
+      }
+    };
+    roleSelect.addEventListener('change', applyRoleUI);
+    applyRoleUI();
+
+    $('#stCancel').addEventListener('click', closeDialog);
+    $('#stSave').addEventListener('click', async () => {
+      const permissions = {};
+      $$('#stPerms input[type=checkbox]').forEach((cb) => { if (cb.checked) permissions[cb.dataset.perm] = true; });
+      const payload = { role: roleSelect.value, permissions };
+      try {
+        if (existing) {
+          await api(`/api/admin/staff/${existing.id}`, { method: 'PATCH', body: payload });
+          toast('Staff member updated', 'success');
+        } else {
+          const email = $('#stEmail').value.trim();
+          if (!email) return toast('Email is required', 'error');
+          payload.email = email;
+          payload.username = $('#stUsername').value.trim();
+          payload.password = $('#stPassword').value;
+          await api('/api/admin/staff', { method: 'POST', body: payload });
+          toast('Staff member added', 'success');
+        }
+        closeDialog(); loadStaff();
+      } catch (e) { toast(e.message, 'error'); }
+    });
+  }
+
+  $('#addStaffBtn').addEventListener('click', () => openStaffDialog(null));
+
+  function revokeStaff(s) {
+    openDialog(`
+      <div class="title">Revoke admin access?</div>
+      <div class="body">This removes ${escapeHtml(s.username)}'s admin access. Their regular account is unaffected.</div>
+      <div class="actions">
+        <button class="btn btn-outline" id="rsCancel">Cancel</button>
+        <button class="btn btn-red" id="rsConfirm">Revoke</button>
+      </div>`);
+    $('#rsCancel').addEventListener('click', closeDialog);
+    $('#rsConfirm').addEventListener('click', async () => {
+      try { await api(`/api/admin/staff/${s.id}`, { method: 'DELETE' }); toast('Admin access revoked', 'success'); closeDialog(); loadStaff(); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+  }
+
+  // ─── AUDIT LOG ──────────────────────────────────────────────────────────
+  async function loadAuditLog(page = 1) {
+    const el = $('#auditList');
+    el.innerHTML = '<div class="empty-note">Loading…</div>';
+    try {
+      const { result, total, pageSize } = await api(`/api/admin/audit-log?page=${page}&pageSize=50`);
+      el.innerHTML = result.length ? result.map(auditRowHtml).join('') : '<div class="empty-note">No activity recorded yet</div>';
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      $('#auditPager').innerHTML = `
+        <button class="btn btn-outline" id="auditPrev" ${page <= 1 ? 'disabled' : ''}>Prev</button>
+        <span style="align-self:center;font-size:12px;color:var(--text-lo)">Page ${page} of ${totalPages}</span>
+        <button class="btn btn-outline" id="auditNext" ${page >= totalPages ? 'disabled' : ''}>Next</button>`;
+      $('#auditPrev')?.addEventListener('click', () => loadAuditLog(page - 1));
+      $('#auditNext')?.addEventListener('click', () => loadAuditLog(page + 1));
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  function auditRowHtml(a) {
+    const meta = a.meta ? (typeof a.meta === 'string' ? a.meta : JSON.stringify(a.meta)) : '';
+    return `
+      <div class="rule-card">
+        <div class="icon" style="background:var(--primary)"><i class="fas fa-clipboard-list"></i></div>
+        <div class="body">
+          <div class="name">${escapeHtml(a.actor_name || 'Unknown')} — ${escapeHtml(a.action)}</div>
+          ${a.target_type ? `<div class="pattern">${escapeHtml(a.target_type)}${a.target_id ? ' · ' + escapeHtml(a.target_id) : ''}</div>` : ''}
+          ${meta ? `<div class="pattern">${escapeHtml(meta)}</div>` : ''}
+          <div class="meta">${fmtDate(a.created_at)}</div>
+        </div>
+      </div>`;
+  }
 
   // ─── BOOT ─────────────────────────────────────────────────────────────
   if (token) loadMeAndStart();

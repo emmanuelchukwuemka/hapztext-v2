@@ -44,6 +44,8 @@
       <div class="menu-item" data-screen="calls"><i class="fas fa-phone"></i> Random Calls</div>
       <div class="menu-item" data-screen="appeals"><i class="fas fa-gavel"></i> Appeals</div>
       <div class="menu-item" data-screen="settings"><i class="fas fa-gear"></i> Settings</div>
+      <div class="menu-item master-only hidden" data-screen="staff"><i class="fas fa-user-shield"></i> Staff Management</div>
+      <div class="menu-item master-only hidden" data-screen="audit"><i class="fas fa-clipboard-list"></i> Audit Log</div>
     </div>
     <div class="logout">
       <button id="logoutBtn"><i class="fas fa-right-from-bracket"></i> Logout</button>
@@ -172,6 +174,21 @@
             <button class="btn btn-primary" id="saveGuidelinesBtn">Save Guidelines</button>
           </div>
         </div>
+      </div>
+
+      <!-- STAFF MANAGEMENT -->
+      <div class="screen" id="screen-staff">
+        <div class="section-title">Staff Accounts <span class="spacer"></span>
+          <button class="btn btn-primary" id="addStaffBtn"><i class="fas fa-user-plus"></i> Add Staff</button>
+        </div>
+        <div id="staffList"></div>
+      </div>
+
+      <!-- AUDIT LOG -->
+      <div class="screen" id="screen-audit">
+        <div class="section-title">Admin Activity</div>
+        <div id="auditList"></div>
+        <div class="action-row" id="auditPager" style="justify-content:center;margin-top:12px"></div>
       </div>
 
     </div>

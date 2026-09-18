@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const bcrypt = require('bcryptjs');
 const pool = require('../db');
 const authMw = require('../middleware/auth');
 const adminMw = require('../middleware/adminAuth');
@@ -15,7 +16,7 @@ function logAudit(req, action, targetType, targetId, meta) {
     .query(
       `INSERT INTO admin_audit_logs (actor_id, actor_name, action, target_type, target_id, meta)
        VALUES ($1,$2,$3,$4,$5,$6)`,
-      [req.user.id, req.user.username || null, action, targetType || null, String(targetId || ''), meta ? JSON.stringify(meta) : null]
+      [req.user.id, req.admin?.username || null, action, targetType || null, String(targetId || ''), meta ? JSON.stringify(meta) : null]
     )
     .catch((e) => console.error('audit log error:', e.message));
 }
@@ -42,6 +43,126 @@ router.get('/audit-log', requirePermission('staffManage'), async (req, res) => {
     );
     const countR = await pool.query(`SELECT COUNT(*)::int AS c FROM admin_audit_logs`);
     return res.json({ data: { result: r.rows, total: countR.rows[0].c, page, pageSize } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// ─── STAFF MANAGEMENT ───────────────────────────────────────────────────────
+// Matches the permission flags actually enforced by requirePermission() below
+// plus the full-access set schema.sql seeds for bootstrapped admins.
+const ALL_PERMISSIONS = [
+  'dashboardView',
+  'reportsView', 'reportsIgnore', 'reportsWarn', 'reportsDelete',
+  'usersView', 'usersWarn', 'usersSuspend', 'usersBan', 'usersLiftBan',
+  'contentView', 'contentDelete',
+  'trendingView', 'trendingBoost', 'trendingRemove',
+  'callsView', 'callsEnd', 'callsRestrict',
+  'settingsView', 'settingsEdit',
+  'appealsView', 'appealsApprove', 'appealsDeny',
+  'staffManage',
+];
+
+function sanitizePermissions(input) {
+  const out = {};
+  for (const key of ALL_PERMISSIONS) {
+    if (input && input[key] === true) out[key] = true;
+  }
+  return out;
+}
+
+router.get('/staff', requirePermission('staffManage'), async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT id, email, username, admin_role, admin_permissions, created_at
+       FROM users WHERE is_admin = TRUE ORDER BY created_at ASC`
+    );
+    return res.json({ data: r.rows });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// A staff member with staffManage can onboard other staff/auditors, but
+// granting Master is restricted to an existing Master — that flag bypasses
+// every permission check, so handing it out needs the strictest gate.
+router.post('/staff', requirePermission('staffManage'), async (req, res) => {
+  const { email, username, password, role } = req.body || {};
+  const roleIn = role === 'master' || role === 'auditor' ? role : 'staff';
+  if (roleIn === 'master' && req.admin.role !== 'master') {
+    return res.status(403).json({ errors: { detail: 'Only a Master Admin can grant the Master role' } });
+  }
+  if (!email) return res.status(400).json({ errors: { detail: 'email is required' } });
+  const permissions = sanitizePermissions(req.body?.permissions);
+  try {
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    let userId;
+    if (existing.rows.length) {
+      userId = existing.rows[0].id;
+      await pool.query(
+        `UPDATE users SET is_admin = TRUE, admin_role = $1, admin_permissions = $2 WHERE id = $3`,
+        [roleIn, JSON.stringify(permissions), userId]
+      );
+    } else {
+      if (!username || !password) {
+        return res.status(400).json({ errors: { detail: 'username and password are required to create a new staff account' } });
+      }
+      const hash = await bcrypt.hash(password, 12);
+      const r = await pool.query(
+        `INSERT INTO users (email, username, password_hash, is_admin, admin_role, admin_permissions)
+         VALUES ($1,$2,$3,TRUE,$4,$5) RETURNING id`,
+        [email.toLowerCase().trim(), username.trim(), hash, roleIn, JSON.stringify(permissions)]
+      );
+      userId = r.rows[0].id;
+    }
+    logAudit(req, 'ADD_STAFF', 'user', userId, { email, role: roleIn });
+    return res.json({ data: { id: userId } });
+  } catch (e) {
+    if (e.code === '23505') return res.status(400).json({ errors: { detail: 'Email or username already taken' } });
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.patch('/staff/:id', requirePermission('staffManage'), async (req, res) => {
+  const role = req.body?.role;
+  const roleIn = role === 'master' || role === 'auditor' ? role : 'staff';
+  if (roleIn === 'master' && req.admin.role !== 'master') {
+    return res.status(403).json({ errors: { detail: 'Only a Master Admin can grant the Master role' } });
+  }
+  try {
+    const target = await pool.query('SELECT admin_role FROM users WHERE id = $1 AND is_admin = TRUE', [req.params.id]);
+    if (!target.rows.length) return res.status(404).json({ errors: { detail: 'Staff member not found' } });
+    if (target.rows[0].admin_role === 'master' && req.admin.role !== 'master') {
+      return res.status(403).json({ errors: { detail: 'Only a Master Admin can modify another Master Admin' } });
+    }
+    const permissions = sanitizePermissions(req.body?.permissions);
+    await pool.query(
+      `UPDATE users SET admin_role = $1, admin_permissions = $2 WHERE id = $3`,
+      [roleIn, JSON.stringify(permissions), req.params.id]
+    );
+    logAudit(req, 'UPDATE_STAFF', 'user', req.params.id, { role: roleIn });
+    return res.json({ data: { updated: true } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.delete('/staff/:id', requirePermission('staffManage'), async (req, res) => {
+  if (req.params.id === req.user.id) {
+    return res.status(400).json({ errors: { detail: 'You cannot revoke your own admin access' } });
+  }
+  try {
+    const target = await pool.query('SELECT admin_role FROM users WHERE id = $1 AND is_admin = TRUE', [req.params.id]);
+    if (!target.rows.length) return res.status(404).json({ errors: { detail: 'Staff member not found' } });
+    if (target.rows[0].admin_role === 'master' && req.admin.role !== 'master') {
+      return res.status(403).json({ errors: { detail: 'Only a Master Admin can remove another Master Admin' } });
+    }
+    await pool.query(
+      `UPDATE users SET is_admin = FALSE, admin_role = NULL, admin_permissions = '{}'::jsonb WHERE id = $1`,
+      [req.params.id]
+    );
+    logAudit(req, 'REMOVE_STAFF', 'user', req.params.id);
+    return res.json({ data: { removed: true } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
   }
@@ -304,7 +425,17 @@ router.get('/reports/:id/media', requirePermission('reportsView'), async (req, r
       [target_id]
     );
     const row = p.rows[0] || {};
-    return res.json({ data: { mediaUrl: row.image_content || row.video_content || row.audio_content || null } });
+    let mediaUrl = row.image_content || row.video_content || row.audio_content || null;
+    // Image posts store their URL in media_files, not posts.image_content — see /content above.
+    if (!mediaUrl) {
+      const mr = await pool.query(
+        'SELECT image_file, video_file, audio_file FROM media_files WHERE post_id = $1 ORDER BY created_at LIMIT 1',
+        [target_id]
+      );
+      const m = mr.rows[0] || {};
+      mediaUrl = m.image_file || m.video_file || m.audio_file || null;
+    }
+    return res.json({ data: { mediaUrl } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
   }
@@ -420,7 +551,28 @@ router.get('/content', requirePermission('contentView'), async (req, res) => {
       `SELECT COUNT(*)::int AS c FROM posts WHERE is_published = TRUE AND ($1::text IS NULL OR post_format = $1)`,
       [type]
     );
-    return res.json({ data: { result: r.rows, total: countR.rows[0].c, page, pageSize } });
+    // Image posts (unlike video/audio) never write posts.image_content — the
+    // upload route only stores their URLs in media_files, one row per image,
+    // to support multi-image carousels. Merge those in so the admin panel
+    // actually has something to render.
+    const ids = r.rows.map((row) => row.id);
+    const imagesByPost = {};
+    if (ids.length) {
+      const mediaR = await pool.query(
+        `SELECT post_id, image_file FROM media_files
+         WHERE post_id = ANY($1) AND image_file IS NOT NULL ORDER BY created_at`,
+        [ids]
+      );
+      for (const { post_id, image_file } of mediaR.rows) {
+        (imagesByPost[post_id] || (imagesByPost[post_id] = [])).push(image_file);
+      }
+    }
+    const result = r.rows.map((row) => ({
+      ...row,
+      image_content: row.image_content || imagesByPost[row.id]?.[0] || null,
+      image_files: imagesByPost[row.id] || (row.image_content ? [row.image_content] : []),
+    }));
+    return res.json({ data: { result, total: countR.rows[0].c, page, pageSize } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
   }
