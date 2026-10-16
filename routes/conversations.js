@@ -159,29 +159,43 @@ router.put('/:convId/settings', authMw, async (req, res) => {
     // theme/disappearing/auto-clear settings back to defaults every time.
     // COALESCE against the existing row (falling back to hardcoded defaults
     // only for a brand-new row) fixes that.
+    //
+    // Every $N below is explicitly cast. Without that, Postgres has to
+    // infer each parameter's type from how it's used across the whole
+    // query — and with the same parameter reused inside both a VALUES list
+    // and an ON CONFLICT DO UPDATE SET (one COALESCE per clause), it was
+    // guessing wrong (defaulting nulls to `text`) and throwing
+    // "column X is of type boolean but expression is of type text" —
+    // caught by the outer try/catch and silently swallowed by the client's
+    // fire-and-forget save call. Net effect: no chat setting (theme, chat
+    // type, disappearing messages) has actually persisted since this route
+    // was written — confirmed directly, every row in the table still has
+    // its original default values no matter how many times it's resaved.
     const r = await pool.query(
       `INSERT INTO conversation_user_settings
         (conversation_id, user_id, pinned, muted, chat_mode, disappearing, auto_clear_enabled,
          auto_clear_start, auto_clear_end, auto_clear_enabled_at, theme_index, notification_tone)
        VALUES
         ($1,$2,
-         COALESCE($3, $14), COALESCE($4, $15), COALESCE($5, $16), COALESCE($6, $17),
-         COALESCE($7, $18), $8, $9, $12, COALESCE($10, $19), $11)
+         COALESCE($3::boolean, $14::boolean), COALESCE($4::boolean, $15::boolean),
+         COALESCE($5::text, $16::text), COALESCE($6::text, $17::text),
+         COALESCE($7::boolean, $18::boolean), $8::text, $9::text, $12::timestamptz,
+         COALESCE($10::integer, $19::integer), $11::text)
        ON CONFLICT (conversation_id, user_id)
        DO UPDATE SET
-        pinned = COALESCE($3, conversation_user_settings.pinned),
-        muted = COALESCE($4, conversation_user_settings.muted),
-        chat_mode = COALESCE($5, conversation_user_settings.chat_mode),
-        disappearing = COALESCE($6, conversation_user_settings.disappearing),
-        auto_clear_enabled = COALESCE($7, conversation_user_settings.auto_clear_enabled),
-        auto_clear_start = COALESCE($8, conversation_user_settings.auto_clear_start),
-        auto_clear_end = COALESCE($9, conversation_user_settings.auto_clear_end),
+        pinned = COALESCE($3::boolean, conversation_user_settings.pinned),
+        muted = COALESCE($4::boolean, conversation_user_settings.muted),
+        chat_mode = COALESCE($5::text, conversation_user_settings.chat_mode),
+        disappearing = COALESCE($6::text, conversation_user_settings.disappearing),
+        auto_clear_enabled = COALESCE($7::boolean, conversation_user_settings.auto_clear_enabled),
+        auto_clear_start = COALESCE($8::text, conversation_user_settings.auto_clear_start),
+        auto_clear_end = COALESCE($9::text, conversation_user_settings.auto_clear_end),
         auto_clear_enabled_at = CASE
-          WHEN $13 = TRUE THEN NULL
-          ELSE COALESCE($12, conversation_user_settings.auto_clear_enabled_at)
+          WHEN $13::boolean = TRUE THEN NULL
+          ELSE COALESCE($12::timestamptz, conversation_user_settings.auto_clear_enabled_at)
         END,
-        theme_index = COALESCE($10, conversation_user_settings.theme_index),
-        notification_tone = COALESCE($11, conversation_user_settings.notification_tone),
+        theme_index = COALESCE($10::integer, conversation_user_settings.theme_index),
+        notification_tone = COALESCE($11::text, conversation_user_settings.notification_tone),
         updated_at = NOW()
        RETURNING pinned, muted, chat_mode, disappearing, auto_clear_enabled,
                  auto_clear_start, auto_clear_end, auto_clear_enabled_at, theme_index, notification_tone`,

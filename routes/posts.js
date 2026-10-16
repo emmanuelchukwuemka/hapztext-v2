@@ -114,6 +114,22 @@ async function syncMentionsAndNotify(postId, mentionCandidates, actorId, actorUs
   }
 }
 
+async function notifyTaggedUser(postId, taggedUserId, actorId, actorUsername) {
+  if (!taggedUserId || taggedUserId === actorId) return;
+  await pool.query(
+    `INSERT INTO notifications (user_id, type, payload) VALUES ($1,'tag',$2)`,
+    [
+      taggedUserId,
+      JSON.stringify({
+        actor_id: actorId,
+        actor_username: actorUsername,
+        post_id: postId,
+        message: `${actorUsername} tagged you in a post`,
+      }),
+    ]
+  );
+}
+
 const POST_FORMAT_LABEL = {
   image: 'a picture',
   video: 'a video',
@@ -438,17 +454,18 @@ router.get('/:postId/reactions', authMw, async (req, res) => {
 
 // POST /posts/text
 router.post('/text', authMw, async (req, res) => {
-  const { textContent, backgroundColor, scheduledAt } = req.body;
+  const { textContent, backgroundColor, scheduledAt, taggedUser } = req.body;
   try {
     const username = await getUsername(req.user.id);
     const r = await pool.query(
-      `INSERT INTO posts (sender_id, sender_username, post_format, text_content, background_color, is_reply, is_published, scheduled_at)
-       VALUES ($1,$2,'text',$3,$4,FALSE,TRUE,$5) RETURNING *`,
-      [req.user.id, username, textContent || '', backgroundColor || null, scheduledAt || null]
+      `INSERT INTO posts (sender_id, sender_username, post_format, text_content, background_color, is_reply, is_published, scheduled_at, tagged_user_id)
+       VALUES ($1,$2,'text',$3,$4,FALSE,TRUE,$5,$6) RETURNING *`,
+      [req.user.id, username, textContent || '', backgroundColor || null, scheduledAt || null, taggedUser || null]
     );
     const post = r.rows[0];
     await syncHashtags(post.id, extractHashtags(textContent));
     await syncMentionsAndNotify(post.id, extractMentionCandidates(textContent), req.user.id, username);
+    await notifyTaggedUser(post.id, taggedUser, req.user.id, username);
     await notifyFollowersOfNewPost(post.id, req.user.id, username, 'text');
     return res.status(201).json({ data: { ...r.rows[0], media_files: [] } });
   } catch (e) {
@@ -458,13 +475,13 @@ router.post('/text', authMw, async (req, res) => {
 
 // POST /posts/image  (Flutter uploads to Cloudinary and passes imageUrls)
 router.post('/image', authMw, async (req, res) => {
-  const { caption, imageUrls, scheduledAt } = req.body;
+  const { caption, imageUrls, scheduledAt, taggedUser } = req.body;
   try {
     const username = await getUsername(req.user.id);
     const r = await pool.query(
-      `INSERT INTO posts (sender_id, sender_username, post_format, text_content, is_reply, is_published, scheduled_at)
-       VALUES ($1,$2,'image',$3,FALSE,TRUE,$4) RETURNING *`,
-      [req.user.id, username, caption || '', scheduledAt || null]
+      `INSERT INTO posts (sender_id, sender_username, post_format, text_content, is_reply, is_published, scheduled_at, tagged_user_id)
+       VALUES ($1,$2,'image',$3,FALSE,TRUE,$4,$5) RETURNING *`,
+      [req.user.id, username, caption || '', scheduledAt || null, taggedUser || null]
     );
     const post = r.rows[0];
     const mediaFiles = [];
@@ -477,6 +494,7 @@ router.post('/image', authMw, async (req, res) => {
     }
     await syncHashtags(post.id, extractHashtags(caption));
     await syncMentionsAndNotify(post.id, extractMentionCandidates(caption), req.user.id, username);
+    await notifyTaggedUser(post.id, taggedUser, req.user.id, username);
     await notifyFollowersOfNewPost(post.id, req.user.id, username, 'image');
     return res.status(201).json({ data: { ...post, media_files: mediaFiles } });
   } catch (e) {
@@ -486,13 +504,13 @@ router.post('/image', authMw, async (req, res) => {
 
 // POST /posts/audio
 router.post('/audio', authMw, async (req, res) => {
-  const { audioUrl, caption, scheduledAt } = req.body;
+  const { audioUrl, caption, scheduledAt, taggedUser } = req.body;
   try {
     const username = await getUsername(req.user.id);
     const r = await pool.query(
-      `INSERT INTO posts (sender_id, sender_username, post_format, text_content, audio_content, is_reply, is_published, scheduled_at)
-       VALUES ($1,$2,'audio',$3,$4,FALSE,TRUE,$5) RETURNING *`,
-      [req.user.id, username, caption || '', audioUrl, scheduledAt || null]
+      `INSERT INTO posts (sender_id, sender_username, post_format, text_content, audio_content, is_reply, is_published, scheduled_at, tagged_user_id)
+       VALUES ($1,$2,'audio',$3,$4,FALSE,TRUE,$5,$6) RETURNING *`,
+      [req.user.id, username, caption || '', audioUrl, scheduledAt || null, taggedUser || null]
     );
     const post = r.rows[0];
     const mr = await pool.query(
@@ -501,6 +519,7 @@ router.post('/audio', authMw, async (req, res) => {
     );
     await syncHashtags(post.id, extractHashtags(caption));
     await syncMentionsAndNotify(post.id, extractMentionCandidates(caption), req.user.id, username);
+    await notifyTaggedUser(post.id, taggedUser, req.user.id, username);
     await notifyFollowersOfNewPost(post.id, req.user.id, username, 'audio');
     return res.status(201).json({ data: { ...post, media_files: [mr.rows[0]] } });
   } catch (e) {
@@ -510,13 +529,13 @@ router.post('/audio', authMw, async (req, res) => {
 
 // POST /posts/video
 router.post('/video', authMw, async (req, res) => {
-  const { videoUrl, caption, scheduledAt } = req.body;
+  const { videoUrl, caption, scheduledAt, taggedUser } = req.body;
   try {
     const username = await getUsername(req.user.id);
     const r = await pool.query(
-      `INSERT INTO posts (sender_id, sender_username, post_format, text_content, video_content, is_reply, is_published, scheduled_at)
-       VALUES ($1,$2,'video',$3,$4,FALSE,TRUE,$5) RETURNING *`,
-      [req.user.id, username, caption || '', videoUrl, scheduledAt || null]
+      `INSERT INTO posts (sender_id, sender_username, post_format, text_content, video_content, is_reply, is_published, scheduled_at, tagged_user_id)
+       VALUES ($1,$2,'video',$3,$4,FALSE,TRUE,$5,$6) RETURNING *`,
+      [req.user.id, username, caption || '', videoUrl, scheduledAt || null, taggedUser || null]
     );
     const post = r.rows[0];
     const mr = await pool.query(
@@ -525,6 +544,7 @@ router.post('/video', authMw, async (req, res) => {
     );
     await syncHashtags(post.id, extractHashtags(caption));
     await syncMentionsAndNotify(post.id, extractMentionCandidates(caption), req.user.id, username);
+    await notifyTaggedUser(post.id, taggedUser, req.user.id, username);
     await notifyFollowersOfNewPost(post.id, req.user.id, username, 'video');
     return res.status(201).json({ data: { ...post, media_files: [mr.rows[0]] } });
   } catch (e) {
