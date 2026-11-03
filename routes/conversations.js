@@ -329,7 +329,7 @@ const disappearingDurationMs = {
 };
 
 router.post('/:convId/messages', authMw, async (req, res) => {
-  const { text, type, mediaUrl, isReply, previousMessageId, previousMessageId2, viewOnce, disappearing } = req.body;
+  const { text, type, mediaUrl, mediaUrls, isReply, previousMessageId, previousMessageId2, viewOnce, disappearing } = req.body;
   try {
     const partR = await pool.query(
       'SELECT user_id FROM conversation_participants WHERE conversation_id = $1',
@@ -384,16 +384,24 @@ router.post('/:convId/messages', authMw, async (req, res) => {
     const disappearMs = disappearingDurationMs[disappearing];
     const disappearAt = disappearMs ? new Date(Date.now() + disappearMs) : null;
 
+    // Multiple photos picked together used to go out as one separate
+    // message per photo — N stacked full-size bubbles instead of one
+    // grouped album, which is what actually looked broken. mediaUrls
+    // (plural) carries the whole batch as one message; media_url keeps the
+    // first one for any older client/query that only ever reads the
+    // singular column.
+    const urlList = Array.isArray(mediaUrls) && mediaUrls.length ? mediaUrls : null;
     const r = await pool.query(
       `INSERT INTO messages
-         (conversation_id, sender_id, message_type, text_content, media_url, is_reply,
+         (conversation_id, sender_id, message_type, text_content, media_url, media_urls, is_reply,
           previous_message_id, previous_message_content, previous_message_sender_id,
           previous_message_id_2, previous_message_content_2, previous_message_sender_id_2,
           view_once, disappear_at, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'sent') RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'sent') RETURNING *`,
       [req.params.convId, req.user.id,
        type || 'text', text || '',
-       mediaUrl || null,
+       urlList ? urlList[0] : (mediaUrl || null),
+       urlList,
        isReply || false,
        previousMessageId || null,
        quote1.content,
