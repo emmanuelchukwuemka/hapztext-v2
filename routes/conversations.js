@@ -444,14 +444,26 @@ router.put('/:convId/messages/:messageId', authMw, async (req, res) => {
     if (!check.rows.length)
       return res.status(403).json({ errors: { detail: 'Not a participant' } });
 
+    // Client already hides "Edit" past 3 minutes, but that's trivially
+    // bypassable (stale UI, direct API call) — enforce the real deadline here.
     const r = await pool.query(
       `UPDATE messages
        SET text_content = $1, edited_at = NOW(), updated_at = NOW()
        WHERE id = $2 AND conversation_id = $3 AND sender_id = $4
+         AND created_at > NOW() - INTERVAL '3 minutes'
        RETURNING *`,
       [text || '', req.params.messageId, req.params.convId, req.user.id]
     );
-    if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Message not found' } });
+    if (!r.rows.length) {
+      const existsR = await pool.query(
+        'SELECT 1 FROM messages WHERE id = $1 AND conversation_id = $2 AND sender_id = $3',
+        [req.params.messageId, req.params.convId, req.user.id]
+      );
+      if (existsR.rows.length) {
+        return res.status(422).json({ errors: { detail: 'The 3-minute edit window for this message has passed' } });
+      }
+      return res.status(404).json({ errors: { detail: 'Message not found' } });
+    }
     return res.json({ success: true, data: r.rows[0] });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
