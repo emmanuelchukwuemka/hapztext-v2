@@ -85,4 +85,45 @@ router.post('/invite', authMw, async (req, res) => {
   }
 });
 
+function formatCallDuration(seconds) {
+  const s = Math.max(0, Math.round(seconds || 0));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, '0')}`;
+}
+
+// POST /rtc/log-call — called by the callee once a call ends, so missed and
+// received calls show up in *their* activity feed. Before this, call_invite
+// above was the only thing ever persisted — nothing recorded whether a call
+// was actually answered, or for how long.
+router.post('/log-call', authMw, async (req, res) => {
+  const { callerId, callType, status, durationSeconds } = req.body || {};
+  if (!callerId || !status) {
+    return res.status(400).json({ errors: { detail: 'callerId and status are required' } });
+  }
+  try {
+    const callerP = await pool.query('SELECT username FROM profiles WHERE user_id = $1', [callerId]);
+    const callerUsername = callerP.rows[0]?.username || 'Someone';
+    const type = callType === 'video' ? 'video' : 'audio';
+    const missed = status === 'missed';
+    const message = missed
+      ? `Missed ${type === 'video' ? 'video call' : 'call'} from ${callerUsername}`
+      : `${type === 'video' ? 'Video call' : 'Call'} with ${callerUsername} · ${formatCallDuration(durationSeconds)}`;
+    const payload = {
+      actor_id: callerId,
+      actor_username: callerUsername,
+      call_type: type,
+      duration_seconds: Math.max(0, Math.round(durationSeconds || 0)),
+      message,
+    };
+    const r = await pool.query(
+      `INSERT INTO notifications (user_id, type, payload) VALUES ($1,$2,$3) RETURNING *`,
+      [req.user.id, missed ? 'call_missed' : 'call_received', JSON.stringify(payload)]
+    );
+    return res.status(201).json({ data: r.rows[0] });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
 module.exports = router;
