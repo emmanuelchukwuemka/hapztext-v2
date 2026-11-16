@@ -340,6 +340,17 @@ async function resolveTarget(report) {
       );
       return { username: r.rows[0]?.username || 'Unknown', contentType: report.content_type || 'random_call' };
     }
+    if (report.target_type === 'event') {
+      const r = await pool.query(
+        `SELECT hp.username, e.title FROM events e JOIN profiles hp ON hp.user_id = e.host_id WHERE e.id = $1`,
+        [report.target_id]
+      );
+      return {
+        username: r.rows[0]?.username || 'Unknown',
+        contentType: report.content_type || 'event',
+        title: r.rows[0]?.title || null,
+      };
+    }
   } catch (e) {
     console.error('resolveTarget error:', e.message);
   }
@@ -466,6 +477,10 @@ router.post('/reports/:id/warn', requirePermission('reportsWarn'), async (req, r
     if (report.target_type === 'post') {
       const p = await pool.query('SELECT sender_id FROM posts WHERE id = $1', [report.target_id]);
       targetUserId = p.rows[0]?.sender_id || null;
+    }
+    if (report.target_type === 'event') {
+      const ev = await pool.query('SELECT host_id FROM events WHERE id = $1', [report.target_id]);
+      targetUserId = ev.rows[0]?.host_id || null;
     }
     if (targetUserId) {
       await pool.query('UPDATE users SET warnings_count = warnings_count + 1 WHERE id = $1', [targetUserId]);

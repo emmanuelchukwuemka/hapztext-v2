@@ -98,12 +98,25 @@ router.get('/followings/:userId', authMw, async (req, res) => {
 router.get('/user/:userId', authMw, async (req, res) => {
   try {
     const uid = req.params.userId;
-    const [profileR, followerR, followingR, postR, followingMeR] = await Promise.all([
+    const [profileR, followerR, followingR, postR, followingMeR, likesR, friendsR] = await Promise.all([
       pool.query('SELECT * FROM profiles WHERE user_id = $1', [uid]),
       pool.query('SELECT COUNT(*)::int AS cnt FROM user_follows WHERE following_id = $1', [uid]),
       pool.query('SELECT COUNT(*)::int AS cnt FROM user_follows WHERE follower_id = $1', [uid]),
       pool.query("SELECT COUNT(*)::int AS cnt FROM posts WHERE sender_id = $1 AND is_reply = FALSE AND is_published = TRUE", [uid]),
       pool.query('SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2', [req.user.id, uid]),
+      // Total likes across every post this user has made — not a per-post
+      // number, the summed total shown on the profile's "Likes" stat.
+      pool.query(
+        "SELECT COALESCE(SUM(like_count),0)::int AS cnt FROM posts WHERE sender_id = $1 AND is_reply = FALSE AND is_published = TRUE",
+        [uid]
+      ),
+      // Mutual follows (both follow each other) = "Friends".
+      pool.query(
+        `SELECT COUNT(*)::int AS cnt FROM user_follows f1
+         JOIN user_follows f2 ON f1.following_id = f2.follower_id AND f2.following_id = f1.follower_id
+         WHERE f1.follower_id = $1`,
+        [uid]
+      ),
     ]);
     const profile = profileR.rows[0] || { user_id: uid };
     return res.json({ data: {
@@ -112,6 +125,8 @@ router.get('/user/:userId', authMw, async (req, res) => {
       following_count: followingR.rows[0]?.cnt ?? 0,
       post_count: postR.rows[0]?.cnt ?? 0,
       is_following: followingMeR.rows.length > 0,
+      total_likes: likesR.rows[0]?.cnt ?? 0,
+      friends_count: friendsR.rows[0]?.cnt ?? 0,
     }});
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });

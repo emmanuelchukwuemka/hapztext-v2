@@ -276,6 +276,22 @@ CREATE INDEX IF NOT EXISTS idx_events_created  ON events(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_events_host     ON events(host_id);
 CREATE INDEX IF NOT EXISTS idx_event_attendees_user ON event_attendees(user_id);
 
+-- Post-event discussion thread — only opens once the event has actually
+-- ended (expires_at passed, not cancelled) and closes again 3 days later;
+-- enforced in routes/events.js, this table just stores whatever lands while
+-- the window's open.
+CREATE TABLE IF NOT EXISTS event_comments (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id      UUID        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  user_id       UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text_content  TEXT,
+  image_content TEXT,
+  audio_content TEXT,
+  video_content TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_event_comments_event ON event_comments(event_id, created_at ASC);
+
 -- ─── ADMIN / MODERATION ─────────────────────────────────────────────────────
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin      BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned     BOOLEAN NOT NULL DEFAULT FALSE;

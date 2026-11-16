@@ -296,6 +296,16 @@ router.get('/:convId/messages', authMw, async (req, res) => {
       [req.params.convId]
     );
 
+    // Best-effort "delivered" tick: the recipient's client loading this
+    // conversation's messages is the closest signal we have to "it reached
+    // their device" without separate push infrastructure. Only ever moves
+    // sent -> delivered, never touches an already-'read' row.
+    await pool.query(
+      `UPDATE messages SET status = 'delivered'
+       WHERE conversation_id = $1 AND sender_id <> $2 AND status = 'sent'`,
+      [req.params.convId, req.user.id]
+    );
+
     const r = await pool.query(
       `SELECT m.*, p.username AS previous_message_sender_username,
               p2.username AS previous_message_sender_username_2
