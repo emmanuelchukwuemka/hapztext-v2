@@ -52,7 +52,7 @@ router.get('/profiles', authMw, async (req, res) => {
   }
 });
 
-// GET /people/friends
+// GET /people/friends — the logged-in user's own mutual-follow list.
 router.get('/friends', authMw, async (req, res) => {
   try {
     const r = await pool.query(
@@ -61,6 +61,26 @@ router.get('/friends', authMw, async (req, res) => {
        JOIN profiles p ON p.user_id = f1.following_id
        WHERE f1.follower_id = $1`,
       [req.user.id]
+    );
+    return res.json({ data: { friends: r.rows } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// GET /people/friends/:userId — same thing for *any* user, so visiting a
+// friend's profile and opening their "Friends" tab shows their mutual
+// follows instead of the viewer's own (the only version of this endpoint
+// used to exist without a :userId, so there was no way to ask for anyone
+// else's).
+router.get('/friends/:userId', authMw, async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT p.* FROM user_follows f1
+       JOIN user_follows f2 ON f1.following_id = f2.follower_id AND f2.following_id = f1.follower_id
+       JOIN profiles p ON p.user_id = f1.following_id
+       WHERE f1.follower_id = $1`,
+      [req.params.userId]
     );
     return res.json({ data: { friends: r.rows } });
   } catch (e) {
