@@ -162,6 +162,15 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS disappear_at TIMESTAMPTZ;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS previous_message_id_2 UUID REFERENCES messages(id) ON DELETE SET NULL;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS previous_message_content_2 TEXT;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS previous_message_sender_id_2 UUID REFERENCES users(id) ON DELETE SET NULL;
+-- Grouped multi-photo album (WhatsApp-style "send as one message, N
+-- photos"): routes/conversations.js has inserted into this column since the
+-- "Support grouped multi-photo chat messages" change, but it was never
+-- actually added to this tracked schema — on any database that only ever
+-- ran schema.sql (a fresh Neon project, a restore, a new environment), every
+-- single message send would 500 with "column media_urls does not exist",
+-- not just multi-photo ones, since it's in the INSERT's column list
+-- unconditionally.
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_urls TEXT[];
 
 -- ─── MESSAGE READS (per-user) ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS message_reads (
