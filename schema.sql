@@ -242,6 +242,19 @@ CREATE TABLE IF NOT EXISTS post_bookmarks (
 );
 CREATE INDEX IF NOT EXISTS idx_bookmarks_user ON post_bookmarks(user_id, created_at DESC);
 
+-- ─── STICKERS (chat) ──────────────────────────────────────────────────────────
+-- User-created only for now (cropped from a photo, client-side, no server
+-- processing) — no shared/default packs yet, just each user's own stickers,
+-- persisted so they survive app reinstalls/new devices instead of living
+-- only in local storage.
+CREATE TABLE IF NOT EXISTS stickers (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  image_url   TEXT        NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_stickers_user ON stickers(user_id, created_at DESC);
+
 -- ─── EVENTS (Discover/Explore "Events" tab) ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS events (
   id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),

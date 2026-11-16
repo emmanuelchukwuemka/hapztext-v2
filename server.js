@@ -21,6 +21,7 @@ app.use('/profiles', require('./routes/profiles'));
 app.use('/streams', require('./routes/streams'));
 app.use('/rtc', require('./routes/rtc'));
 app.use('/events', require('./routes/events'));
+app.use('/stickers', require('./routes/stickers'));
 app.use('/reports', require('./routes/reports'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/admin', express.static(path.join(__dirname, 'public/admin')));
