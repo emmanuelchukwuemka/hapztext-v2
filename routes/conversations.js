@@ -34,8 +34,22 @@ const normalizeDisappearing = (v) => {
 // GET /conversations
 router.get('/', authMw, async (req, res) => {
   try {
+    // Ordered by most recent activity (newest message first, falling back to
+    // the conversation's own created_at for one with no messages yet) — a
+    // plain unordered SELECT meant a chat with a brand-new message just sat
+    // wherever it happened to be instead of floating to the top like every
+    // other chat app.
     const cpR = await pool.query(
-      'SELECT conversation_id FROM conversation_participants WHERE user_id = $1',
+      `SELECT cp.conversation_id
+       FROM conversation_participants cp
+       LEFT JOIN LATERAL (
+         SELECT created_at FROM messages
+         WHERE conversation_id = cp.conversation_id
+         ORDER BY created_at DESC LIMIT 1
+       ) lm ON TRUE
+       LEFT JOIN conversations c ON c.id = cp.conversation_id
+       WHERE cp.user_id = $1
+       ORDER BY COALESCE(lm.created_at, c.created_at) DESC`,
       [req.user.id]
     );
     const convIds = cpR.rows.map((r) => r.conversation_id);
@@ -525,6 +539,43 @@ router.post('/:convId/messages/:messageId/view-once', authMw, async (req, res) =
       return res.status(410).json({ errors: { detail: 'No longer available' } });
     }
     return res.json({ success: true, data: { mediaUrl: r.rows[0].media_url } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// PUT /conversations/:convId/read-all — marks every currently-unread message
+// in this conversation as read, not just whatever page the client happened
+// to have fetched. The client only ever loads the most recent 50 messages,
+// so a conversation with a bigger backlog than that could never fully clear
+// via the per-message route below — the unread badge would get stuck at
+// "however many messages are older than the last 50", forever.
+router.put('/:convId/read-all', authMw, async (req, res) => {
+  try {
+    const check = await pool.query(
+      'SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2',
+      [req.params.convId, req.user.id]
+    );
+    if (!check.rows.length)
+      return res.status(403).json({ errors: { detail: 'Not a participant' } });
+
+    const unreadR = await pool.query(
+      `SELECT m.id FROM messages m
+       WHERE m.conversation_id = $1 AND m.sender_id <> $2
+         AND NOT EXISTS (SELECT 1 FROM message_reads mr WHERE mr.message_id = m.id AND mr.user_id = $2)`,
+      [req.params.convId, req.user.id]
+    );
+    const ids = unreadR.rows.map((r) => r.id);
+    if (ids.length) {
+      await pool.query(
+        `INSERT INTO message_reads (message_id, user_id)
+         SELECT UNNEST($1::uuid[]), $2
+         ON CONFLICT DO NOTHING`,
+        [ids, req.user.id]
+      );
+      await pool.query('UPDATE messages SET status = $1 WHERE id = ANY($2)', ['read', ids]);
+    }
+    return res.json({ success: true, data: { markedCount: ids.length } });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
   }
