@@ -201,6 +201,10 @@ CREATE TABLE IF NOT EXISTS conversation_user_settings (
   PRIMARY KEY (conversation_id, user_id)
 );
 ALTER TABLE conversation_user_settings ADD COLUMN IF NOT EXISTS auto_clear_enabled_at TIMESTAMPTZ;
+-- "Delete chat" (per-user, like WhatsApp) — hides it from this user's list
+-- until a newer message arrives; never touches the other participant's copy
+-- or the messages themselves. See GET / and DELETE /:convId below.
+ALTER TABLE conversation_user_settings ADD COLUMN IF NOT EXISTS hidden_at TIMESTAMPTZ;
 
 -- ─── HASHTAGS + MENTIONS ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS hashtags (

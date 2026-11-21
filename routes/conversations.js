@@ -39,6 +39,12 @@ router.get('/', authMw, async (req, res) => {
     // plain unordered SELECT meant a chat with a brand-new message just sat
     // wherever it happened to be instead of floating to the top like every
     // other chat app.
+    //
+    // A conversation this user deleted (conversation_user_settings.hidden_at
+    // set, see DELETE /:convId below) is excluded *unless* a message has
+    // arrived since — deleting a chat only clears it from your own list, it
+    // doesn't stop the other participant from messaging you again, and WhatsApp
+    // -style, that brings it back instead of silently eating their message.
     const cpR = await pool.query(
       `SELECT cp.conversation_id
        FROM conversation_participants cp
@@ -48,7 +54,10 @@ router.get('/', authMw, async (req, res) => {
          ORDER BY created_at DESC LIMIT 1
        ) lm ON TRUE
        LEFT JOIN conversations c ON c.id = cp.conversation_id
+       LEFT JOIN conversation_user_settings cus
+         ON cus.conversation_id = cp.conversation_id AND cus.user_id = cp.user_id
        WHERE cp.user_id = $1
+         AND (cus.hidden_at IS NULL OR lm.created_at > cus.hidden_at)
        ORDER BY COALESCE(lm.created_at, c.created_at) DESC`,
       [req.user.id]
     );
@@ -115,6 +124,30 @@ router.get('/', authMw, async (req, res) => {
     );
 
     return res.json({ data: { result } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// DELETE /conversations/:convId — "delete chat" for this user only. Hides it
+// from GET / (see the hidden_at filter there) without touching the other
+// participant's copy or any messages — a new message arriving un-hides it.
+router.delete('/:convId', authMw, async (req, res) => {
+  try {
+    const check = await pool.query(
+      'SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2',
+      [req.params.convId, req.user.id]
+    );
+    if (!check.rows.length)
+      return res.status(403).json({ errors: { detail: 'Not a participant' } });
+
+    await pool.query(
+      `INSERT INTO conversation_user_settings (conversation_id, user_id, hidden_at)
+       VALUES ($1,$2,NOW())
+       ON CONFLICT (conversation_id, user_id) DO UPDATE SET hidden_at = NOW(), updated_at = NOW()`,
+      [req.params.convId, req.user.id]
+    );
+    return res.json({ success: true });
   } catch (e) {
     return res.status(500).json({ errors: { detail: e.message } });
   }
