@@ -8,8 +8,11 @@ const { Server: SocketIOServer } = require('socket.io');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// 100mb (not 50mb) — /media/upload now carries every file the app sends
+// (images/video/audio/documents) as base64 JSON, which inflates the raw
+// file size by ~33%, so the old 50mb cap left too little headroom for video.
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 app.get('/health', (_, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
@@ -22,6 +25,7 @@ app.use('/streams', require('./routes/streams'));
 app.use('/rtc', require('./routes/rtc'));
 app.use('/events', require('./routes/events'));
 app.use('/stickers', require('./routes/stickers'));
+app.use('/media', require('./routes/media'));
 app.use('/reports', require('./routes/reports'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/admin', express.static(path.join(__dirname, 'public/admin')));

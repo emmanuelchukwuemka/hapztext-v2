@@ -487,3 +487,18 @@ CREATE TRIGGER messages_upd BEFORE UPDATE ON messages FOR EACH ROW EXECUTE FUNCT
 
 DROP TRIGGER IF EXISTS hashtags_upd ON hashtags;
 CREATE TRIGGER hashtags_upd BEFORE UPDATE ON hashtags FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ─── MEDIA BLOBS ──────────────────────────────────────────────────────────────
+-- Stopgap direct-to-Postgres file storage (images/video/audio/documents),
+-- replacing Cloudinary for now since no account for that was available.
+-- Every byte uploaded lives in this table from here on — fine for getting
+-- unblocked today, but migrate to real object storage (Cloudinary/S3/R2)
+-- before this is carrying real user-scale traffic; Postgres isn't built to
+-- hold growing binary media long-term.
+CREATE TABLE IF NOT EXISTS media_blobs (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  mime_type   TEXT        NOT NULL DEFAULT 'application/octet-stream',
+  data        BYTEA       NOT NULL,
+  size_bytes  INT         NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
