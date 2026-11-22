@@ -10,7 +10,10 @@ router.get('/search', authMw, async (req, res) => {
     const r = await pool.query(
       `SELECT p.*,
         (SELECT COUNT(*)::int FROM user_follows WHERE following_id = p.user_id) AS follower_count,
-        (SELECT COUNT(*)::int FROM user_follows WHERE follower_id = p.user_id) AS following_count
+        (SELECT COUNT(*)::int FROM user_follows WHERE follower_id = p.user_id) AS following_count,
+        (SELECT COUNT(*)::int FROM post_mentions WHERE mentioned_user_id = p.user_id) AS mention_count,
+        (SELECT COALESCE(SUM(like_count),0)::int FROM posts
+          WHERE sender_id = p.user_id AND is_reply = FALSE AND is_published = TRUE) AS total_likes
        FROM profiles p WHERE p.username ILIKE $1 OR p.phone_number = $2 LIMIT 20`,
       [`%${q}%`, q]
     );
@@ -21,7 +24,8 @@ router.get('/search', authMw, async (req, res) => {
       profile_picture: p.profile_picture,
       follower_count: p.follower_count,
       following_count: p.following_count,
-      mention_count: 0,
+      mention_count: p.mention_count,
+      total_likes: p.total_likes,
       is_email_verified: true,
       created_at: p.created_at,
       updated_at: p.updated_at,
@@ -42,7 +46,10 @@ router.get('/profiles', authMw, async (req, res) => {
       `SELECT p.*,
         (SELECT COUNT(*)::int FROM user_follows WHERE following_id = p.user_id) AS follower_count,
         (SELECT COUNT(*)::int FROM user_follows WHERE follower_id = p.user_id) AS following_count,
-        (SELECT COUNT(*)::int FROM posts WHERE sender_id = p.user_id AND is_reply = FALSE AND is_published = TRUE) AS post_count
+        (SELECT COUNT(*)::int FROM posts WHERE sender_id = p.user_id AND is_reply = FALSE AND is_published = TRUE) AS post_count,
+        (SELECT COUNT(*)::int FROM post_mentions WHERE mentioned_user_id = p.user_id) AS mention_count,
+        (SELECT COALESCE(SUM(like_count),0)::int FROM posts
+          WHERE sender_id = p.user_id AND is_reply = FALSE AND is_published = TRUE) AS total_likes
        FROM profiles p ORDER BY p.updated_at DESC LIMIT $1 OFFSET $2`,
       [size, offset]
     );
