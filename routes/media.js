@@ -1,18 +1,27 @@
 const router = require('express').Router();
+const multer = require('multer');
 const pool = require('../db');
 const authMw = require('../middleware/auth');
 
-// POST /media/upload — accepts a base64-encoded file and stores it directly
-// in Postgres (media_blobs). Stopgap for when no Cloudinary/S3/R2 account is
-// set up — see the comment above the media_blobs table in schema.sql.
-router.post('/upload', authMw, async (req, res) => {
-  const { data, mimeType } = req.body || {};
-  if (!data) return res.status(400).json({ errors: { detail: 'data (base64) is required' } });
+// Raw binary multipart (not base64-in-JSON) — base64 inflates transfer size
+// by ~33% and costs CPU to encode/decode on both ends, which measurably
+// slowed down every upload (a 3MB photo took ~29s round-trip in testing).
+// memoryStorage keeps the file as a Buffer, ready to insert as bytea with
+// no extra decode step.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
+
+// POST /media/upload — multipart/form-data, field name "file". Stores the
+// raw bytes directly in Postgres (media_blobs). Stopgap for when no
+// Cloudinary/S3/R2 account is set up — see the comment above the
+// media_blobs table in schema.sql.
+router.post('/upload', authMw, upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ errors: { detail: 'file is required' } });
   try {
-    const buffer = Buffer.from(data, 'base64');
+    const buffer = req.file.buffer;
+    const mimeType = req.file.mimetype || 'application/octet-stream';
     const r = await pool.query(
       `INSERT INTO media_blobs (mime_type, data, size_bytes) VALUES ($1,$2,$3) RETURNING id`,
-      [mimeType || 'application/octet-stream', buffer, buffer.length]
+      [mimeType, buffer, buffer.length]
     );
     const id = r.rows[0].id;
     const url = `${req.protocol}://${req.get('host')}/media/${id}`;
