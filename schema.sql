@@ -40,6 +40,14 @@ CREATE TABLE IF NOT EXISTS profiles (
 );
 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone_number TEXT;
+-- Account-level chat defaults (Settings screen) — applied to NEW
+-- conversations only, never retroactively to existing ones.
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS default_chat_theme_index INT NOT NULL DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS default_disappearing TEXT NOT NULL DEFAULT 'off';
+-- NULL = off. A conversation whose last message is older than this many
+-- days gets auto-hidden from the chat list (same hidden_at mechanism as
+-- manually deleting a chat) — swept client-side on chat-list load.
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS auto_delete_chats_after_days INT;
 
 -- ─── FOLLOWS ──────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS user_follows (

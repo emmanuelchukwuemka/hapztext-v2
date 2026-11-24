@@ -23,6 +23,7 @@ router.put('/me', authMw, async (req, res) => {
     'first_name', 'last_name', 'bio', 'occupation', 'location',
     'height', 'weight', 'birth_date', 'ethnicity', 'relationship_status',
     'gender', 'profile_picture', 'cover_picture', 'username',
+    'default_chat_theme_index', 'default_disappearing', 'auto_delete_chats_after_days',
   ];
   const updates = [];
   const values = [];
