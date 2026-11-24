@@ -7,6 +7,13 @@ const path = require('path');
 const { Server: SocketIOServer } = require('socket.io');
 
 const app = express();
+// Render (and most PaaS) terminate TLS at their own proxy and forward plain
+// HTTP internally — without this, req.protocol always reports 'http' even
+// for a real https:// client connection, so routes/media.js was building
+// http:// URLs. Android blocks cleartext http:// by default on recent
+// targetSdk, so every uploaded image/video/audio would eventually fail to
+// *display* even though the upload itself succeeded.
+app.set('trust proxy', 1);
 app.use(cors());
 // 100mb (not 50mb) — /media/upload now carries every file the app sends
 // (images/video/audio/documents) as base64 JSON, which inflates the raw
