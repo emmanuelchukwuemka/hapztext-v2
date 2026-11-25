@@ -393,6 +393,35 @@ router.get('/notifications', authMw, async (req, res) => {
   }
 });
 
+// GET /posts/notifications/unread-count — for a badge on the bell icon.
+// read_at existed in the schema already but nothing ever set it, so every
+// notification was permanently "unread" with no way to show a real count.
+router.get('/notifications/unread-count', authMw, async (req, res) => {
+  try {
+    const r = await pool.query(
+      'SELECT COUNT(*)::int AS count FROM notifications WHERE user_id = $1 AND read_at IS NULL',
+      [req.user.id]
+    );
+    return res.json({ data: { count: r.rows[0].count } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// PUT /posts/notifications/read — marks every one of this user's unread
+// notifications as read (called when they open the notifications screen).
+router.put('/notifications/read', authMw, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE notifications SET read_at = NOW() WHERE user_id = $1 AND read_at IS NULL',
+      [req.user.id]
+    );
+    return res.json({ success: true });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
 // GET /posts/user/:userId
 router.get('/user/:userId', authMw, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
