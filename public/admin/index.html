@@ -40,6 +40,8 @@
       <div class="menu-item" data-screen="reports"><i class="fas fa-flag"></i> Reports</div>
       <div class="menu-item" data-screen="users"><i class="fas fa-users"></i> Users</div>
       <div class="menu-item" data-screen="content"><i class="fas fa-photo-film"></i> Content</div>
+      <div class="menu-item" data-screen="emojis"><i class="fas fa-face-smile"></i> Emojis</div>
+      <div class="menu-item" data-screen="stickers"><i class="fas fa-icons"></i> Stickers</div>
       <div class="menu-item" data-screen="trending"><i class="fas fa-fire"></i> Trending</div>
       <div class="menu-item" data-screen="calls"><i class="fas fa-phone"></i> Random Calls</div>
       <div class="menu-item" data-screen="appeals"><i class="fas fa-gavel"></i> Appeals</div>
@@ -92,6 +94,23 @@
           <div class="filter-chip" data-type="image">Image</div>
         </div>
         <div class="content-grid" id="contentGrid"></div>
+      </div>
+
+      <!-- EMOJIS -->
+      <div class="screen" id="screen-emojis">
+        <div class="filters">
+          <button class="btn btn-primary" id="emojiAddBtn"><i class="fas fa-plus"></i> Add Emoji</button>
+        </div>
+        <div class="content-grid" id="emojiGrid"></div>
+      </div>
+
+      <!-- STICKERS -->
+      <div class="screen" id="screen-stickers">
+        <div class="filters" id="stickerFilters">
+          <div class="filter-chip active" data-status="pending">Pending Approval</div>
+          <div class="filter-chip" data-status="approved">Approved</div>
+        </div>
+        <div class="content-grid" id="stickerGrid"></div>
       </div>
 
       <!-- TRENDING -->

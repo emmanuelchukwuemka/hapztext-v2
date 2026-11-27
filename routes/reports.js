@@ -2,7 +2,7 @@ const router = require('express').Router();
 const pool = require('../db');
 const authMw = require('../middleware/auth');
 
-const VALID_TARGET_TYPES = ['post', 'user', 'message', 'call', 'event'];
+const VALID_TARGET_TYPES = ['post', 'user', 'message', 'call', 'event', 'sticker'];
 const VALID_REASONS = ['spam', 'harassment', 'nudity', 'hate_speech', 'violence', 'other'];
 
 // POST /reports — any authenticated user reporting a post, user, message, or

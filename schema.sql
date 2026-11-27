@@ -267,6 +267,38 @@ CREATE TABLE IF NOT EXISTS stickers (
 );
 CREATE INDEX IF NOT EXISTS idx_stickers_user ON stickers(user_id, created_at DESC);
 
+-- Sharing a sticker submits it for admin approval (is_shared=TRUE,
+-- approved=FALSE) before it appears in anyone else's public feed — the
+-- safety stopgap for user-submitted public images until real content
+-- scanning is wired up.
+ALTER TABLE stickers ADD COLUMN IF NOT EXISTS is_shared  BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE stickers ADD COLUMN IF NOT EXISTS approved   BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE stickers ADD COLUMN IF NOT EXISTS is_blurred BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX IF NOT EXISTS idx_stickers_shared ON stickers(is_shared, approved, created_at DESC);
+
+-- Per-viewer hide for a shared sticker — like a muted word, this only
+-- removes it from this one viewer's public feed, never deletes it or
+-- affects anyone else, and never affects stickers already sent in chats.
+CREATE TABLE IF NOT EXISTS sticker_hides (
+  sticker_id UUID        NOT NULL REFERENCES stickers(id) ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (sticker_id, user_id)
+);
+
+-- ─── CUSTOM EMOJIS (chat) ─────────────────────────────────────────────────────
+-- Admin-managed library replacing the old hardcoded bundled-asset list, so
+-- new emojis can be added/renamed/blurred/removed without an app release.
+CREATE TABLE IF NOT EXISTS emojis (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT        UNIQUE NOT NULL,
+  image_url   TEXT        NOT NULL,
+  is_blurred  BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_by  UUID        REFERENCES users(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_emojis_name ON emojis(name);
+
 -- ─── EVENTS (Discover/Explore "Events" tab) ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS events (
   id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),

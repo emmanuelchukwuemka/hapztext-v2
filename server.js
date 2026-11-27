@@ -32,6 +32,7 @@ app.use('/streams', require('./routes/streams'));
 app.use('/rtc', require('./routes/rtc'));
 app.use('/events', require('./routes/events'));
 app.use('/stickers', require('./routes/stickers'));
+app.use('/emojis', require('./routes/emojis'));
 app.use('/media', require('./routes/media'));
 app.use('/reports', require('./routes/reports'));
 app.use('/api/admin', require('./routes/admin'));

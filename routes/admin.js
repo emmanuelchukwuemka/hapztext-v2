@@ -1091,4 +1091,158 @@ router.delete('/rules/:id', requirePermission('settingsEdit'), async (req, res) 
   }
 });
 
+// ─── EMOJIS ───────────────────────────────────────────────────────────────────
+// Admin-managed library behind the chat composer's emoji picker. The admin
+// dashboard uploads the image file via the existing POST /media/upload (same
+// auth, just not admin-gated) to get a URL, then calls POST here with that
+// URL to register the emoji — keeps file handling in one place instead of
+// wiring multer into this router too.
+
+router.get('/emojis', requirePermission('contentView'), async (req, res) => {
+  try {
+    const r = await pool.query('SELECT * FROM emojis ORDER BY name ASC');
+    return res.json({ data: { result: r.rows } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.post('/emojis', requirePermission('contentView'), async (req, res) => {
+  const { name, imageUrl } = req.body || {};
+  if (!name || !imageUrl) return res.status(400).json({ errors: { detail: 'name and imageUrl are required' } });
+  try {
+    const r = await pool.query(
+      'INSERT INTO emojis (name, image_url, created_by) VALUES ($1,$2,$3) RETURNING *',
+      [name, imageUrl, req.user.id]
+    );
+    logAudit(req, 'ADD_EMOJI', 'emoji', r.rows[0].id, { name });
+    return res.status(201).json({ data: r.rows[0] });
+  } catch (e) {
+    if (e.code === '23505') return res.status(409).json({ errors: { detail: 'An emoji with that name already exists' } });
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.patch('/emojis/:id', requirePermission('contentView'), async (req, res) => {
+  const { name } = req.body || {};
+  if (!name) return res.status(400).json({ errors: { detail: 'name is required' } });
+  try {
+    const r = await pool.query('UPDATE emojis SET name = $1 WHERE id = $2 RETURNING *', [name, req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Emoji not found' } });
+    logAudit(req, 'RENAME_EMOJI', 'emoji', req.params.id, { name });
+    return res.json({ data: r.rows[0] });
+  } catch (e) {
+    if (e.code === '23505') return res.status(409).json({ errors: { detail: 'An emoji with that name already exists' } });
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.put('/emojis/:id/blur', requirePermission('contentDelete'), async (req, res) => {
+  const { isBlurred } = req.body || {};
+  try {
+    const r = await pool.query(
+      'UPDATE emojis SET is_blurred = $1 WHERE id = $2 RETURNING *',
+      [isBlurred !== false, req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Emoji not found' } });
+    logAudit(req, 'BLUR_EMOJI', 'emoji', req.params.id, { isBlurred: r.rows[0].is_blurred });
+    return res.json({ data: r.rows[0] });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.delete('/emojis/:id', requirePermission('contentDelete'), async (req, res) => {
+  try {
+    const r = await pool.query('DELETE FROM emojis WHERE id = $1 RETURNING id', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Emoji not found' } });
+    logAudit(req, 'DELETE_EMOJI', 'emoji', req.params.id);
+    return res.json({ data: { deleted: true } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+// ─── STICKERS (moderation) ────────────────────────────────────────────────────
+// Shared stickers sit in a pending-approval queue (is_shared=TRUE,
+// approved=FALSE) until an admin reviews them here — the safety stopgap for
+// user-submitted public images.
+
+router.get('/stickers', requirePermission('contentView'), async (req, res) => {
+  const status = req.query.status || null; // 'pending' | 'approved' | null (all shared)
+  try {
+    const r = await pool.query(
+      `SELECT s.*, u.username AS owner_username,
+              COUNT(cr.id)::int AS report_count
+       FROM stickers s
+       JOIN users u ON u.id = s.user_id
+       LEFT JOIN content_reports cr ON cr.target_type = 'sticker' AND cr.target_id = s.id AND cr.status = 'pending'
+       WHERE s.is_shared = TRUE
+         AND ($1::text IS NULL
+              OR ($1 = 'pending' AND s.approved = FALSE)
+              OR ($1 = 'approved' AND s.approved = TRUE))
+       GROUP BY s.id, u.username
+       ORDER BY s.created_at DESC`,
+      [status]
+    );
+    return res.json({ data: { result: r.rows } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.put('/stickers/:id/approve', requirePermission('contentView'), async (req, res) => {
+  try {
+    const r = await pool.query(
+      'UPDATE stickers SET approved = TRUE WHERE id = $1 AND is_shared = TRUE RETURNING *',
+      [req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Shared sticker not found' } });
+    logAudit(req, 'APPROVE_STICKER', 'sticker', req.params.id);
+    return res.json({ data: r.rows[0] });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.put('/stickers/:id/blur', requirePermission('contentDelete'), async (req, res) => {
+  const { isBlurred } = req.body || {};
+  try {
+    const r = await pool.query(
+      'UPDATE stickers SET is_blurred = $1 WHERE id = $2 RETURNING *',
+      [isBlurred !== false, req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Sticker not found' } });
+    logAudit(req, 'BLUR_STICKER', 'sticker', req.params.id, { isBlurred: r.rows[0].is_blurred });
+    return res.json({ data: r.rows[0] });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.delete('/stickers/:id', requirePermission('contentDelete'), async (req, res) => {
+  try {
+    const r = await pool.query('DELETE FROM stickers WHERE id = $1 RETURNING id', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ errors: { detail: 'Sticker not found' } });
+    logAudit(req, 'DELETE_STICKER', 'sticker', req.params.id);
+    return res.json({ data: { deleted: true } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
+router.post('/stickers/:id/clear-reports', requirePermission('contentView'), async (req, res) => {
+  try {
+    await pool.query(
+      `UPDATE content_reports SET status = 'dismissed', resolved_by = $1, resolved_at = NOW()
+       WHERE target_type = 'sticker' AND target_id = $2 AND status = 'pending'`,
+      [req.user.id, req.params.id]
+    );
+    logAudit(req, 'CLEAR_STICKER_REPORTS', 'sticker', req.params.id);
+    return res.json({ data: { cleared: true } });
+  } catch (e) {
+    return res.status(500).json({ errors: { detail: e.message } });
+  }
+});
+
 module.exports = router;

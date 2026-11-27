@@ -4,6 +4,7 @@
   let me = null;
   let currentScreen = 'dashboard';
   let contentFilter = 'all';
+  let stickerStatus = 'pending';
   let trendingPeriod = '24h';
   let callsTab = 'active';
   let socket = null;
@@ -147,6 +148,7 @@
   // ─── NAVIGATION ───────────────────────────────────────────────────────
   const titles = {
     dashboard: 'Dashboard', reports: 'Reports', users: 'Users', content: 'Content',
+    emojis: 'Emojis', stickers: 'Stickers',
     trending: 'Trending', calls: 'Random Calls', appeals: 'Appeals', settings: 'Settings',
     staff: 'Staff Management', audit: 'Audit Log',
   };
@@ -167,6 +169,8 @@
     if (screen === 'reports') return loadReports();
     if (screen === 'users') return loadUsers();
     if (screen === 'content') return loadContent();
+    if (screen === 'emojis') return loadEmojis();
+    if (screen === 'stickers') return loadStickers();
     if (screen === 'trending') return loadTrending();
     if (screen === 'calls') return renderCallsTab();
     if (screen === 'appeals') return loadAppeals();
@@ -493,6 +497,199 @@
     $('#cCancel').addEventListener('click', closeDialog);
     $('#cConfirm').addEventListener('click', async () => {
       try { await api(`/api/admin/posts/${id}`, { method: 'DELETE' }); toast('Post deleted', 'success'); closeDialog(); loadContent(); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+  }
+
+  // ─── EMOJIS ───────────────────────────────────────────────────────────
+  $('#emojiAddBtn').addEventListener('click', () => openAddEmojiDialog());
+
+  async function uploadAdminFile(file) {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(API + '/media/upload', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json?.errors?.detail || `Upload failed (${res.status})`);
+    return json.data.url;
+  }
+
+  function openAddEmojiDialog() {
+    openDialog(`
+      <div class="title">Add Emoji</div>
+      <div class="body">
+        <label class="field-label">Image</label>
+        <input type="file" id="emojiFile" accept="image/*" />
+        <label class="field-label">Name (used as [e:name] in chat)</label>
+        <input type="text" id="emojiName" placeholder="e.g. party_face" />
+        <div class="error-text" id="emojiAddError"></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline" id="emojiAddCancel">Cancel</button>
+        <button class="btn btn-primary" id="emojiAddSave">Add</button>
+      </div>`);
+    $('#emojiAddCancel').addEventListener('click', closeDialog);
+    $('#emojiAddSave').addEventListener('click', async () => {
+      const file = $('#emojiFile').files[0];
+      const name = $('#emojiName').value.trim();
+      const errEl = $('#emojiAddError');
+      if (!file || !name) { errEl.textContent = 'An image and a name are required'; return; }
+      const btn = $('#emojiAddSave');
+      btn.disabled = true;
+      try {
+        const imageUrl = await uploadAdminFile(file);
+        await api('/api/admin/emojis', { method: 'POST', body: { name, imageUrl } });
+        toast('Emoji added', 'success');
+        closeDialog();
+        loadEmojis();
+      } catch (e) {
+        errEl.textContent = e.message;
+        btn.disabled = false;
+      }
+    });
+  }
+
+  async function loadEmojis() {
+    const grid = $('#emojiGrid');
+    grid.innerHTML = '<div class="empty-note">Loading…</div>';
+    try {
+      const { result } = await api('/api/admin/emojis');
+      grid.innerHTML = result.length ? result.map(emojiCardHtml).join('') : '<div class="empty-note">No emojis yet</div>';
+      result.forEach((em) => {
+        $(`#emoji-rename-${em.id}`)?.addEventListener('click', () => renameEmoji(em));
+        $(`#emoji-blur-${em.id}`)?.addEventListener('click', () => toggleBlurEmoji(em));
+        $(`#emoji-del-${em.id}`)?.addEventListener('click', () => deleteEmoji(em.id));
+      });
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  function emojiCardHtml(em) {
+    return `
+      <div class="content-card">
+        <div class="preview" style="${em.is_blurred ? 'filter:blur(10px)' : ''}"><img src="${em.image_url}" /></div>
+        <div class="body">
+          <div class="by">[e:${escapeHtml(em.name)}]</div>
+          <div style="display:flex; gap:6px; margin-bottom:8px">
+            <button class="btn btn-outline" style="flex:1" id="emoji-rename-${em.id}"><i class="fas fa-pen"></i></button>
+            <button class="btn btn-outline" style="flex:1" id="emoji-blur-${em.id}"><i class="fas fa-eye${em.is_blurred ? '' : '-slash'}"></i></button>
+          </div>
+          <button class="btn btn-red" id="emoji-del-${em.id}"><i class="fas fa-trash"></i> Delete</button>
+        </div>
+      </div>`;
+  }
+
+  function renameEmoji(em) {
+    openDialog(`
+      <div class="title">Rename Emoji</div>
+      <div class="body">
+        <label class="field-label">Name</label>
+        <input type="text" id="emojiRenameInput" value="${escapeHtml(em.name)}" />
+        <div class="error-text" id="emojiRenameError"></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline" id="emojiRenameCancel">Cancel</button>
+        <button class="btn btn-primary" id="emojiRenameSave">Save</button>
+      </div>`);
+    $('#emojiRenameCancel').addEventListener('click', closeDialog);
+    $('#emojiRenameSave').addEventListener('click', async () => {
+      const name = $('#emojiRenameInput').value.trim();
+      if (!name) return;
+      try {
+        await api(`/api/admin/emojis/${em.id}`, { method: 'PATCH', body: { name } });
+        toast('Emoji renamed', 'success');
+        closeDialog();
+        loadEmojis();
+      } catch (e) { $('#emojiRenameError').textContent = e.message; }
+    });
+  }
+
+  async function toggleBlurEmoji(em) {
+    try {
+      await api(`/api/admin/emojis/${em.id}/blur`, { method: 'PUT', body: { isBlurred: !em.is_blurred } });
+      toast(em.is_blurred ? 'Emoji unblurred' : 'Emoji blurred', 'success');
+      loadEmojis();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function deleteEmoji(id) {
+    openDialog(`
+      <div class="title">Delete this emoji?</div>
+      <div class="body">It will no longer render anywhere it's used in chat.</div>
+      <div class="actions">
+        <button class="btn btn-outline" id="eCancel">Cancel</button>
+        <button class="btn btn-red" id="eConfirm">Delete</button>
+      </div>`);
+    $('#eCancel').addEventListener('click', closeDialog);
+    $('#eConfirm').addEventListener('click', async () => {
+      try { await api(`/api/admin/emojis/${id}`, { method: 'DELETE' }); toast('Emoji deleted', 'success'); closeDialog(); loadEmojis(); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+  }
+
+  // ─── STICKERS (moderation) ──────────────────────────────────────────────
+  $$('#stickerFilters .filter-chip').forEach((chip) => chip.addEventListener('click', () => {
+    stickerStatus = chip.dataset.status;
+    $$('#stickerFilters .filter-chip').forEach((c) => c.classList.toggle('active', c === chip));
+    loadStickers();
+  }));
+
+  async function loadStickers() {
+    const grid = $('#stickerGrid');
+    grid.innerHTML = '<div class="empty-note">Loading…</div>';
+    try {
+      const { result } = await api(`/api/admin/stickers?status=${stickerStatus}`);
+      grid.innerHTML = result.length ? result.map(stickerCardHtml).join('') : '<div class="empty-note">Nothing here</div>';
+      result.forEach((s) => {
+        $(`#sticker-approve-${s.id}`)?.addEventListener('click', async () => {
+          try { await api(`/api/admin/stickers/${s.id}/approve`, { method: 'PUT' }); toast('Sticker approved', 'success'); loadStickers(); }
+          catch (e) { toast(e.message, 'error'); }
+        });
+        $(`#sticker-blur-${s.id}`)?.addEventListener('click', async () => {
+          try { await api(`/api/admin/stickers/${s.id}/blur`, { method: 'PUT', body: { isBlurred: !s.is_blurred } }); toast(s.is_blurred ? 'Sticker unblurred' : 'Sticker blurred', 'success'); loadStickers(); }
+          catch (e) { toast(e.message, 'error'); }
+        });
+        $(`#sticker-clear-${s.id}`)?.addEventListener('click', async () => {
+          try { await api(`/api/admin/stickers/${s.id}/clear-reports`, { method: 'POST' }); toast('Reports cleared', 'success'); loadStickers(); }
+          catch (e) { toast(e.message, 'error'); }
+        });
+        $(`#sticker-del-${s.id}`)?.addEventListener('click', () => deleteSticker(s.id));
+      });
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  function stickerCardHtml(s) {
+    return `
+      <div class="content-card">
+        <div class="preview" style="${s.is_blurred ? 'filter:blur(10px)' : ''}">
+          <img src="${s.image_url}" />
+          ${s.report_count > 0 ? `<div class="preview-badge"><i class="fas fa-flag"></i> ${s.report_count}</div>` : ''}
+        </div>
+        <div class="body">
+          <div class="by">${escapeHtml(s.owner_username)} · ${timeAgo(s.created_at)}</div>
+          <div style="display:flex; gap:6px; margin-bottom:8px">
+            ${!s.approved ? `<button class="btn btn-green" style="flex:1" id="sticker-approve-${s.id}"><i class="fas fa-check"></i> Approve</button>` : ''}
+            <button class="btn btn-outline" style="flex:1" id="sticker-blur-${s.id}"><i class="fas fa-eye${s.is_blurred ? '' : '-slash'}"></i></button>
+          </div>
+          ${s.report_count > 0 ? `<button class="btn btn-outline" style="width:100%; margin-bottom:8px" id="sticker-clear-${s.id}"><i class="fas fa-flag-checkered"></i> Clear Reports</button>` : ''}
+          <button class="btn btn-red" id="sticker-del-${s.id}"><i class="fas fa-trash"></i> Delete</button>
+        </div>
+      </div>`;
+  }
+
+  async function deleteSticker(id) {
+    openDialog(`
+      <div class="title">Delete this sticker?</div>
+      <div class="body">This permanently removes it, including from anyone who already has it shared with them.</div>
+      <div class="actions">
+        <button class="btn btn-outline" id="sCancel">Cancel</button>
+        <button class="btn btn-red" id="sConfirm">Delete</button>
+      </div>`);
+    $('#sCancel').addEventListener('click', closeDialog);
+    $('#sConfirm').addEventListener('click', async () => {
+      try { await api(`/api/admin/stickers/${id}`, { method: 'DELETE' }); toast('Sticker deleted', 'success'); closeDialog(); loadStickers(); }
       catch (e) { toast(e.message, 'error'); }
     });
   }
